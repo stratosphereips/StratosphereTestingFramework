@@ -8,11 +8,12 @@ import time
 import fnmatch
 import tempfile
 import shutil
+import transaction
 
 from stf.common.out import *
 from stf.core.experiment import __experiments__
 #from stf.core.plugins import __modules__
-from stf.core.database import Database
+from stf.core.database import __database__
 
 class Commands(object):
 
@@ -24,6 +25,7 @@ class Commands(object):
             info=dict(obj=self.cmd_info, description="Show information on the opened experiment"),
             clear=dict(obj=self.cmd_clear, description="Clear the console"),
             experiments=dict(obj=self.cmd_experiments, description="List or switch to existing experiments"),
+            exit=dict(obj=self.cmd_exit, description="Exit"),
         )
 
     ##
@@ -45,7 +47,7 @@ class Commands(object):
         for command_name, command_item in self.commands.items():
             rows.append([command_name, command_item['description']])
 
-        rows.append(["exit, quit", "Exit Viper"])
+        #rows.append(["exit, quit", "Exit Viper"])
         rows = sorted(rows, key=lambda entry: entry[0])
 
         print(table(['Command', 'Description'], rows))
@@ -67,13 +69,16 @@ class Commands(object):
     #
     # This command returns information on the open experiment.
     def cmd_info(self, *args):
-        if __experiments__.is_set():
+        if __experiments__.is_set() and __experiments__.current:
+            print_info('Information about the current experiment')
             print(table(
-                ['Key', 'Value'],
+                ['Name', 'Value'],
                 [
-                    ('Name', __experiments__.current.file.name),
+                    ('Name', __experiments__.current.get_name()),
                 ]
             ))
+        else:
+            print_info('There is no current experiment')
 
 
 
@@ -88,6 +93,7 @@ class Commands(object):
         group.add_argument('-l', '--list', action="store_true", help="List all existing experiments")
         group.add_argument('-s', '--switch', metavar='experiment_name', help="Switch to the specified experiment")
         group.add_argument('-c', '--create', metavar='experiment_name', help="Create a new experiment")
+        group.add_argument('-d', '--delete', metavar='experiment_id', help="Delete an experiment")
 
         try:
             args = parser.parse_args(args)
@@ -99,18 +105,28 @@ class Commands(object):
 
             rows = []
             for experiment in __experiments__.list_all():
-                    rows.append([experiment.get_name(), experiment.get_id() , experiment.get_ctime(), __experiments__.is_current(experiment.get_id())])
+                    rows.append([experiment.get_name(), experiment.get_id() , experiment.get_ctime(), True if (__experiments__.current and __experiments__.current.get_id() == experiment.get_id()) else False  ])
 
             print(table(header=['Experiment Name', 'Id', 'Creation Time', 'Current'], rows=rows))
 
         elif args.switch:
             __experiments__.switch_to(args.switch)
-            print_info("Switched to experiment {0}".format(bold(args.switch)))
 
         elif args.create:
             __experiments__.create(args.create)
-            print_info("Created experiment {0}".format(bold(args.create)))
+            __database__.root._p_changed = True
+
+        elif args.delete:
+            __experiments__.delete(args.delete)
+            __database__.root._p_changed = True
 
         else:
             parser.print_usage()
+
+    ##
+    # EXIT
+    #
+    def cmd_exit(self):
+        # Exit is handled in other place. This is so it can appear in the autocompletion
+        pass
 

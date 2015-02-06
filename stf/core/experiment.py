@@ -10,7 +10,7 @@ import transaction
 from stf.common.out import *
 
 
-class Experiment(persistent.Persistent):
+class Experiment(object):
     """
     The Experiment class. This will hold all the data related to an experiment.
     """
@@ -19,8 +19,6 @@ class Experiment(persistent.Persistent):
         self.name = None
         # Timestamp of the creation of the session.
         self.created_at = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
-        self._p_changed = True
-        transaction.commit()
 
     def get_id(self):
         return self.id
@@ -36,16 +34,14 @@ class Experiment(persistent.Persistent):
 
     def set_name(self,name):
         self.name = name
-        self._p_changed = True
-        transaction.commit()
 
 
 class Experiments(persistent.Persistent):
     def __init__(self):
         self.current = None
-        self.experiments = BTrees.OOBTree.BTree()
-        self._p_changed = True
-        transaction.commit()
+        #self.experiments = BTrees.OOBTree.BTree()
+        self.experiments = {}
+        self.exp_id = 0 
 
     def is_current(self, experiment_id):
         if self.current == experiment_id:
@@ -53,30 +49,54 @@ class Experiments(persistent.Persistent):
         else:
             return False
 
-    def switch_to(self, experiment_id):
-        self.current = experiment_id
-        self._p_changed = True
-        print_info("Switched to experiment #{0}".format(self.current.id))
+    def delete(self, value):
+        try:
+            id = int(value)
+            self.experiments.pop(id)
+            print_info("Deleted experiment #{0}".format(id))
+        except ValueError:
+            print_info('You should give an experiment id')
+        except KeyError:
+            print_info('Experiment ID non existant.')
+
+    def switch_to(self, value):
+        try:
+            self.current = self.experiments[int(value)]
+            print_info("Switched to experiment #{0}".format(self.current.get_id()))
+        except ValueError:
+            if isinstance(value,str):
+                for e in self.experiments:
+                    if self.experiments[e].get_name() == value:
+                        self.current = self.experiments[e]
+                        print_info("Switched to experiment {}".format(self.current.get_name()))
 
     def create(self,name):
-        total = len(self.experiments)
-        experiment = Experiment(total + 1)
+        self.exp_id += 1
+        experiment = Experiment(self.exp_id)
         experiment.set_name(name)
 
         # Add new experiment to the list.
         self.experiments[experiment.get_id()] = experiment
+
         # Mark the new session as the current one.
-        self.current = experiment.get_id()
+        self.current = experiment
 
         print_info("Experiment {} created with id {}.".format(name, experiment.get_id()))
 
-        # Commit
-        self._p_changed = True
-        transaction.commit()
 
     def list_all(self):
         """ Return a vector with all the experiments """
         return self.experiments.values()
+
+    def length(self):
+        return len(self.experiments)
+
+    def is_set(self):
+        if self.experiments:
+            return True
+        else:
+            return False
+
 
 __experiments__ = Experiments()
 

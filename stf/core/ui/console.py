@@ -9,19 +9,14 @@ import readline
 import traceback
 
 from stf.common.out import *
-#from stf.core.session import __sessions__
-#from stf.core.plugins import __modules__
-#from stf.core.project import __project__
 from stf.core.ui.commands import Commands
-#from stf.core.storage import get_sample_path
-from stf.core.database import Database
+from stf.core.database import __database__
 
 def logo():
     print("""
     Stratosphere Testing Framework
     """)
 
-    db = Database()
 
 
 class Console(object):
@@ -30,6 +25,9 @@ class Console(object):
         # This will keep the main loop active as long as it's set to True.
         self.active = True
         self.cmd = Commands()
+        # Open the connection to the db
+        self.db = __database__
+        atexit.register(self.db.close)
 
     def parse(self, data):
         root = ''
@@ -95,10 +93,13 @@ class Console(object):
     def stop(self):
         # Stop main loop.
         self.active = False
+        # Close the db
+        self.db.close()
 
     def start(self):
         # Logo.
         logo()
+        self.db.list()
 
         # Setup shell auto-complete.
         def complete(text, state):
@@ -192,15 +193,16 @@ class Console(object):
                         # execute it.
                         if root in self.cmd.commands:
                             self.cmd.commands[root]['obj'](*args)
+                            
                         # If the root command is part of loaded modules, we initialize
                         # the module and execute it.
-                        elif root in __modules__:
-                            module = __modules__[root]['obj']()
-                            module.set_commandline(args)
-                            module.run()
+                        #elif root in __modules__:
+                        #    module = __modules__[root]['obj']()
+                        #    module.set_commandline(args)
+                        #    module.run()
 
-                            self.print_output(module.output, filename)
-                            del(module.output[:])
+                        #    self.print_output(module.output, filename)
+                        #    del(module.output[:])
                         else:
                             print("Command not recognized.")
                     except KeyboardInterrupt:
