@@ -8,24 +8,16 @@ from stf.common.out import *
 from stf.core.experiment import __experiments__
 
 
-
 class Database:
     def __init__(self):
-        #print_info('Setting up the DB')
-        self.storage = ZODB.FileStorage.FileStorage('/tmp/stf.zodb')
+        self.storage = ZODB.FileStorage.FileStorage('temp-db/stf.zodb')
         self.db = ZODB.DB(self.storage)
-
-        # During testing just create it on memory
-        #db = ZODB.DB(None)
-
         self.connection = self.db.open()
         self.root = self.connection.root()
 
         # Experiments
         try:
-            e = self.root['experiments']
-            #print_info('Amount of experiments in the DB: {}'.format(len(e)))
-            __experiments__.experiments = e
+            __experiments__.experiments = self.root['experiments']
         except KeyError:
             self.root['experiments'] = __experiments__.experiments
 

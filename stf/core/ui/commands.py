@@ -100,6 +100,7 @@ class Commands(object):
         except:
             return
 
+        # Subcomand to list
         if args.list:
             print_info("Experiments Available:")
 
@@ -109,13 +110,16 @@ class Commands(object):
 
             print(table(header=['Experiment Name', 'Id', 'Creation Time', 'Current'], rows=rows))
 
+        # Subcomand to switch
         elif args.switch:
             __experiments__.switch_to(args.switch)
 
+        # Subcomand to create
         elif args.create:
             __experiments__.create(args.create)
             __database__.root._p_changed = True
 
+        # Subcomand to delete
         elif args.delete:
             __experiments__.delete(args.delete)
             __database__.root._p_changed = True

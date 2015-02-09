@@ -35,13 +35,17 @@ class Experiment(object):
     def set_name(self,name):
         self.name = name
 
+    def __repr__(self):
+        return (' > Experiment id {}, and name {}.'.format(self.id, self.name))
+
 
 class Experiments(persistent.Persistent):
     def __init__(self):
         self.current = None
         #self.experiments = BTrees.OOBTree.BTree()
+        # The main dictionary of experiments objects using its id as index
         self.experiments = {}
-        self.exp_id = 0 
+        print_info('Creating the Experiments object')
 
     def is_current(self, experiment_id):
         if self.current == experiment_id:
@@ -71,16 +75,22 @@ class Experiments(persistent.Persistent):
                         print_info("Switched to experiment {}".format(self.current.get_name()))
 
     def create(self,name):
-        self.exp_id += 1
-        experiment = Experiment(self.exp_id)
+        """ Create an experiment """
+        # Move the id
+        try:
+            # Get the id of the last experiment in the database
+            exp_id = self.experiments[self.experiments.keys()[-1]].get_id() + 1
+        except KeyError:
+            exp_id = 0
+        
+        # Create the experiment object
+        experiment = Experiment(exp_id)
+        # Give it a name
         experiment.set_name(name)
-
-        # Add new experiment to the list.
+        # Add new experiment to the dict
         self.experiments[experiment.get_id()] = experiment
-
         # Mark the new session as the current one.
         self.current = experiment
-
         print_info("Experiment {} created with id {}.".format(name, experiment.get_id()))
 
 
@@ -89,16 +99,14 @@ class Experiments(persistent.Persistent):
         return self.experiments.values()
 
     def length(self):
+        """ Return the length of the dict of experiments"""
         return len(self.experiments)
 
     def is_set(self):
+        """ Does the experiment dict exists?"""
         if self.experiments:
             return True
         else:
             return False
 
-
 __experiments__ = Experiments()
-
-
-
