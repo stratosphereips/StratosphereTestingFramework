@@ -9,6 +9,7 @@ import transaction
 import os
 
 from stf.common.out import *
+from stf.core.file import File
 
 
 class Dataset(object):
@@ -20,8 +21,11 @@ class Dataset(object):
         self.name = None
         # Timestamp of the creation of the session.
         self.added_on = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
-        self.filename = None
         self.ctime = None
+        # Dict of files related to this dataset
+        self.files = {}
+        # Foler that holds all the files for this dataset
+        self.folder = None
 
     def get_id(self):
         return self.id
@@ -38,17 +42,52 @@ class Dataset(object):
     def set_name(self,name):
         self.name = name
 
-    def set_filename(self,filename):
-        self.filename = filename
+    def get_main_file(self):
+        """ Returns the name of the first file used to create the dataset. Usually the only one"""
+        return self.files[0]
 
-    def get_filename(self):
-        return self.filename 
+    def add_file(self,filename):
+        """ Add a file to this dataset. """
+        # Check that the file exists 
+        if not os.path.exists(filename) or not os.path.isfile(filename):
+            print_error('File not found: {}'.format(filename))
+            return
 
-    def set_creationtime(self,ctime):
-        self.ctime = ctime
+        # Get the new id for this file
+        try:
+            # Get the id of the last file in the dataset
+            f_id = self.files[list(self.files.keys())[-1]].get_id() + 1
+        except (KeyError, IndexError):
+            f_id = 0
 
-    def get_creationtime(self):
-        return self.ctime 
+        # Create the file object
+        f = File(filename, f_id)
+        # Add it to the list of files related to this dataset
+        self.files[f_id] = f
+
+        print_info('Added file {} to dataset {}'.format(filename, self.name))
+
+
+    def del_file(self,value):
+        """ To delete a file associated with the datase. By id or name """
+        pass
+
+    def get_folder(self):
+        return self.folder 
+
+    def set_folder(self, folder):
+        self.folder = folder
+
+    def list_files(self):
+        rows = []
+        for file in self.files.values():
+                rows.append([file.get_name(), file.get_id() , file.get_creationtime()])
+
+        print(table(header=['File Name', 'Id', 'Creation Time'], rows=rows))
+
+    def info_about_file(self,file_id):
+        file = self.files[int(file_id)]
+        file.info()
 
     def __repr__(self):
         return (' > Dataset id {}, and name {}.'.format(self.id, self.name))
@@ -73,23 +112,20 @@ class Datasets(persistent.Persistent):
             print_info('Dataset ID non existant.')
 
 
-    def add(self,filename):
-        """ Add a dataset from a file name"""
+    def create(self,filename):
+        """ Create a new dataset from a file name"""
 
-        # Check that the file exists and is not empty and we can read it
-        #print_info(filename)
+        # Check that the file exists 
         if not os.path.exists(filename) or not os.path.isfile(filename):
             print_error('File not found: {}'.format(filename))
             return
 
-
-        # Get the new id 
+        # Get the new id for this dataset
         try:
             # Get the id of the last dataset in the database
             dat_id = self.datasets[list(self.datasets.keys())[-1]].get_id() + 1
         except (KeyError, IndexError):
             dat_id = 0
-       
 
         # Create the dataset object
         dataset = Dataset(dat_id)
@@ -102,16 +138,14 @@ class Datasets(persistent.Persistent):
         # Set the name
         dataset.set_name(name)
 
-        # Set the filename
-        dataset.set_filename(filename)
+        # Add this file to the dataset
+        dataset.add_file(filename)
 
-        # Set the creation time
-        ctime = time.ctime(os.path.getctime(filename))
-        dataset.set_creationtime(ctime)
+        # Store the folder of this dataset
+        folder = os.path.split(filename)[0]
+        dataset.set_folder(folder)
 
-
-
-        # Add new dataset to the dict
+        # Add th enew dataset to the dict
         self.datasets[dataset.get_id()] = dataset
         print_info("Dataset {} added with id {}.".format(name, dataset.get_id()))
 
@@ -121,9 +155,33 @@ class Datasets(persistent.Persistent):
         print_info("Datasets Available:")
         rows = []
         for dataset in self.datasets.values():
-                rows.append([dataset.get_name(), dataset.get_id() , dataset.get_atime() , dataset.get_filename(), dataset.get_creationtime()])
+                main_file = dataset.get_main_file()
+                rows.append([dataset.get_name(), dataset.get_id() , dataset.get_atime() , main_file.get_short_name(), main_file.get_creationtime(), dataset.get_folder()])
 
-        print(table(header=['Dataset Name', 'Id', 'Added Time', 'File Name', 'Dataset Creation Time'], rows=rows))
+        print(table(header=['Dataset Name', 'Id', 'Added Time', 'Main File Name', 'Main File Creation Time', 'Folder'], rows=rows))
+
+    def list_files(self, dataset_id):
+        """ List all the files in dataset """
+        try:
+            dataset = self.datasets[int(dataset_id)]
+        except KeyError:
+            print_info('No such dataset id')
+            return
+        print_info('Files Available in Dataset {}:'.format(dataset.get_name()))
+        dataset.list_files()
+
+    def info_about_file(self, dataset_id, file_id):
+        """ Give info about a specific file in a dataset"""
+        try:
+            dataset = self.datasets[int(dataset_id)]
+        except KeyError:
+            print_info('No such dataset id')
+        try:
+            dataset.info_about_file(int(file_id))
+        except KeyError:
+            print_info('No such file id')
+
+
 
     def length(self):
         """ Return the length of the dict """

@@ -89,10 +89,13 @@ class Commands(object):
     # This command works with datasets
     def cmd_datasets(self, *args):
         parser = argparse.ArgumentParser(prog="datasets", description="Manage datasets", epilog="Manage datasets")
-        group = parser.add_mutually_exclusive_group()
-        group.add_argument('-l', '--list', action="store_true", help="List all existing datasets")
-        group.add_argument('-a', '--add', metavar='datasate_filename', help="Add a dataset from a file")
-        group.add_argument('-d', '--delete', metavar='dataset_id', help="Delete a dataset")
+        #group = parser.add_mutually_exclusive_group()
+        parser.add_argument('-l', '--list', action="store_true", help="List all existing datasets")
+        parser.add_argument('-c', '--create', metavar='dataset_filename', help="Create a new dataset from a file")
+        parser.add_argument('-d', '--delete', metavar='dataset_id', help="Delete a dataset")
+        parser.add_argument('-f', '--list_files', metavar='dataset_id', help="List all the files in a given dataset")
+        parser.add_argument('-i', '--info', metavar='dataset_id', help="Give more info about a file in a dataset. Put the dataset id here and the file id with the -F option.")
+        parser.add_argument('-F', '--file', metavar='file_id', help="File id to give more info about. Used with -i option")
 
         try:
             args = parser.parse_args(args)
@@ -103,15 +106,23 @@ class Commands(object):
         if args.list:
             __datasets__.list()
 
-        # Subcomand to add
-        elif args.add:
-            __datasets__.add(args.add)
+        # Subcomand to create
+        elif args.create:
+            __datasets__.create(args.create)
             __database__.root._p_changed = True
 
         # Subcomand to delete
         elif args.delete:
             __datasets__.delete(args.delete)
             __database__.root._p_changed = True
+
+        # Subcomand to list files
+        elif args.list_files:
+            __datasets__.list_files(args.list_files)
+
+        # Subcomand to get info about a file in a dataset
+        elif args.info and args.file :
+            __datasets__.info_about_file(args.info, args.file)
 
         else:
             parser.print_usage()

@@ -40,6 +40,7 @@ class Database:
 
     def list(self):
         print_info('Amount of experiments in the DB so far: {}'.format(len(self.root['experiments'])))
+        print_info('Amount of datasets in the DB so far: {}'.format(len(self.root['datasets'])))
 
     def close(self):
         """ Close the db """
