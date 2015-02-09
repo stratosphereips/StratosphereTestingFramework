@@ -80,7 +80,7 @@ class Experiments(persistent.Persistent):
         try:
             # Get the id of the last experiment in the database
             exp_id = self.experiments[self.experiments.keys()[-1]].get_id() + 1
-        except KeyError:
+        except (KeyError, IndexError):
             exp_id = 0
         
         # Create the experiment object

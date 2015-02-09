@@ -1,17 +1,24 @@
 
 import ZODB, ZODB.FileStorage
+import ZODB.config
+from ZODB import DB
+from ZEO import ClientStorage
 import persistent
 import transaction
 from datetime import datetime
 
 from stf.common.out import *
 from stf.core.experiment import __experiments__
+from stf.core.dataset import __datasets__
 
 
 class Database:
     def __init__(self):
-        self.storage = ZODB.FileStorage.FileStorage('temp-db/stf.zodb')
-        self.db = ZODB.DB(self.storage)
+        #self.storage = ZODB.FileStorage.FileStorage('temp-db/stf.zodb')
+        #addr = 'localhost', 9002
+        #self.storage = ClientStorage.ClientStorage(addr)
+        self.db = ZODB.config.databaseFromURL('zeo_database.conf')
+        #self.db = DB(self.storage)
         self.connection = self.db.open()
         self.root = self.connection.root()
 
@@ -22,6 +29,11 @@ class Database:
             self.root['experiments'] = __experiments__.experiments
 
         # Datasets
+        try:
+            __datasets__.datasets = self.root['datasets']
+        except KeyError:
+            self.root['datasets'] = __datasets__.datasets
+
         # Connections
         # Models
         # Comparisons
@@ -34,6 +46,6 @@ class Database:
         transaction.commit()
         self.connection.close()
         self.db.close()
-        self.storage.close()
+        #self.storage.close()
 
 __database__ = Database()
