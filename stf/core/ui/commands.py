@@ -12,7 +12,7 @@ import transaction
 
 from stf.common.out import *
 from stf.core.experiment import __experiments__
-#from stf.core.plugins import __modules__
+from stf.core.dataset import __datasets__
 from stf.core.database import __database__
 
 class Commands(object):
@@ -25,6 +25,7 @@ class Commands(object):
             info=dict(obj=self.cmd_info, description="Show information on the opened experiment"),
             clear=dict(obj=self.cmd_clear, description="Clear the console"),
             experiments=dict(obj=self.cmd_experiments, description="List or switch to existing experiments"),
+            datasets=dict(obj=self.cmd_datasets, description="Manage the datasets"),
             exit=dict(obj=self.cmd_exit, description="Exit"),
         )
 
@@ -79,6 +80,47 @@ class Commands(object):
             ))
         else:
             print_info('There is no current experiment')
+
+
+
+    ##
+    # DATASETS
+    #
+    # This command works with datasets
+    def cmd_datasets(self, *args):
+        parser = argparse.ArgumentParser(prog="datasets", description="Manage datasets", epilog="Manage datasets")
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument('-l', '--list', action="store_true", help="List all existing datasets")
+        group.add_argument('-c', '--create', metavar='experiment_name', help="Create a new dataset")
+        group.add_argument('-d', '--delete', metavar='experiment_id', help="Delete a dataset")
+
+        try:
+            args = parser.parse_args(args)
+        except:
+            return
+
+        # Subcomand to list
+        if args.list:
+            print_info("Datasets Available:")
+
+            rows = []
+            for dataset in __datasets__.list_all():
+                    rows.append([dataset.get_name(), dataset.get_id() , dataset.get_ctime() ])
+
+            print(table(header=['Dataset Name', 'Id', 'Creation Time'], rows=rows))
+
+        # Subcomand to create
+        elif args.create:
+            __datasets__.create(args.create)
+            __database__.root._p_changed = True
+
+        # Subcomand to delete
+        elif args.delete:
+            __datasets__.delete(args.delete)
+            __database__.root._p_changed = True
+
+        else:
+            parser.print_usage()
 
 
 
