@@ -102,8 +102,13 @@ class Experiments(persistent.Persistent):
 
 
     def list_all(self):
-        """ Return a vector with all the experiments """
-        return self.experiments.values()
+        """ List all the experiments """
+        print_info("Experiments Available:")
+
+        rows = []
+        for experiment in list(self.experiments.values()):
+                rows.append([experiment.get_name(), experiment.get_id() , experiment.get_ctime(), True if (self.current and self.current.get_id() == experiment.get_id()) else False  ])
+        print(table(header=['Experiment Name', 'Id', 'Creation Time', 'Current'], rows=rows))
 
     def length(self):
         """ Return the length of the dict of experiments"""

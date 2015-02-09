@@ -138,13 +138,7 @@ class Commands(object):
 
         # Subcomand to list
         if args.list:
-            print_info("Experiments Available:")
-
-            rows = []
-            for experiment in __experiments__.list_all():
-                    rows.append([experiment.get_name(), experiment.get_id() , experiment.get_ctime(), True if (__experiments__.current and __experiments__.current.get_id() == experiment.get_id()) else False  ])
-
-            print(table(header=['Experiment Name', 'Id', 'Creation Time', 'Current'], rows=rows))
+            __experiments__.list_all()
 
         # Subcomand to switch
         elif args.switch:
