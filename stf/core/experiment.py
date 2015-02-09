@@ -42,9 +42,9 @@ class Experiment(object):
 class Experiments(persistent.Persistent):
     def __init__(self):
         self.current = None
-        #self.experiments = BTrees.OOBTree.BTree()
+        self.experiments = BTrees.OOBTree.BTree()
         # The main dictionary of experiments objects using its id as index
-        self.experiments = {}
+        #self.experiments = {}
         print_info('Creating the Experiments object')
 
     def is_current(self, experiment_id):
@@ -69,17 +69,24 @@ class Experiments(persistent.Persistent):
             print_info("Switched to experiment #{0}".format(self.current.get_id()))
         except ValueError:
             if isinstance(value,str):
-                for e in self.experiments:
-                    if self.experiments[e].get_name() == value:
-                        self.current = self.experiments[e]
+                #for e in self.experiments:
+                    #if self.experiments[e].get_name() == value:
+                        #self.current = self.experiments[e]
+                        #print_info("Switched to experiment {}".format(self.current.get_name()))
+                for e in self.experiments.values():
+                    if e.get_name() == value:
+                        self.current = e
                         print_info("Switched to experiment {}".format(self.current.get_name()))
+
+
+
 
     def create(self,name):
         """ Create an experiment """
         # Move the id
         try:
             # Get the id of the last experiment in the database
-            exp_id = self.experiments[self.experiments.keys()[-1]].get_id() + 1
+            exp_id = self.experiments[list(self.experiments.keys())[-1]].get_id() + 1
         except (KeyError, IndexError):
             exp_id = 0
         

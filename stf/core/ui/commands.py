@@ -91,8 +91,8 @@ class Commands(object):
         parser = argparse.ArgumentParser(prog="datasets", description="Manage datasets", epilog="Manage datasets")
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-l', '--list', action="store_true", help="List all existing datasets")
-        group.add_argument('-c', '--create', metavar='experiment_name', help="Create a new dataset")
-        group.add_argument('-d', '--delete', metavar='experiment_id', help="Delete a dataset")
+        group.add_argument('-a', '--add', metavar='datasate_filename', help="Add a dataset from a file")
+        group.add_argument('-d', '--delete', metavar='dataset_id', help="Delete a dataset")
 
         try:
             args = parser.parse_args(args)
@@ -101,17 +101,11 @@ class Commands(object):
 
         # Subcomand to list
         if args.list:
-            print_info("Datasets Available:")
+            __datasets__.list()
 
-            rows = []
-            for dataset in __datasets__.list_all():
-                    rows.append([dataset.get_name(), dataset.get_id() , dataset.get_ctime() ])
-
-            print(table(header=['Dataset Name', 'Id', 'Creation Time'], rows=rows))
-
-        # Subcomand to create
-        elif args.create:
-            __datasets__.create(args.create)
+        # Subcomand to add
+        elif args.add:
+            __datasets__.add(args.add)
             __database__.root._p_changed = True
 
         # Subcomand to delete
