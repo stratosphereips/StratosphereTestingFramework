@@ -123,6 +123,7 @@ class Commands(object):
         # Subcomand to get info about a file in a dataset
         elif args.info and args.file :
             __datasets__.info_about_file(args.info, args.file)
+            __database__.root._p_changed = True
 
         else:
             parser.print_usage()

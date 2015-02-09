@@ -81,9 +81,9 @@ class Dataset(object):
     def list_files(self):
         rows = []
         for file in self.files.values():
-                rows.append([file.get_name(), file.get_id() , file.get_creationtime()])
+                rows.append([file.get_short_name(), file.get_id() , file.get_modificationtime(), file.get_size_in_megabytes(), file.get_duration()])
 
-        print(table(header=['File Name', 'Id', 'Creation Time'], rows=rows))
+        print(table(header=['File Name', 'Id', 'Creation Time', 'Size', 'Duration'], rows=rows))
 
     def info_about_file(self,file_id):
         file = self.files[int(file_id)]
@@ -156,7 +156,7 @@ class Datasets(persistent.Persistent):
         rows = []
         for dataset in self.datasets.values():
                 main_file = dataset.get_main_file()
-                rows.append([dataset.get_name(), dataset.get_id() , dataset.get_atime() , main_file.get_short_name(), main_file.get_creationtime(), dataset.get_folder()])
+                rows.append([dataset.get_name(), dataset.get_id() , dataset.get_atime() , main_file.get_short_name(), main_file.get_modificationtime(), dataset.get_folder()])
 
         print(table(header=['Dataset Name', 'Id', 'Added Time', 'Main File Name', 'Main File Creation Time', 'Folder'], rows=rows))
 
@@ -174,11 +174,11 @@ class Datasets(persistent.Persistent):
         """ Give info about a specific file in a dataset"""
         try:
             dataset = self.datasets[int(dataset_id)]
-        except KeyError:
+        except (KeyError, UnboundLocalError):
             print_info('No such dataset id')
         try:
             dataset.info_about_file(int(file_id))
-        except KeyError:
+        except (KeyError, UnboundLocalError):
             print_info('No such file id')
 
 
