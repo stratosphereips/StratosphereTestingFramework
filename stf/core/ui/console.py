@@ -96,6 +96,7 @@ class Console(object):
         # Stop main loop.
         self.active = False
         # Close the db
+        print_info('Wait until the database is synced...')
         self.db.close()
 
     def start(self):

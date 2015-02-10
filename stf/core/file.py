@@ -16,6 +16,7 @@ class File(object):
 
         # Initialize some inner attributes
         self.capinfo = False
+        self.histoinfo = False
         self.binetflowinfo = False
 
         # Set the modification time
@@ -169,6 +170,26 @@ class File(object):
                 print_error('capinfos is not installed. We can not get more information about the pcap file. apt-get install wireshark-common')
                 return False
 
+    def get_bytes_histo(self):
+        """ Use tshark to get the amount of bytes per 10minutes in the pcap file"""
+        if self.histoinfo == False and self.get_type() == 'pcap':
+            capinfos_path = Popen('bash -i -c "type tshark"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
+
+            if capinfos_path:
+                #tshark -r capture-192.168.57.10-1.pcap -z io,stat,600,"SUM(frame.len)frame.len" -q|grep "<>"|head -n 12
+                (tshark_data,tshark_error) = Popen('tshark -r '+self.get_name()+' -z io,stat,300,"COUNT(frame)frame" -q|grep "<>"|head -n 24', shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate()
+                tshark_info = tshark_data.strip().split('\n')
+                self.histoinfo = {}
+                for line in tshark_info:
+                    header = line.split('|')[1].strip()
+                    info = line.split('|')[2].strip()
+                    self.histoinfo[header] = info
+                return True
+            else:
+                print_error('tshark is not installed. We can not get more information about the pcap file. apt-get install tshark')
+                return False
+        elif self.histoinfo and self.get_type() == 'pcap':
+            return True
 
     def info(self):
         rows = []
@@ -184,9 +205,15 @@ class File(object):
 
         # Get more info from pcap files
         if 'pcap' in self.get_type():
+            # Get capinfo data
             if self.get_capinfos():
                 for infotype in self.capinfo:
                     rows.append([infotype, self.capinfo[infotype]])
+            # Get the amount of bytes every 10 mins
+            if self.get_bytes_histo():
+                rows.append(['Time Range (secs)', 'Amount of Packets' ])
+                for histo_header in sorted(self.histoinfo.keys(), key=lambda a:map(int,a.split('<>'))):
+                    rows.append([histo_header, self.histoinfo[histo_header]])
 
         # Get more info from binetflow files
         if 'binetflow' in self.get_type():

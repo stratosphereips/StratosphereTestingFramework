@@ -14,7 +14,7 @@ from stf.common.out import *
 from stf.core.experiment import __experiments__
 from stf.core.dataset import __datasets__
 from stf.core.database import __database__
-
+from stf.core.connections import __group_of_group_of_connections__
 class Commands(object):
 
     def __init__(self):
@@ -25,6 +25,7 @@ class Commands(object):
             clear=dict(obj=self.cmd_clear, description="Clear the console"),
             experiments=dict(obj=self.cmd_experiments, description="List or switch to existing experiments"),
             datasets=dict(obj=self.cmd_datasets, description="Manage the datasets"),
+            connections=dict(obj=self.cmd_connections, description="Manage the connections. A dataset should be selected first."),
             exit=dict(obj=self.cmd_exit, description="Exit"),
         )
 
@@ -81,6 +82,52 @@ class Commands(object):
             print_info('There is no current experiment')
 
 
+    ##
+    # CONNECTIONS
+    #
+    # This command works with connections
+    def cmd_connections(self, *args):
+        parser = argparse.ArgumentParser(prog="connections", description="Manage connnections", epilog="Manage connections")
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument('-l', '--list', action="store_true", help="List all existing connections")
+        group.add_argument('-c', '--create', action="store_true", help="Create the connections from the binetflow file in the current dataset")
+        group.add_argument('-d', '--delete', metavar="group_of_connections_id", help="Create the connections from the binetflow file in the current dataset")
+
+        try:
+            args = parser.parse_args(args)
+        except:
+            return
+
+        # Subcomand to list
+        if args.list:
+            __group_of_group_of_connections__.list_group_of_connections()
+
+        # Subcomand to create a new group of connections
+        elif args.create:
+            # We should have a current dataset
+            if not __datasets__.current:
+                print_error('You should first select a dataset with datasets -s <id>')
+                return False
+            # We should have a binetflow file in the dataset
+            binetflow_file = __datasets__.current.get_file_type('binetflow')
+            if binetflow_file:
+                __group_of_group_of_connections__.create_group_of_connections(binetflow_file.get_name(), __datasets__.current.get_id(), binetflow_file.get_id() )
+                __database__.root._p_changed = True
+            else:
+                print_error('You should have a binetflow file in your dataset')
+                return False
+
+        # Subcomand to delete a group of connections
+        elif args.delete:
+            if not __datasets__.current:
+                print_error('You should first select a dataset with datasets -s <id>')
+                return False
+            else:
+                # We said that you should select a dataset first, but for deleting is not needed. Only with the id of the group of connections is enough
+                __group_of_group_of_connections__.del_group_of_connections(int(args.delete))
+                __database__.root._p_changed = True
+            
+
 
     ##
     # DATASETS
@@ -88,15 +135,15 @@ class Commands(object):
     # This command works with datasets
     def cmd_datasets(self, *args):
         parser = argparse.ArgumentParser(prog="datasets", description="Manage datasets", epilog="Manage datasets")
-        #group = parser.add_mutually_exclusive_group()
-        parser.add_argument('-l', '--list', action="store_true", help="List all existing datasets")
-        parser.add_argument('-c', '--create', metavar='filename', help="Create a new dataset from a file")
-        parser.add_argument('-d', '--delete', metavar='dataset_id', help="Delete a dataset")
-        parser.add_argument('-s', '--select', metavar='dataset_id', help="Select a dataset to work with. Enables the following commands on the dataset.")
-        parser.add_argument('-f', '--list_files', action='store_true', help="List all the files in the current dataset")
-        parser.add_argument('-F', '--file', metavar='file_id', help="Give more info about the selected file in the current dataset.")
-        parser.add_argument('-a', '--add', metavar='file_id', help="Add a file to the current dataset.")
-        parser.add_argument('-D', '--dele', metavar='file_id', help="Delete a file from the dataset.")
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument('-l', '--list', action="store_true", help="List all existing datasets")
+        group.add_argument('-c', '--create', metavar='filename', help="Create a new dataset from a file")
+        group.add_argument('-d', '--delete', metavar='dataset_id', help="Delete a dataset")
+        group.add_argument('-s', '--select', metavar='dataset_id', help="Select a dataset to work with. Enables the following commands on the dataset.")
+        group.add_argument('-f', '--list_files', action='store_true', help="List all the files in the current dataset")
+        group.add_argument('-F', '--file', metavar='file_id', help="Give more info about the selected file in the current dataset.")
+        group.add_argument('-a', '--add', metavar='file_id', help="Add a file to the current dataset.")
+        group.add_argument('-D', '--dele', metavar='file_id', help="Delete a file from the dataset.")
 
         try:
             args = parser.parse_args(args)

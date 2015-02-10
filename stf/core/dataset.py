@@ -27,6 +27,17 @@ class Dataset(object):
         # Foler that holds all the files for this dataset
         self.folder = None
 
+    def get_file_type(self,type):
+        """ Return the file with type x in this dataset"""
+        for file in __datasets__.current.get_files():
+            if file.get_type() == type:
+                return file
+        return False
+
+    def get_files(self):
+        """ Return the vector of files of the dataset"""
+        return self.files.values()
+
     def get_id(self):
         return self.id
 
@@ -197,6 +208,7 @@ class Datasets(persistent.Persistent):
     def list_files(self):
         """ List all the files in dataset """
         if self.current:
+            print_info('Getting information about the files... please wait')
             print_info('Files Available in Dataset {}:'.format(self.current.get_name()))
             self.current.list_files()
         else:
