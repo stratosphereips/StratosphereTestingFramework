@@ -18,7 +18,6 @@ from stf.core.database import __database__
 class Commands(object):
 
     def __init__(self):
-        # Open connection to the database.
         # Map commands to their related functions.
         self.commands = dict(
             help=dict(obj=self.cmd_help, description="Show this help message"),
@@ -91,11 +90,13 @@ class Commands(object):
         parser = argparse.ArgumentParser(prog="datasets", description="Manage datasets", epilog="Manage datasets")
         #group = parser.add_mutually_exclusive_group()
         parser.add_argument('-l', '--list', action="store_true", help="List all existing datasets")
-        parser.add_argument('-c', '--create', metavar='dataset_filename', help="Create a new dataset from a file")
+        parser.add_argument('-c', '--create', metavar='filename', help="Create a new dataset from a file")
         parser.add_argument('-d', '--delete', metavar='dataset_id', help="Delete a dataset")
-        parser.add_argument('-f', '--list_files', metavar='dataset_id', help="List all the files in a given dataset")
-        parser.add_argument('-i', '--info', metavar='dataset_id', help="Give more info about a file in a dataset. Put the dataset id here and the file id with the -F option.")
-        parser.add_argument('-F', '--file', metavar='file_id', help="File id to give more info about. Used with -i option")
+        parser.add_argument('-s', '--select', metavar='dataset_id', help="Select a dataset to work with. Enables the following commands on the dataset.")
+        parser.add_argument('-f', '--list_files', action='store_true', help="List all the files in the current dataset")
+        parser.add_argument('-F', '--file', metavar='file_id', help="Give more info about the selected file in the current dataset.")
+        parser.add_argument('-a', '--add', metavar='file_id', help="Add a file to the current dataset.")
+        parser.add_argument('-D', '--dele', metavar='file_id', help="Delete a file from the dataset.")
 
         try:
             args = parser.parse_args(args)
@@ -116,13 +117,28 @@ class Commands(object):
             __datasets__.delete(args.delete)
             __database__.root._p_changed = True
 
+        # Subcomand to select a dataset
+        elif args.select :
+            __datasets__.select(args.select)
+
         # Subcomand to list files
         elif args.list_files:
-            __datasets__.list_files(args.list_files)
+            __datasets__.list_files()
+            __database__.root._p_changed = True
 
         # Subcomand to get info about a file in a dataset
-        elif args.info and args.file :
-            __datasets__.info_about_file(args.info, args.file)
+        elif args.file :
+            __datasets__.info_about_file(args.file)
+            __database__.root._p_changed = True
+
+        # Subcomand to add a file to the dataset
+        elif args.add :
+            __datasets__.add_file(args.add)
+            __database__.root._p_changed = True
+
+        # Subcomand to delete a file from the dataset
+        elif args.dele :
+            __datasets__.del_file(args.dele)
             __database__.root._p_changed = True
 
         else:

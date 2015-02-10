@@ -9,12 +9,20 @@ from stf.common.out import *
 class File(object):
     """ A Class to store all the info of different file types"""
     def __init__(self, filename, id):
+        # initialize some of the attributes
         self.filename = filename
         self.id = id
+        self.duration = False
+
+        # Initialize some inner attributes
+        self.capinfo = False
+        self.binetflowinfo = False
+
         # Set the modification time
         self.set_modificationtime()
-        # Guess the file type
+        # Guess the file type to compute some of the info
         self.guess_type()
+
 
     def get_size_in_megabytes(self):
         try:
@@ -31,9 +39,20 @@ class File(object):
             self.compute_size()
         return self.size
 
+    def set_duration(self,duration):
+        self.duration = duration
+
     def get_duration(self):
-        self.get_capinfos()
-        return self.capinfo['Capture duration'] 
+        if not self.duration:
+            if self.type == 'pcap':
+                self.get_capinfos()
+            elif self.type == 'binetflow':
+                self.get_binetflowinfos()
+        # To avoid returing 'False' for the duration
+        if self.duration:
+            return self.duration
+        else:
+            return ''
 
     def compute_size(self):
         size = os.path.getsize(self.get_name())
@@ -80,19 +99,52 @@ class File(object):
     def get_type(self):
         return self.type
 
+    def get_binetflowinfos(self):
+        """ Get info about binetflow files"""
+        if self.binetflowinfo == False and self.get_type() == 'binetflow':
+            # Get the time in the first line, ignoring the header
+            binetflow_first_flow = Popen('head -n 2 '+self.get_name()+'|tail -n 1', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0]
+            first_flow_date = parser.parse(binetflow_first_flow.split(',')[0])
+
+            # Get the time in the last line
+            binetflow_last_flow = Popen('tail -n 1 '+self.get_name(), shell=True, stdin=PIPE, stdout=PIPE).communicate()[0]
+            last_flow_date = parser.parse(binetflow_last_flow.split(',')[0])
+
+            # Compute the difference
+            time_diff = last_flow_date - first_flow_date
+            self.set_duration(time_diff)
+
+            # Now fill the data for binetflows
+            self.binetflowinfo = {}
+            # Duration
+            self.binetflowinfo['Duration'] = self.get_duration()
+
+            # Amount of flows
+            amount_of_flows = Popen('wc -l '+self.get_name(), shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
+            self.binetflowinfo['Amount of flows'] = amount_of_flows
+
+
+        # Always return true
+        return True
+
+
+
     def get_capinfos(self):
         """ Get info with capinfos"""
-        try :
-            ci = self.capinfo
-            return True
-        except AttributeError:
+        if self.capinfo == False and self.get_type() == 'pcap':
             # I don't know how to do this better...
             capinfos_path = Popen('bash -i -c "type capinfos"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
+
             if capinfos_path:
-                capinfos_info = Popen('capinfos '+self.get_name(), shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].strip().split('\n')
+                (capinfos_data,capinfos_error) = Popen('capinfos '+self.get_name(), shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate()
+                capinfos_info = capinfos_data.strip().split('\n')
 
             # Process the capinfo info
-            if capinfos_info:
+            if 'Value too large' in capinfos_error:
+                print_error('There was an error with capinfos. Maybe the file is too large. See https://www.wireshark.org/lists/wireshark-users/200908/msg00008.html')
+                self.capinfo = ''
+                return False
+            elif capinfos_info:
                 self.capinfo = {}
                 for line in capinfos_info:
                     header = line.split(': ')[0].strip()
@@ -101,6 +153,8 @@ class File(object):
                         self.capinfo['Number of packets'] = info
                     elif 'Capture duration' in header:
                         self.capinfo['Capture duration'] = datetime.timedelta(seconds=int(info.split()[0]))
+                        # The default duration of the file can be setted now also
+                        self.set_duration(self.capinfo['Capture duration'])
                     elif 'Start time' in header:
                         self.capinfo['Start time'] = parser.parse(info)
                     elif 'End time' in header:
@@ -109,6 +163,7 @@ class File(object):
                         self.capinfo['MD5'] = info
                     elif 'SHA1' in header:
                         self.capinfo['SHA1'] = info
+
                 return True
             else:
                 print_error('capinfos is not installed. We can not get more information about the pcap file. apt-get install wireshark-common')
@@ -122,7 +177,6 @@ class File(object):
         rows.append(['Type', self.get_type()])
         rows.append(['Creation Time', self.get_modificationtime()])
 
-
         # Get the file size
         if not self.get_size():
             self.compute_size()
@@ -133,6 +187,13 @@ class File(object):
             if self.get_capinfos():
                 for infotype in self.capinfo:
                     rows.append([infotype, self.capinfo[infotype]])
+
+        # Get more info from binetflow files
+        if 'binetflow' in self.get_type():
+            print_info(self.get_binetflowinfos())
+            if self.get_binetflowinfos():
+                for infotype in self.binetflowinfo:
+                    rows.append([infotype, self.binetflowinfo[infotype]])
 
         print(table(header=['Key', 'Value'], rows=rows))
 

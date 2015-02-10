@@ -11,6 +11,7 @@ import traceback
 from stf.common.out import *
 from stf.core.ui.commands import Commands
 from stf.core.database import __database__
+from stf.core.dataset import __datasets__
 
 def logo():
     print("""
@@ -28,6 +29,7 @@ class Console(object):
         # Open the connection to the db
         self.db = __database__
         atexit.register(self.db.close)
+        self.prefix = ''
 
     def parse(self, data):
         root = ''
@@ -142,8 +144,11 @@ class Console(object):
 
         # Main loop.
         while self.active:
-            prefix = ''
-            prompt = prefix + cyan('stf > ', True)
+            if __datasets__.current:
+                self.prefix = red(__datasets__.current.get_name() + ': ')
+            else:
+                self.prefix = ''
+            prompt = self.prefix + cyan('stf > ', True)
 
             # Wait for input from the user.
             try:
