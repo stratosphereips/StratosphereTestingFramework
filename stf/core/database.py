@@ -15,7 +15,7 @@ from stf.core.connections import  __group_of_group_of_connections__
 
 class Database:
     def __init__(self):
-        self.db = ZODB.config.databaseFromURL('confs/zeo_database.conf')
+        self.db = ZODB.config.databaseFromURL('confs/zeo.conf')
         self.connection = self.db.open()
         self.root = self.connection.root()
 

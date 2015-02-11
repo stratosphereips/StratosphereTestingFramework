@@ -7,12 +7,13 @@ import persistent
 import BTrees.OOBTree
 import transaction
 import os
+from subprocess import Popen,PIPE
 
 from stf.common.out import *
 from stf.core.file import File
 
 
-class Dataset(object):
+class Dataset(persistent.Persistent):
     """
     The Dataset class.
     """
@@ -55,12 +56,19 @@ class Dataset(object):
 
     def get_main_file(self):
         """ Returns the name of the first file used to create the dataset. Usually the only one"""
-        return self.files[0]
+        try:
+            return self.files[0]
+        except KeyError:
+            print_error('There is no main file in this dataset!')
+            return False
 
     def del_file(self,fileid):
         """ Delete a file from the dataset"""
         print_info('File {} with id {} deleted from dataset {}'.format(self.files[fileid].get_name(), self.files[fileid].get_id(), self.get_name() ))
         self.files.pop(fileid)
+        # If this was the last file in the dataset, delete the dataset
+        if len(self.files) == 0:
+            __datasets__.delete(__datasets__.current.get_id())
 
 
     def add_file(self,filename):
@@ -90,7 +98,6 @@ class Dataset(object):
         f = File(filename, f_id)
         # Add it to the list of files related to this dataset
         self.files[f_id] = f
-
         print_info('Added file {} to dataset {}'.format(filename, self.name))
 
 
@@ -111,17 +118,58 @@ class Dataset(object):
         file = self.files[int(file_id)]
         file.info()
 
+    def generate_biargus(self):
+        """ Generate the biargus file from the pcap. We know that there is a pcap in the dataset"""
+        print_info('Generating the biargus file.')
+        pcap_file_name = self.get_file_type('pcap').get_name()
+        pcap_file_name_without_extension = '.'.join(pcap_file_name.split('.')[:-1]) 
+        biargus_file_name = pcap_file_name_without_extension + '.biargus'
+        argus_path = Popen('bash -i -c "type argus"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
+        if argus_path:
+            (argus_data,argus_error) = Popen('argus -F ./confs/argus.conf -r '+pcap_file_name+' -w '+biargus_file_name, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate()
+            if not argus_error:
+                # Add the new biargus file to the dataset
+                self.add_file(biargus_file_name)
+            else:
+                print_error('There was an error with argus.')
+                return False
+            return True
+        else:
+            print_error('argus is not installed. We can not generate the flow files. Download and install from http://qosient.com/argus/dev/argus-clients-latest.tar.gz and http://qosient.com/argus/dev/argus-latest.tar.gz')
+            return False
+
+    def generate_binetflow(self):
+        """ Generate the binetflow file from the biargus. We know that there is a biargus in the dataset"""
+        print_info('Generating the binetflow file.')
+        biargus_file_name = self.get_file_type('biargus').get_name()
+        biargus_file_name_without_extension = '.'.join(biargus_file_name.split('.')[:-1]) 
+        binetflow_file_name = biargus_file_name_without_extension + '.binetflow'
+        ra_path = Popen('bash -i -c "type ra"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
+        if ra_path:
+            (ra_data,ra_error) = Popen('ra -F ./confs/ra.conf -n -Z b -r '+biargus_file_name+' > '+binetflow_file_name, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate()
+            if not ra_error:
+                # Add the new biargus file to the dataset
+                self.add_file(binetflow_file_name)
+            else:
+                print_error('There was an error with ra.')
+                return False
+            return True
+        else:
+            print_error('ra is not installed. We can not generate the flow files. Download and install from http://qosient.com/argus/dev/argus-clients-latest.tar.gz and http://qosient.com/argus/dev/argus-latest.tar.gz')
+            return False
+
+
     def __repr__(self):
         return (' > Dataset id {}, and name {}.'.format(self.id, self.name))
+
 
 
 class Datasets(persistent.Persistent):
     def __init__(self):
         self.current = False
         print_info('Creating the Dataset object')
-        self.datasets = BTrees.OOBTree.BTree()
         # The main dictionary of datasets objects using its id as index
-        #self.datasets = {}
+        self.datasets = BTrees.OOBTree.BTree()
 
     def delete(self, value):
         try:
@@ -138,14 +186,13 @@ class Datasets(persistent.Persistent):
     def add_file(self,filename):
         """ Add a new file to the current dataset"""
         if self.current:
-
             # Check that the file exists 
             if not os.path.exists(filename) or not os.path.isfile(filename):
                 print_error('File not found: {}'.format(filename))
                 return
             # Add this file to the dataset
             self.current.add_file(filename)
-
+            self._p_changed = True
         else:
             print_error('No dataset selected. Use -s option.')
 
@@ -179,7 +226,6 @@ class Datasets(persistent.Persistent):
         # Ask for a dataset name or default to the file name
         name = raw_input('Enter the name of the dataset or Enter to use last folder name as its name:')
         if not name:
-            #name = os.path.split(filename)[1]
             name = os.path.split(filename)[0].split('/')[-1]
 
         # Set the name
@@ -243,7 +289,37 @@ class Datasets(persistent.Persistent):
         except KeyError:
             print_error('No such dataset id')
 
+    def generate_argus_files(self):
+        """ Generate the biargus and binetflow files"""
+        if self.current:
+            # Do we have a binetflow file in the dataset?
+            binetflow_in_dataset = self.current.get_file_type('binetflow')
+            # Do we have a binetflow file in the folder?
+            # Do we have a biargus file in the dataset?
+            biargus_in_dataset = self.current.get_file_type('biargus')
+            # Do we have a biargus file in the folder?
 
+            # Do we have a pcap file in the dataset?
+            pcap_in_dataset = self.current.get_file_type('pcap')
+
+            if binetflow_in_dataset:
+                # Ask if we should regenerate
+                pass
+            elif biargus_in_dataset:
+                # We should generate the binetflow
+                # Or regenerate
+                self.current.generate_binetflow()
+            elif pcap_in_dataset:
+                # We should generate the biargus and the binetflow
+                self.current.generate_biargus()
+                self.current.generate_binetflow()
+            else:
+                print_error('At least a pcap file should be in the dataset.')
+
+            # Do we have a pcap file in the folder?
+        else:
+            print_error('No dataset selected. Use -s option.')
+        
 
 
 

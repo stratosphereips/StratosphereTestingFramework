@@ -136,14 +136,15 @@ class Commands(object):
     def cmd_datasets(self, *args):
         parser = argparse.ArgumentParser(prog="datasets", description="Manage datasets", epilog="Manage datasets")
         group = parser.add_mutually_exclusive_group()
-        group.add_argument('-l', '--list', action="store_true", help="List all existing datasets")
-        group.add_argument('-c', '--create', metavar='filename', help="Create a new dataset from a file")
-        group.add_argument('-d', '--delete', metavar='dataset_id', help="Delete a dataset")
+        group.add_argument('-l', '--list', action="store_true", help="List all existing datasets.")
+        group.add_argument('-c', '--create', metavar='filename', help="Create a new dataset from a file.")
+        group.add_argument('-d', '--delete', metavar='dataset_id', help="Delete a dataset.")
         group.add_argument('-s', '--select', metavar='dataset_id', help="Select a dataset to work with. Enables the following commands on the dataset.")
         group.add_argument('-f', '--list_files', action='store_true', help="List all the files in the current dataset")
         group.add_argument('-F', '--file', metavar='file_id', help="Give more info about the selected file in the current dataset.")
         group.add_argument('-a', '--add', metavar='file_id', help="Add a file to the current dataset.")
         group.add_argument('-D', '--dele', metavar='file_id', help="Delete a file from the dataset.")
+        group.add_argument('-g', '--generate', action='store_true', help="Try to generate the biargus and binetflow files for the selected dataset if they do not exists.")
 
         try:
             args = parser.parse_args(args)
@@ -186,6 +187,11 @@ class Commands(object):
         # Subcomand to delete a file from the dataset
         elif args.dele :
             __datasets__.del_file(args.dele)
+            __database__.root._p_changed = True
+
+        # Subcomand to generate the biargus and binetflow files in a  dataset
+        elif args.generate :
+            __datasets__.generate_argus_files()
             __database__.root._p_changed = True
 
         else:

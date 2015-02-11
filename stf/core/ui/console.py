@@ -112,9 +112,9 @@ class Console(object):
                 return cmds[state]
 
             # Try to autocomplete modules.
-            mods = [i for i in __modules__ if i.startswith(text)]
-            if state < len(mods):
-                return mods[state]
+            #mods = [i for i in __modules__ if i.startswith(text)]
+            #if state < len(mods):
+                #return mods[state]
 
             # Then autocomplete paths.
             if text.startswith("~"):
