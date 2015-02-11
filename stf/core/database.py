@@ -11,6 +11,7 @@ from stf.common.out import *
 from stf.core.experiment import __experiments__
 from stf.core.dataset import __datasets__
 from stf.core.connections import  __group_of_group_of_connections__
+from stf.core.models import __groupofgroupofmodels__
 
 
 class Database:
@@ -38,12 +39,18 @@ class Database:
             self.root['connections'] = __group_of_group_of_connections__.group_of_connections
 
         # Models
+        try:
+            __groupofgroupofmodels__.group_of_models = self.root['models']
+        except KeyError:
+            self.root['models'] = __groupofgroupofmodels__.group_of_models
+
         # Comparisons
 
     def list(self):
         print_info('Amount of experiments in the DB so far: {}'.format(len(self.root['experiments'])))
         print_info('Amount of datasets in the DB so far: {}'.format(len(self.root['datasets'])))
-        print_info('Amount of connections in the DB so far: {}'.format(len(self.root['connections'])))
+        print_info('Amount of groups of connections in the DB so far: {}'.format(len(self.root['connections'])))
+        print_info('Amount of groups of models in the DB so far: {}'.format(len(self.root['models'])))
 
     def close(self):
         """ Close the db """

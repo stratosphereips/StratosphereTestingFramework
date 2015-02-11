@@ -9,6 +9,7 @@ import transaction
 import os
 
 from stf.common.out import *
+from stf.core.dataset import __datasets__
 
 
 class Flow(object):
@@ -110,6 +111,9 @@ class Connection(object):
     def get_id(self):
         return self.id
 
+    def get_flows(self):
+        return self.flows.values()
+
 
 
 
@@ -170,6 +174,10 @@ class Group_Of_Connections(object):
             i += 1
         return column_values
 
+    def get_connections(self):
+        """ Returns the list of connections """
+        return self.connections.values()
+
     def get_connection(self, column_values):
         """ Finds the connection for this data or creates a new one"""
         tuple4 = column_values['SrcAddr']+'-'+column_values['DstAddr']+'-'+column_values['Dport']+'-'+column_values['Proto']
@@ -218,6 +226,9 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
         # The index of the group_of_connections is the dataset id
         self.group_of_connections = BTrees.OOBTree.BTree()
 
+    def get_group(self,id):
+        return self.group_of_connections[id]
+
     def create_group_of_connections(self,binetflow_filename, dataset_id, file_id):
         """ Create a group of connections for the current dataset """
 
@@ -243,7 +254,12 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
         print_info("Groups of Connections Available:")
         rows = []
         for group_connection in self.group_of_connections.values():
-                rows.append([group_connection.get_id(), group_connection.get_dataset_id(), group_connection.get_filename(), group_connection.get_amount_of_connections()])
+            if __datasets__.current :
+                if __datasets__.current.get_id() == group_connection.get_id():
+                    rows.append([group_connection.get_id(), group_connection.get_dataset_id(), group_connection.get_filename(), group_connection.get_amount_of_connections()])
+            else:
+                print_error('No dataset selected.')
+                return False
         print(table(header=['Id of Group of Connections', 'Dataset Id', 'Filename', 'Amount of Connections'], rows=rows))
 
     def del_group_of_connections(self, conn_id):

@@ -15,6 +15,9 @@ from stf.core.experiment import __experiments__
 from stf.core.dataset import __datasets__
 from stf.core.database import __database__
 from stf.core.connections import __group_of_group_of_connections__
+from stf.core.models_constructors import __modelsconstructors__
+from stf.core.models import __groupofgroupofmodels__
+
 class Commands(object):
 
     def __init__(self):
@@ -26,6 +29,7 @@ class Commands(object):
             experiments=dict(obj=self.cmd_experiments, description="List or switch to existing experiments"),
             datasets=dict(obj=self.cmd_datasets, description="Manage the datasets"),
             connections=dict(obj=self.cmd_connections, description="Manage the connections. A dataset should be selected first."),
+            models=dict(obj=self.cmd_models, description="Manage the models. A dataset should be selected first."),
             exit=dict(obj=self.cmd_exit, description="Exit"),
         )
 
@@ -80,6 +84,36 @@ class Commands(object):
             ))
         else:
             print_info('There is no current experiment')
+
+
+    ##
+    # MODELS
+    #
+    # This command works with models
+    def cmd_models(self, *args):
+        parser = argparse.ArgumentParser(prog="models", description="Manage models", epilog="Manage models")
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument('-c', '--listconstructors', action="store_true", help="List all models constructors available.")
+        group.add_argument('-l', '--listmodels', action="store_true", help="List all the groups of  models.")
+        group.add_argument('-g', '--generate', action="store_true", help="Generate the models for the current dataset.")
+
+        try:
+            args = parser.parse_args(args)
+        except:
+            return
+
+
+        # Subcomand to list the constructors
+        if args.listconstructors:
+            __modelsconstructors__.list_constructors()
+
+        # Subcomand to list the models
+        elif args.listmodels:
+            __groupofgroupofmodels__.list_groups()
+
+        # Subcomand to generate the models
+        elif args.generate:
+            __groupofgroupofmodels__.generate_group_of_models()
 
 
     ##
