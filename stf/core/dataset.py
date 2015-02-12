@@ -171,6 +171,9 @@ class Datasets(persistent.Persistent):
         # The main dictionary of datasets objects using its id as index
         self.datasets = BTrees.OOBTree.BTree()
 
+    def get_dataset(self,id):
+        return self.datasets[id]
+
     def delete(self, value):
         try:
             id = int(value)

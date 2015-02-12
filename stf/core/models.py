@@ -12,16 +12,21 @@ class Model(object):
     """
     def __init__(self, id):
         self.id = id
+        self.state = ''
 
     def get_id(self):
         return self.id
 
     def add_flow(self,flow):
         """ Get a flow and generate a state to store"""
-        pass
+        self.state += self.constructor.get_state(flow, self.get_id())
 
     def set_constructor(self,constructor):
+        """ Set the constructor of the model"""
         self.constructor = constructor
+
+    def get_state(self):
+        return self.state
 
 
 class Group_of_Models(object):
@@ -33,6 +38,9 @@ class Group_of_Models(object):
     def get_models(self):
         return self.models.values()
 
+    def get_model(self,id):
+        return self.models[id]
+
     def get_id(self):
         return self.id
 
@@ -41,16 +49,33 @@ class Group_of_Models(object):
         # Get the group of connections with our id
         group_of_connections = __group_of_group_of_connections__.get_group(self.id)
 
-        # For each connection
-        for connection in group_of_connections.get_connections():
-            # Create its model
-            model_id = connection.get_id()
-            new_model = Model(model_id)
-            # Set the constructor for this model. Each model has a specific way of constructing the states
-            new_model.set_constructor(__modelsconstructors__.get_default_constructor())
-            for flow in connection.get_flows():
-                new_model.add_flow(flow)
-            self.models[model_id] = new_model
+        if group_of_connections:
+            # For each connection
+            for connection in group_of_connections.get_connections():
+                # Create its model. Remember that the connection id and the model id is the 4-tuple
+                model_id = connection.get_id()
+                new_model = Model(model_id)
+                # Set the constructor for this model. Each model has a specific way of constructing the states
+                new_model.set_constructor(__modelsconstructors__.get_default_constructor())
+                for flow in connection.get_flows():
+                    new_model.add_flow(flow)
+                self.models[model_id] = new_model
+        else:
+            print_error('There is no group of connections to generate the models from. First generate the connections for this dataset.')
+
+    def list_models(self):
+        rows = []
+        for model in self.models.values():
+            rows.append([model.get_id(), model.get_state()])
+        print(table(header=['Model Id', 'State'], rows=rows))
+
+    def delete_model(self,id):
+        try:
+            self.models.pop(id)
+            print_info('Model {} deleted from the group.'.format(id))
+        except KeyError:
+            print_error('That model does not exists.')
+
 
 
 class Group_of_Group_of_Models(persistent.Persistent):
@@ -59,33 +84,70 @@ class Group_of_Group_of_Models(persistent.Persistent):
         self.group_of_models = BTrees.OOBTree.BTree()
 
     def list_groups(self):
+        print_info('Groups of Models')
+        # If we selected a dataset, just print the one belonging to the dataset
         if __datasets__.current:
-            print_info('Groups of Models in the dataset')
             rows = []
             for group in self.group_of_models.values():
                 if group.get_id() == __datasets__.current.get_id():
-                    rows.append([group.get_id(), len(group.get_models())])
-            print(table(header=['Group of Model Id', 'Amount of Models'], rows=rows))
+                    rows.append([group.get_id(), len(group.get_models()), __datasets__.current.get_id(), __datasets__.current.get_name() ])
+            print(table(header=['Group of Model Id', 'Amount of Models', 'Dataset Id', 'Dataset Name'], rows=rows))
+        # Otherwise print them all
         else:
-            print_error('You should select a dataset first.')
-            return False
+            rows = []
+            for group in self.group_of_models.values():
+                dataset = __datasets__.get_dataset(group.get_id())
+                rows.append([group.get_id(), len(group.get_models()), dataset.get_id(), dataset.get_name() ])
+            print(table(header=['Group of Model Id', 'Amount of Models', 'Dataset Id', 'Dataset Name'], rows=rows))
+
+    def delete_group_of_models(self, id):
+        try:
+            self.group_of_models.pop(int(id))
+            print_info('Deleted group of models with id {}'.format(id))
+        except KeyError:
+            print_error('That group of models does not exists.')
 
     def generate_group_of_models(self):
-        # Get the id for the current dataset
-        dataset_id = __datasets__.current.get_id()
-        # This is the same id for the group_of_connections
-        group_of_connections_id = dataset_id
+        if __datasets__.current:
+            # Get the id for the current dataset
+            dataset_id = __datasets__.current.get_id()
+            # We should check that there is a group of connections already for this dataset
+            if not __group_of_group_of_connections__.get_group(dataset_id):
+                # There are not group of connections for this dataset, just generate it
+                print_info('There were no connections for this dataset. Generate them first.')
+                return False
 
-        # Do we have the group of models for this id?
+            # This is the same id for the group_of_models
+            group_of_models_id = dataset_id
+
+            # Do we have the group of models for this id?
+            try:
+                group_of_models = self.group_of_models[group_of_models_id]
+            except KeyError:
+                # First time
+                group_of_models = Group_of_Models(group_of_models_id)
+                self.group_of_models[group_of_models_id] = group_of_models
+
+            # Generate the models
+            group_of_models.generate_models()
+        else:
+            print_error('You should select a dataset')
+
+    def list_models_in_group(self,id):
         try:
-            group_of_models = self.group_of_models[group_of_connections_id]
+            group = self.group_of_models[int(id)]
+            group.list_models()
         except KeyError:
-            # First time
-            group_of_models = Group_of_Models(group_of_connections_id)
-            self.group_of_models[group_of_connections_id] = group_of_models
+            print_error('No such group of models.')
 
-        # Generate the models
-        group_of_models.generate_models()
+    def delete_model(self,id):
+        if __datasets__.current:
+            group_id = __datasets__.current.get_id()
+            group = self.group_of_models[group_id]
+            group.delete_model(id)
+        else:
+            print_error('No dataset selected.')
+
 
 
 __groupofgroupofmodels__ = Group_of_Group_of_Models()

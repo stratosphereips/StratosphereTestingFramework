@@ -94,8 +94,11 @@ class Commands(object):
         parser = argparse.ArgumentParser(prog="models", description="Manage models", epilog="Manage models")
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-c', '--listconstructors', action="store_true", help="List all models constructors available.")
-        group.add_argument('-l', '--listmodels', action="store_true", help="List all the groups of  models.")
+        group.add_argument('-l', '--listgroups', action="store_true", help="List all the groups of  models.")
         group.add_argument('-g', '--generate', action="store_true", help="Generate the models for the current dataset.")
+        group.add_argument('-d', '--deletegroup', metavar="group_model_id", help="Delete a group of models.")
+        group.add_argument('-L', '--listmodels', metavar="group_model_id", help="List the models inside a group.")
+        group.add_argument('-D', '--deletemodel', metavar="model_id", help="Delete a specific model from the group. You should give the 4-tuple that is the id of the model.")
 
         try:
             args = parser.parse_args(args)
@@ -108,13 +111,28 @@ class Commands(object):
             __modelsconstructors__.list_constructors()
 
         # Subcomand to list the models
-        elif args.listmodels:
+        elif args.listgroups:
             __groupofgroupofmodels__.list_groups()
 
         # Subcomand to generate the models
         elif args.generate:
             __groupofgroupofmodels__.generate_group_of_models()
+            __database__.root._p_changed = True
 
+        # Subcomand to delete the models of the current dataset
+        elif args.deletegroup:
+            __groupofgroupofmodels__.delete_group_of_models(int(args.deletegroup))
+            __database__.root._p_changed = True
+
+        # Subcomand to list the models in a group
+        elif args.listmodels:
+            __groupofgroupofmodels__.list_models_in_group(int(args.listmodels))
+            __database__.root._p_changed = True
+
+        # Subcomand to delete a model from the group
+        elif args.deletemodel:
+            __groupofgroupofmodels__.delete_model(args.deletemodel)
+            __database__.root._p_changed = True
 
     ##
     # CONNECTIONS
@@ -124,7 +142,7 @@ class Commands(object):
         parser = argparse.ArgumentParser(prog="connections", description="Manage connnections", epilog="Manage connections")
         group = parser.add_mutually_exclusive_group()
         group.add_argument('-l', '--list', action="store_true", help="List all existing connections")
-        group.add_argument('-c', '--create', action="store_true", help="Create the connections from the binetflow file in the current dataset")
+        group.add_argument('-g', '--generate', action="store_true", help="Generate the connections from the binetflow file in the current dataset")
         group.add_argument('-d', '--delete', metavar="group_of_connections_id", help="Create the connections from the binetflow file in the current dataset")
 
         try:
@@ -137,7 +155,7 @@ class Commands(object):
             __group_of_group_of_connections__.list_group_of_connections()
 
         # Subcomand to create a new group of connections
-        elif args.create:
+        elif args.generate:
             # We should have a current dataset
             if not __datasets__.current:
                 print_error('You should first select a dataset with datasets -s <id>')
@@ -153,13 +171,8 @@ class Commands(object):
 
         # Subcomand to delete a group of connections
         elif args.delete:
-            if not __datasets__.current:
-                print_error('You should first select a dataset with datasets -s <id>')
-                return False
-            else:
-                # We said that you should select a dataset first, but for deleting is not needed. Only with the id of the group of connections is enough
-                __group_of_group_of_connections__.del_group_of_connections(int(args.delete))
-                __database__.root._p_changed = True
+            __group_of_group_of_connections__.del_group_of_connections(int(args.delete))
+            __database__.root._p_changed = True
             
 
 

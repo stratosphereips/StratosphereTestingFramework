@@ -16,6 +16,7 @@ class Flow(object):
     """ A class to manage a single flow"""
     def __init__(self,id):
         self.id = id
+        self.line_separator = ','
 
     def get_id(self):
         return self.id
@@ -61,6 +62,54 @@ class Flow(object):
 
     def add_label(self,label):
         self.label = label
+
+    def get_starttime(self):
+        return self.starttime 
+
+    def get_duration(self):
+        return self.duratin 
+
+    def get_proto(self):
+        return self.proto 
+
+    def get_scraddr(self):
+        return self.srcaddr
+
+    def get_dir(self):
+        return self.dir 
+
+    def get_dstaddr(self):
+        return self.dstaddr
+
+    def get_dport(self):
+        return self.dport
+
+    def get_state(self):
+        return self.state 
+
+    def get_stos(self):
+        return self.stos 
+
+    def get_dtos(self):
+        return self.dtos 
+
+    def get_totpkts(self):
+        return self.totpkts 
+
+    def get_totbytes(self):
+        return self.totbytes
+
+    def get_srcbytes(self):
+        return self.srcbytes 
+
+    def get_label(self):
+        return self.label
+
+    def get_field_separator(self):
+        return self.line_separator
+
+    def __repr__(self):
+        return (self.get_field_separator().join([str(self.get_id()),self.get_starttime(),self.get_duration(),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_state(),self.get_stos(),self.get_dtos(),self.get_totpkts(),self.get_totbytes(),self.get_srcbytes(),self.get_label()]))
 
 
 
@@ -227,7 +276,10 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
         self.group_of_connections = BTrees.OOBTree.BTree()
 
     def get_group(self,id):
-        return self.group_of_connections[id]
+        try:
+            return self.group_of_connections[id]
+        except KeyError:
+            return False
 
     def create_group_of_connections(self,binetflow_filename, dataset_id, file_id):
         """ Create a group of connections for the current dataset """
@@ -253,18 +305,21 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
         """ List all the groups of connections """
         print_info("Groups of Connections Available:")
         rows = []
-        for group_connection in self.group_of_connections.values():
-            if __datasets__.current :
+        if __datasets__.current :
+            for group_connection in self.group_of_connections.values():
                 if __datasets__.current.get_id() == group_connection.get_id():
                     rows.append([group_connection.get_id(), group_connection.get_dataset_id(), group_connection.get_filename(), group_connection.get_amount_of_connections()])
-            else:
-                print_error('No dataset selected.')
-                return False
+        else:
+            for group_connection in self.group_of_connections.values():
+                rows.append([group_connection.get_id(), group_connection.get_dataset_id(), group_connection.get_filename(), group_connection.get_amount_of_connections()])
         print(table(header=['Id of Group of Connections', 'Dataset Id', 'Filename', 'Amount of Connections'], rows=rows))
 
     def del_group_of_connections(self, conn_id):
-        self.group_of_connections.pop(conn_id)
-        print_info('Deleted group of connections with id {}'.format(conn_id))
+        try:
+            self.group_of_connections.pop(conn_id)
+            print_info('Deleted group of connections with id {}'.format(conn_id))
+        except KeyError:
+            print_error('No such group of connections exists.')
 
 
 
