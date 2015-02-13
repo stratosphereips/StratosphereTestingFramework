@@ -97,21 +97,26 @@ class Group_of_Models(object):
 
     def apply_filter(self,model):
         """ Use the stored filter to know what we should match"""
-        for filter_key in self.filter:
-            operator = self.filter[filter_key][0]
-            value = self.filter[filter_key][1]
-            if filter_key == 'statelength':
-                state = model.get_state()
-                if operator == '<':
-                    if len(state) < int(value):
-                        return True
-                elif operator == '>':
-                    if len(state) > int(value):
-                        return True
-                elif operator == '=':
-                    if len(state) == int(value):
-                        return True
-        return False
+        try:
+            self.filter
+            for filter_key in self.filter:
+                operator = self.filter[filter_key][0]
+                value = self.filter[filter_key][1]
+                if filter_key == 'statelength':
+                    state = model.get_state()
+                    if operator == '<':
+                        if len(state) < int(value):
+                            return True
+                    elif operator == '>':
+                        if len(state) > int(value):
+                            return True
+                    elif operator == '=':
+                        if len(state) == int(value):
+                            return True
+            return False
+        except AttributeError:
+            # If we don't have any filter string, just return true and show everything
+            return True
 
     def list_models(self, filter_string=''):
         rows = []

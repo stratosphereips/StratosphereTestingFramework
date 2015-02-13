@@ -284,6 +284,10 @@ class Datasets(persistent.Persistent):
         else:
             return False
 
+    def unselect_current(self):
+        """ UnSelects the current dataset"""
+        self.current = False
+
     def select(self,dataset_id):
         """ Selects a dataset as current to enable other more specific commands"""
         try:

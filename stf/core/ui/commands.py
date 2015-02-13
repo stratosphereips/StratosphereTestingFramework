@@ -196,6 +196,7 @@ class Commands(object):
         group.add_argument('-a', '--add', metavar='file_id', help="Add a file to the current dataset.")
         group.add_argument('-D', '--dele', metavar='file_id', help="Delete a file from the dataset.")
         group.add_argument('-g', '--generate', action='store_true', help="Try to generate the biargus and binetflow files for the selected dataset if they do not exists.")
+        group.add_argument('-u', '--unselect', action='store_true', help="Unselect the current dataset.")
 
         try:
             args = parser.parse_args(args)
@@ -244,6 +245,10 @@ class Commands(object):
         elif args.generate :
             __datasets__.generate_argus_files()
             __database__.root._p_changed = True
+
+        # Subcomand to unselect the current dataset
+        elif args.unselect :
+            __datasets__.unselect_current()
 
         else:
             parser.print_usage()
