@@ -92,13 +92,13 @@ class Commands(object):
     # This command works with models
     def cmd_models(self, *args):
         parser = argparse.ArgumentParser(prog="models", description="Manage models", epilog="Manage models")
-        group = parser.add_mutually_exclusive_group()
-        group.add_argument('-c', '--listconstructors', action="store_true", help="List all models constructors available.")
-        group.add_argument('-l', '--listgroups', action="store_true", help="List all the groups of  models.")
-        group.add_argument('-g', '--generate', action="store_true", help="Generate the models for the current dataset.")
-        group.add_argument('-d', '--deletegroup', metavar="group_model_id", help="Delete a group of models.")
-        group.add_argument('-L', '--listmodels', metavar="group_model_id", help="List the models inside a group.")
-        group.add_argument('-D', '--deletemodel', metavar="model_id", help="Delete a specific model from the group. You should give the 4-tuple that is the id of the model.")
+        parser.add_argument('-c', '--listconstructors', action="store_true", help="List all models constructors available.")
+        parser.add_argument('-l', '--listgroups', action="store_true", help="List all the groups of  models.")
+        parser.add_argument('-g', '--generate', action="store_true", help="Generate the models for the current dataset.")
+        parser.add_argument('-d', '--deletegroup', metavar="group_model_id", help="Delete a group of models.")
+        parser.add_argument('-L', '--listmodels', metavar="group_model_id", help="List the models inside a group.")
+        parser.add_argument('-D', '--deletemodel', metavar="model_id", help="Delete a specific model from the group. You should give the 4-tuple that is the id of the model.")
+        parser.add_argument('-f', '--filter', metavar="filter", help="When listing individual models use this filter. Format: variable[=<>]value. You can use as variables: statelen. For example: statelen>100")
 
         try:
             args = parser.parse_args(args)
@@ -126,7 +126,7 @@ class Commands(object):
 
         # Subcomand to list the models in a group
         elif args.listmodels:
-            __groupofgroupofmodels__.list_models_in_group(int(args.listmodels))
+            __groupofgroupofmodels__.list_models_in_group(int(args.listmodels), filter)
             __database__.root._p_changed = True
 
         # Subcomand to delete a model from the group

@@ -1,5 +1,6 @@
 import persistent
 import BTrees.OOBTree
+import re
 
 from stf.common.out import *
 from stf.core.dataset import __datasets__
@@ -63,9 +64,49 @@ class Group_of_Models(object):
         else:
             print_error('There is no group of connections to generate the models from. First generate the connections for this dataset.')
 
-    def list_models(self):
+    def construct_filter(self,filter):
+        """ Get the filter string and decode all the operations """
+        self.filter = {}
+        # Get the individual parts. We only support and's now.
+        parts_of_filter = re.split('and',filter)
+        for part in parts_of_filter:
+            # Get the key
+            key = re.split('<|>|=', part)[0]
+            value = re.split('<|>|=', part)[1]
+            if part.index('<'):
+                operator = '<'
+            elif part.index('>'):
+                operator = '>'
+            elif part.index('='):
+                operator = '='
+            self.filter[key] = (operator, value)
+
+    def filter(self,model):
+        """ Use the stored filter to know what we should match"""
+        for filter_key in self.filter:
+            operator = self.filter[filter_key][0]
+            value = self.filter[filter_key][1]
+            if filter_key == 'statelength':
+                state = model.get_state()
+                if operator == '<':
+                    if len(state) < value:
+                        return True
+                elif operator == '>':
+                    if len(state) > value:
+                        return True
+                elif operator == '=':
+                    if len(state) == value:
+                        return True
+        return False
+
+    def list_models(self, filter=''):
         rows = []
+        # set the filter
+        #if filter != "":
+            #self.construct_filter(filter)
+
         for model in self.models.values():
+            #if self.filter(model):
             rows.append([model.get_id(), model.get_state()])
         print(table(header=['Model Id', 'State'], rows=rows))
 
@@ -133,20 +174,18 @@ class Group_of_Group_of_Models(persistent.Persistent):
         else:
             print_error('You should select a dataset')
 
-    def list_models_in_group(self,id):
+    def list_models_in_group(self,id, filter=''):
         try:
             group = self.group_of_models[int(id)]
-            group.list_models()
+            group.list_models(filter)
         except KeyError:
             print_error('No such group of models.')
 
     def delete_model(self,id):
-        if __datasets__.current:
-            group_id = __datasets__.current.get_id()
-            group = self.group_of_models[group_id]
-            group.delete_model(id)
-        else:
-            print_error('No dataset selected.')
+        try:
+            self.group_of_models.pop(id)
+        except KeyError:
+            print_error('No such group of models is exists.')
 
 
 

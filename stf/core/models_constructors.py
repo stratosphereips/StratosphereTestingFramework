@@ -57,6 +57,8 @@ class Model_Constructor(object):
             self.models[model_id]['LastTime'] = newtime
             model = self.models[model_id]
 
+
+
         # Compute the periodic
         if not model['T1'] or not model['T2']:
             periodic = -1
@@ -85,7 +87,6 @@ class Model_Constructor(object):
                 periodic = 3
             else:
                 periodic = 4
-
 
         # Compute the duration
         if newduration <= self.get_td1():
@@ -215,7 +216,15 @@ class Model_Constructor(object):
                 elif duration == 3:
                     state += 'Z'
         #print_info('Model: {}, T1: {}, T2: {}, TD:{}, Periodicity: {}, State: {}'.format(model_id, model['T1'], model['T2'], [TD.total_seconds() if not isinstance(TD,int) else -1], periodic, state))
+
+        # We store permanently the T1, T2 and TD values on each flow, so we can later analyze it
+        flow.set_t1(model['T1'])
+        flow.set_t2(model['T2'])
+        flow.set_td(TD)
+        flow.set_state(state)
+
         return state
+
 
     def get_id(self):
         return self.id

@@ -18,6 +18,18 @@ class Flow(object):
         self.id = id
         self.line_separator = ','
 
+    def set_t1(self,t1):
+        self.t1 = t1
+
+    def set_t2(self,t2):
+        self.t2 = t2
+
+    def set_td(self,td):
+        self.td = td
+
+    def set_state(self,state):
+        self.state = state
+
     def get_id(self):
         return self.id
 
