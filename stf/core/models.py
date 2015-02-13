@@ -64,24 +64,38 @@ class Group_of_Models(object):
         else:
             print_error('There is no group of connections to generate the models from. First generate the connections for this dataset.')
 
-    def construct_filter(self,filter):
+    def construct_filter(self,tempfilter):
         """ Get the filter string and decode all the operations """
         self.filter = {}
         # Get the individual parts. We only support and's now.
+        filter = tempfilter.strip("\"") 
         parts_of_filter = re.split('and',filter)
         for part in parts_of_filter:
             # Get the key
-            key = re.split('<|>|=', part)[0]
-            value = re.split('<|>|=', part)[1]
-            if part.index('<'):
+            try:
+                key = re.split('<|>|=', part)[0]
+                value = re.split('<|>|=', part)[1]
+            except IndexError:
+                # No < or > or = in the string. Just stop.
+                break
+            try:
+                part.index('<')
                 operator = '<'
-            elif part.index('>'):
+            except ValueError:
+                pass
+            try:
+                part.index('>')
                 operator = '>'
-            elif part.index('='):
+            except ValueError:
+                pass
+            try:
+                part.index('=')
                 operator = '='
+            except ValueError:
+                pass
             self.filter[key] = (operator, value)
 
-    def filter(self,model):
+    def apply_filter(self,model):
         """ Use the stored filter to know what we should match"""
         for filter_key in self.filter:
             operator = self.filter[filter_key][0]
@@ -89,25 +103,25 @@ class Group_of_Models(object):
             if filter_key == 'statelength':
                 state = model.get_state()
                 if operator == '<':
-                    if len(state) < value:
+                    if len(state) < int(value):
                         return True
                 elif operator == '>':
-                    if len(state) > value:
+                    if len(state) > int(value):
                         return True
                 elif operator == '=':
-                    if len(state) == value:
+                    if len(state) == int(value):
                         return True
         return False
 
-    def list_models(self, filter=''):
+    def list_models(self, filter_string=''):
         rows = []
         # set the filter
-        #if filter != "":
-            #self.construct_filter(filter)
+        if filter_string:
+            self.construct_filter(filter_string)
 
         for model in self.models.values():
-            #if self.filter(model):
-            rows.append([model.get_id(), model.get_state()])
+            if self.apply_filter(model):
+                rows.append([model.get_id(), model.get_state()])
         print(table(header=['Model Id', 'State'], rows=rows))
 
     def delete_model(self,id):

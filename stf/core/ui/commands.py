@@ -96,15 +96,14 @@ class Commands(object):
         parser.add_argument('-l', '--listgroups', action="store_true", help="List all the groups of  models.")
         parser.add_argument('-g', '--generate', action="store_true", help="Generate the models for the current dataset.")
         parser.add_argument('-d', '--deletegroup', metavar="group_model_id", help="Delete a group of models.")
-        parser.add_argument('-L', '--listmodels', metavar="group_model_id", help="List the models inside a group.")
         parser.add_argument('-D', '--deletemodel', metavar="model_id", help="Delete a specific model from the group. You should give the 4-tuple that is the id of the model.")
-        parser.add_argument('-f', '--filter', metavar="filter", help="When listing individual models use this filter. Format: variable[=<>]value. You can use as variables: statelen. For example: statelen>100")
+        parser.add_argument('-f', '--filter', metavar="filterstring", help="When listing individual models use this filter. Format: variable[=<>]value. You can use as variables: statelen. For example: statelen>100")
+        parser.add_argument('-L', '--listmodels', metavar="group_model_id", help="List the models inside a group.")
 
         try:
             args = parser.parse_args(args)
         except:
             return
-
 
         # Subcomand to list the constructors
         if args.listconstructors:
@@ -126,7 +125,12 @@ class Commands(object):
 
         # Subcomand to list the models in a group
         elif args.listmodels:
-            __groupofgroupofmodels__.list_models_in_group(int(args.listmodels), filter)
+            filterstring = ''
+            try:
+                filterstring = args.filter
+            except AttributeError:
+                pass
+            __groupofgroupofmodels__.list_models_in_group(int(args.listmodels), filterstring)
             __database__.root._p_changed = True
 
         # Subcomand to delete a model from the group
