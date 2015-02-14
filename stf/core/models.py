@@ -66,6 +66,13 @@ class Group_of_Models(object):
 
     def construct_filter(self,tempfilter):
         """ Get the filter string and decode all the operations """
+        # If the filter string is empty, delete the filter variable
+        if not tempfilter:
+            try:
+                del self.filter 
+            except:
+                pass
+            return True
         self.filter = {}
         # Get the individual parts. We only support and's now.
         filter = tempfilter.strip("\"") 
@@ -121,20 +128,31 @@ class Group_of_Models(object):
     def list_models(self, filter_string=''):
         rows = []
         # set the filter
-        if filter_string:
-            self.construct_filter(filter_string)
-
+        self.construct_filter(filter_string)
+        amount = 0
+        print('| Model Id | State |')
         for model in self.models.values():
             if self.apply_filter(model):
-                rows.append([model.get_id(), model.get_state()])
-        print(table(header=['Model Id', 'State'], rows=rows))
+                print_row([model.get_id(), model.get_state()])
+                amount += 1
+        print_info('Amount of modules printed: {}'.format(amount))
 
-    def delete_model(self,id):
+    def delete_model_by_id(self,id):
         try:
             self.models.pop(id)
             print_info('Model {} deleted from the group.'.format(id))
         except KeyError:
             print_error('That model does not exists.')
+
+    def count_models(self, filter_string=''):
+        rows = []
+        # set the filter
+        self.construct_filter(filter_string)
+        amount = 0
+        for model in self.models.values():
+            if self.apply_filter(model):
+                amount += 1
+        print_info('Amount of modules filtered: {}'.format(amount))
 
 
 
@@ -200,11 +218,20 @@ class Group_of_Group_of_Models(persistent.Persistent):
         except KeyError:
             print_error('No such group of models.')
 
-    def delete_model(self,id):
+    def delete_a_model_from_the_group_by_id(self,id):
+        # Get the id of the current dataset
+        if __datasets__.current:
+            group_id = __datasets__.current.get_id()
+            self.group_of_models[group_id].delete_model_by_id(id)
+        else:
+            print_error('There is no dataset selected.')
+
+    def count_models_in_group(self,id, filter=''):
         try:
-            self.group_of_models.pop(id)
+            group = self.group_of_models[int(id)]
+            group.count_models(filter)
         except KeyError:
-            print_error('No such group of models is exists.')
+            print_error('No such group of models.')
 
 
 

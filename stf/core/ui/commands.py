@@ -30,6 +30,7 @@ class Commands(object):
             datasets=dict(obj=self.cmd_datasets, description="Manage the datasets"),
             connections=dict(obj=self.cmd_connections, description="Manage the connections. A dataset should be selected first."),
             models=dict(obj=self.cmd_models, description="Manage the models. A dataset should be selected first."),
+            database=dict(obj=self.cmd_models, description="Manage the models. A dataset should be selected first."),
             exit=dict(obj=self.cmd_exit, description="Exit"),
         )
 
@@ -96,9 +97,10 @@ class Commands(object):
         parser.add_argument('-l', '--listgroups', action="store_true", help="List all the groups of  models.")
         parser.add_argument('-g', '--generate', action="store_true", help="Generate the models for the current dataset.")
         parser.add_argument('-d', '--deletegroup', metavar="group_model_id", help="Delete a group of models.")
-        parser.add_argument('-D', '--deletemodel', metavar="model_id", help="Delete a specific model from the group. You should give the 4-tuple that is the id of the model.")
-        parser.add_argument('-f', '--filter', metavar="filterstring", help="When listing individual models use this filter. Format: variable[=<>]value. You can use as variables: statelen. For example: statelen>100")
+        parser.add_argument('-D', '--deletemodel', metavar="model_id", help="Delete a specific model from the group given the id. The id is the 4-tuple of the model.")
+        parser.add_argument('-f', '--filter', metavar="filterstring", help="Use this filter to work with models. Format: \"variable[=<>]value\". You can use as variables: statelen. For example: statelen>100")
         parser.add_argument('-L', '--listmodels', metavar="group_model_id", help="List the models inside a group.")
+        parser.add_argument('-C', '--countmodels', metavar="group_model_id", help="List the models inside a group.")
 
         try:
             args = parser.parse_args(args)
@@ -118,7 +120,7 @@ class Commands(object):
             __groupofgroupofmodels__.generate_group_of_models()
             __database__.root._p_changed = True
 
-        # Subcomand to delete the models of the current dataset
+        # Subcomand to delete the group of models of the current dataset
         elif args.deletegroup:
             __groupofgroupofmodels__.delete_group_of_models(int(args.deletegroup))
             __database__.root._p_changed = True
@@ -133,9 +135,18 @@ class Commands(object):
             __groupofgroupofmodels__.list_models_in_group(int(args.listmodels), filterstring)
             __database__.root._p_changed = True
 
-        # Subcomand to delete a model from the group
+        # Subcomand to delete a model from a group by id
         elif args.deletemodel:
-            __groupofgroupofmodels__.delete_model(args.deletemodel)
+            __groupofgroupofmodels__.delete_a_model_from_the_group_by_id(args.deletemodel)
+            __database__.root._p_changed = True
+
+        # Subcomand to count the amount of models
+        elif args.countmodels:
+            try:
+                filterstring = args.filter
+            except AttributeError:
+                pass
+            __groupofgroupofmodels__.count_models_in_group(args.countmodels, filterstring)
             __database__.root._p_changed = True
 
     ##

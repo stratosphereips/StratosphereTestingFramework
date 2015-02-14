@@ -176,7 +176,6 @@ class File(object):
             capinfos_path = Popen('bash -i -c "type tshark"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
 
             if capinfos_path:
-                #tshark -r capture-192.168.57.10-1.pcap -z io,stat,600,"SUM(frame.len)frame.len" -q|grep "<>"|head -n 12
                 (tshark_data,tshark_error) = Popen('tshark -r '+self.get_name()+' -z io,stat,300,"COUNT(frame)frame" -q|grep "<>"|head -n 24', shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate()
                 tshark_info = tshark_data.strip().split('\n')
                 self.histoinfo = {}
@@ -212,7 +211,7 @@ class File(object):
             # Get the amount of bytes every 10 mins
             if self.get_bytes_histo():
                 rows.append(['Time Range (secs)', 'Amount of Packets' ])
-                for histo_header in sorted(self.histoinfo.keys(), key=lambda a:map(int,a.split('<>'))):
+                for histo_header in sorted(self.histoinfo.keys(), key=lambda a:map(int,a.split(' <> ')[0])):
                     rows.append([histo_header, self.histoinfo[histo_header]])
 
         # Get more info from binetflow files

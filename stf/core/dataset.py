@@ -177,8 +177,17 @@ class Datasets(persistent.Persistent):
     def delete(self, value):
         try:
             id = int(value)
+            # Before deleting the dataset, delete the connections
+            from stf.core.connections import __group_of_group_of_connections__
+            __group_of_group_of_connections__.del_group_of_connections(id)
+            # Before deleting the dataset, delete the connections
+            from stf.core.models import __groupofgroupofmodels__
+            __groupofgroupofmodels__.delete_group_of_models(id)
+
+            # Now delete the dataset
             self.datasets.pop(id)
             print_info("Deleted dataset #{0}".format(id))
+            # If it was the current dataset, we have no current
             if self.current and self.current.get_id() == id:
                 self.current = False
         except ValueError:
@@ -244,6 +253,7 @@ class Datasets(persistent.Persistent):
         # Add th enew dataset to the dict
         self.datasets[dataset.get_id()] = dataset
         print_info("Dataset {} added with id {}.".format(name, dataset.get_id()))
+        self.current = dataset
 
     def list(self):
         """ List all the datasets """
@@ -327,7 +337,6 @@ class Datasets(persistent.Persistent):
         else:
             print_error('No dataset selected. Use -s option.')
         
-
 
 
 
