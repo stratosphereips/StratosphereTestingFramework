@@ -97,10 +97,11 @@ class Commands(object):
         parser.add_argument('-l', '--listgroups', action="store_true", help="List all the groups of  models.")
         parser.add_argument('-g', '--generate', action="store_true", help="Generate the models for the current dataset.")
         parser.add_argument('-d', '--deletegroup', metavar="group_model_id", help="Delete a group of models.")
-        parser.add_argument('-D', '--deletemodel', metavar="model_id", help="Delete a specific model from the group given the id. The id is the 4-tuple of the model.")
+        parser.add_argument('-D', '--deletemodelbyid', metavar="model_id", help="Delete a specific model from the group given the id. The id is the 4-tuple of the model.")
         parser.add_argument('-f', '--filter', metavar="filterstring", help="Use this filter to work with models. Format: \"variable[=<>]value\". You can use as variables: statelen. For example: statelen>100")
         parser.add_argument('-L', '--listmodels', metavar="group_model_id", help="List the models inside a group.")
         parser.add_argument('-C', '--countmodels', metavar="group_model_id", help="List the models inside a group.")
+        parser.add_argument('-E', '--deletemodelbyfilter', metavar="model_id", help="Delete a specific model from the group using the filter.")
 
         try:
             args = parser.parse_args(args)
@@ -136,8 +137,19 @@ class Commands(object):
             __database__.root._p_changed = True
 
         # Subcomand to delete a model from a group by id
-        elif args.deletemodel:
+        elif args.deletemodelbyid:
             __groupofgroupofmodels__.delete_a_model_from_the_group_by_id(args.deletemodel)
+            __database__.root._p_changed = True
+
+        # Subcomand to delete a model from a group by filter
+        elif args.deletemodelbyfilter:
+            filterstring = ''
+            try:
+                filterstring = args.filter
+            except AttributeError:
+                print_error('No filter specified. If you want to delete all the models use -d')
+                return
+            __groupofgroupofmodels__.delete_a_model_from_the_group_by_filter(filterstring)
             __database__.root._p_changed = True
 
         # Subcomand to count the amount of models

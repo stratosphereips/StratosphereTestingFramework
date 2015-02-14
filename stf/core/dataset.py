@@ -126,6 +126,8 @@ class Dataset(persistent.Persistent):
         biargus_file_name = pcap_file_name_without_extension + '.biargus'
         argus_path = Popen('bash -i -c "type argus"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
         if argus_path:
+            # If an .biargus file already exist, we must delete it because argus appends the output
+            (data, error) = Popen('rm -rf '+biargus_file_name, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate()
             (argus_data,argus_error) = Popen('argus -F ./confs/argus.conf -r '+pcap_file_name+' -w '+biargus_file_name, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate()
             if not argus_error:
                 # Add the new biargus file to the dataset

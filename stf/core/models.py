@@ -144,6 +144,24 @@ class Group_of_Models(object):
         except KeyError:
             print_error('That model does not exists.')
 
+    def delete_model_by_filter(self,filter_string):
+        try:
+            # set the filter
+            self.construct_filter(filter_string)
+            amount = 0
+            ids_to_delete = []
+            for model in self.models.values():
+                if self.apply_filter(model):
+                    ids_to_delete.append(model.get_id())
+                    amount += 1
+            # We should delete the models AFTER finding them, if not, for some reason the following model after a match is missed.
+            for id in ids_to_delete:
+                self.models.pop(id)
+            print_info('Amount of modules deleted: {}'.format(amount))
+        except:
+            print_error('An error ocurred while deleting models by filter.')
+
+
     def count_models(self, filter_string=''):
         rows = []
         # set the filter
@@ -223,6 +241,14 @@ class Group_of_Group_of_Models(persistent.Persistent):
         if __datasets__.current:
             group_id = __datasets__.current.get_id()
             self.group_of_models[group_id].delete_model_by_id(id)
+        else:
+            print_error('There is no dataset selected.')
+
+    def delete_a_model_from_the_group_by_filter(self,filterstring):
+        # Get the id of the current dataset
+        if __datasets__.current:
+            group_id = __datasets__.current.get_id()
+            self.group_of_models[group_id].delete_model_by_filter(filterstring)
         else:
             print_error('There is no dataset selected.')
 
