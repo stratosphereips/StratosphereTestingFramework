@@ -56,6 +56,7 @@ class Database:
         """ Close the db """
         transaction.commit()
         self.connection.close()
+        self.db.pack
         self.db.close()
 
 __database__ = Database()

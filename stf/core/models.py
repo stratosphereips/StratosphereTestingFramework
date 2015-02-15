@@ -154,9 +154,13 @@ class Group_of_Models(object):
                 if self.apply_filter(model):
                     ids_to_delete.append(model.get_id())
                     amount += 1
+            # Get the connections
+            group_of_connections = __group_of_group_of_connections__.get_group(self.get_id())
             # We should delete the models AFTER finding them, if not, for some reason the following model after a match is missed.
             for id in ids_to_delete:
                 self.models.pop(id)
+                group_of_connections.del_connection(id)
+
             print_info('Amount of modules deleted: {}'.format(amount))
         except:
             print_error('An error ocurred while deleting models by filter.')

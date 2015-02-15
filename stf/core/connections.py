@@ -251,6 +251,14 @@ class Group_Of_Connections(object):
             self.connections[tuple4] = connection
         return connection
 
+    def del_connection(self,id):
+        """ Delete a specific connection inside the group"""
+        try:
+            self.connections.pop(id)
+        except KeyError:
+            print_error('There is no such connection id.')
+
+
     def create_connections(self):
         """ Read the flows and creates the connections """
         # Don't create the connections if we already have them
