@@ -30,6 +30,7 @@ class Console(object):
         self.db = __database__
         atexit.register(self.db.close)
         self.prefix = ''
+        self.history_path = ''
 
     def parse(self, data):
         root = ''
@@ -104,6 +105,21 @@ class Console(object):
         logo()
         self.db.list()
 
+
+        # The name of the folder should read from the configuration file
+        home_folder = '~/.stf/'
+        stf_home_folder = os.path.expanduser(home_folder)
+
+        # Create the ~/.stf/ folder for storing the history and the database
+        if os.path.exists(stf_home_folder) == False:
+            os.makedirs(stf_home_folder)
+
+        # if there is an history file, read from it and load the history
+        # so that they can be loaded in the shell.
+        # just store it in the home directory.
+        self.history_path = os.path.expanduser(stf_home_folder+'.stfhistory')
+
+
         # Setup shell auto-complete.
         def complete(text, state):
             # Try to autocomplete commands.
@@ -131,17 +147,12 @@ class Console(object):
         # Save commands in history file.
         def save_history(path):
             readline.write_history_file(path)
-
-        # If there is an history file, read from it and load the history
-        # so that they can be loaded in the shell.
-        # Just store it in the home directory.
-        history_path = os.path.expanduser('~/.stfhistory')
-
-        if os.path.exists(history_path):
-            readline.read_history_file(history_path)
+        
+        if os.path.exists(self.history_path):
+            readline.read_history_file(self.history_path)
 
         # Register the save history at program's exit.
-        atexit.register(save_history, path=history_path)
+        atexit.register(save_history, path=self.history_path)
 
         # Main loop.
         while self.active:

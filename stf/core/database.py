@@ -1,8 +1,8 @@
-
 import ZODB, ZODB.FileStorage
 import ZODB.config
 from ZODB import DB
-from ZEO import ClientStorage
+#from ZEO import ClientStorage
+from ZEO.ClientStorage import ClientStorage
 import persistent
 import transaction
 from datetime import datetime
@@ -16,9 +16,15 @@ from stf.core.models import __groupofgroupofmodels__
 
 class Database:
     def __init__(self):
-        self.db = ZODB.config.databaseFromURL('confs/zeo.conf')
+        #self.db = ZODB.config.databaseFromURL('confs/zeo.conf')
+
+        # The server and port should be read from a future configuration
+        server_and_port = ('127.0.0.1', 9002)
+        self.storage = ClientStorage(server_and_port)
+        self.db = DB(self.storage)
         self.connection = self.db.open()
         self.root = self.connection.root()
+
 
         # Experiments
         try:
