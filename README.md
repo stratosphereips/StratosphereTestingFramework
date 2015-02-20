@@ -11,3 +11,9 @@ There is an example configuration in the _confs_ folder that has an example of a
 
 ### Not connecting to the zeo server.
 It can happen that the program hangs while trying to connect to the zeo database server the first time. We should fix this, but for now you should first execute the program with the file storage database conf (example_zeo_file_database.conf copied to zeo.conf)
+
+# TODO
+
+- Make a nice instalation
+    - put configs in /etc or in ~/.stf/
+    - create the database folder

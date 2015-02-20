@@ -9,9 +9,6 @@ import readline
 import traceback
 
 from stf.common.out import *
-from stf.core.ui.commands import Commands
-from stf.core.database import __database__
-from stf.core.dataset import __datasets__
 
 def logo():
     print("""
@@ -24,6 +21,8 @@ class Console(object):
 
     def __init__(self):
         # This will keep the main loop active as long as it's set to True.
+        from stf.core.ui.commands import Commands
+        from stf.core.database import __database__
         self.active = True
         self.cmd = Commands()
         # Open the connection to the db
@@ -101,6 +100,7 @@ class Console(object):
         self.db.close()
 
     def start(self):
+        from stf.core.dataset import __datasets__
         # Logo.
         logo()
         self.db.list()
