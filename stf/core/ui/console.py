@@ -20,16 +20,19 @@ def logo():
 class Console(object):
 
     def __init__(self):
+        # Create the nessesary folders first
+        self.create_folders()
+
         # This will keep the main loop active as long as it's set to True.
         from stf.core.ui.commands import Commands
         from stf.core.database import __database__
         self.active = True
         self.cmd = Commands()
-        # Open the connection to the db
+        # Open the connection to the db. We need to make this here.
         self.db = __database__
+        # When we exit, close the db
         atexit.register(self.db.close)
         self.prefix = ''
-        self.history_path = ''
 
     def parse(self, data):
         root = ''
@@ -97,15 +100,10 @@ class Console(object):
         self.active = False
         # Close the db
         print_info('Wait until the database is synced...')
-        self.db.close()
+        self.db.close()                            
 
-    def start(self):
-        from stf.core.dataset import __datasets__
-        # Logo.
-        logo()
-        self.db.list()
-
-
+    def create_folders(self):
+        """ Create the folders for the program"""
         # The name of the folder should read from the configuration file
         home_folder = '~/.stf/'
         stf_home_folder = os.path.expanduser(home_folder)
@@ -119,6 +117,11 @@ class Console(object):
         # just store it in the home directory.
         self.history_path = os.path.expanduser(stf_home_folder+'.stfhistory')
 
+    def start(self):
+        from stf.core.dataset import __datasets__
+        # Logo.
+        logo()
+        self.db.list()
 
         # Setup shell auto-complete.
         def complete(text, state):

@@ -3,14 +3,44 @@
 The Stratosphere Testing Framework is a research framework to analyze the behavior of network connections using machine learning models and algorithms. Is the main research part of the Stratosphere IPS. Its goal is to help improving the detection models and algorithms.
 
 
-## How to run the server
-runzeo -f database/stf.zodb -a 127.0.0.1:9002
+# Installation
+Before installing stf, you need to install the dependencies:
 
-## How to use the stf without a server
-There is an example configuration in the _confs_ folder that has an example of a local storage without the server. Just make a backup of the example_zeo_server_database.conf file and move the example_zeo_file_database.conf to zeo.conf
+- prettytable (apt-get install python-prettytable)
+- transaction (apt-get install python-transaction)
+- zodb (apt-get install python-zodb)
+- 
 
-### Not connecting to the zeo server.
-It can happen that the program hangs while trying to connect to the zeo database server the first time. We should fix this, but for now you should first execute the program with the file storage database conf (example_zeo_file_database.conf copied to zeo.conf)
+Then you are ready to use stf.py.
+
+# How to use the stf program
+The most common usage of the program is to just execute it:
+
+> stf.py
+
+By default the program will search for the configuration file in confs/stf.conf. From that file it will read where are the configuration files for the ZODB and the ZEO server if it is being used. Upon the first run, stf will create the folder ~/.stf/, containing the .stfhistory file (the history of commands).
+The database folder is also relative to the local folder and is by default ./database 
+
+There are two ways of using the database. Since stf is designed to be a single host program and a multi-user program, it can run with a file-based database or with a server-based database. The file-based database is suited for single user and single host environments, whereas the server-based database is suited for multi-user and remote host environments.
+
+# How to use the stf program with a file database
+By default stf is using the zodb.conf file, which is prepared to use a file-based database. This means that the default zodb.conf file already includes the file server configuration. The location of the file database is by default ./database
+
+# How to use the stf with a database server
+If you want to separate the database from the clients, probably to allow several users to use stf, you need to:
+
+1- Copy the example conf file *confs/example_zodb_server_database.conf* to the *confs/zodb.conf* file. 
+2- Make sure that the *confs/zeo.conf* file is with the same content as the *confs/example_zeo.conf* file. 
+3- Start the server with the command 
+    > runzeo -C confs/zeo.conf
+4- Use the stf.py normally.
+
+# Uninstall
+Unfortunately distutils does not have a way to uninstall packages. So your best option is
+
+> sudo python setup.py install --record files.txt
+> sudo bash -c "cat files.txt | xargs rm -rf"
+
 
 # TODO
 

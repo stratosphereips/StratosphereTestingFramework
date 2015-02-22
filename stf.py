@@ -13,14 +13,15 @@ parser.add_argument('-c', '--config', help='Configuration file.', action='store'
 args = parser.parse_args()
 
 # Read the conf file.
+# If we were given a conf file, use it
 if args.config and os.path.isfile(args.config):
     config_file = args.config
-elif os.path.isfile('/etc/stf.conf'):
-    config_file = '/etc/stf.conf'
-elif os.path.isfile('confs/stf.conf'):
-    config_file = 'confs/stf.conf'
+# If not, search for the conf file in our local folder
+elif os.path.isfile('./confs/stf.conf'):
+    config_file = './confs/stf.conf'
 else:
-    print_error('No configuration file found.')
+    print 'No configuration file found. Either give one with -c or put one in the local confs folder.'
+    exit(-1)
 
 # Load the configuration
 if __configuration__.read_conf_file(os.path.expanduser(config_file)):

@@ -1,7 +1,4 @@
-import ZODB, ZODB.FileStorage
 import ZODB.config
-from ZODB import DB
-from ZEO.ClientStorage import ClientStorage
 import persistent
 import transaction
 from datetime import datetime
@@ -20,9 +17,6 @@ class Database:
         self.db = ZODB.config.databaseFromURL(dbconffile)
         
         # The server and port should be read from a future configuration
-        #server_and_port = ('127.0.0.1', 9002)
-        #self.storage = ClientStorage(server_and_port)
-        #self.db = DB(self.storage)
         self.connection = self.db.open()
         self.root = self.connection.root()
 
