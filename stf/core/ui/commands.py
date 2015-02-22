@@ -11,17 +11,17 @@ import shutil
 import transaction
 
 from stf.common.out import *
-from stf.core.experiment import __experiments__
-from stf.core.dataset import __datasets__
-from stf.core.database import __database__
-from stf.core.connections import __group_of_group_of_connections__
-from stf.core.models_constructors import __modelsconstructors__
-from stf.core.models import __groupofgroupofmodels__
 
 class Commands(object):
 
     def __init__(self):
         # Map commands to their related functions.
+        from stf.core.dataset import __datasets__
+        from stf.core.experiment import __experiments__
+        from stf.core.database import __database__
+        from stf.core.connections import __group_of_group_of_connections__
+        from stf.core.models_constructors import __modelsconstructors__
+        from stf.core.models import __groupofgroupofmodels__
         self.commands = dict(
             help=dict(obj=self.cmd_help, description="Show this help message"),
             info=dict(obj=self.cmd_info, description="Show information on the opened experiment"),

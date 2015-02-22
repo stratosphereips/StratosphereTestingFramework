@@ -25,7 +25,11 @@ class Console(object):
 
         # This will keep the main loop active as long as it's set to True.
         from stf.core.ui.commands import Commands
+
+        # From some reason we should initialize the db from a method, we can not do it in the constructor
         from stf.core.database import __database__
+        __database__.start()
+
         self.active = True
         self.cmd = Commands()
         # Open the connection to the db. We need to make this here.

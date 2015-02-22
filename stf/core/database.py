@@ -3,16 +3,20 @@ import persistent
 import transaction
 from datetime import datetime
 
+from stf.core.configuration import __configuration__
 from stf.common.out import *
 from stf.core.experiment import __experiments__
 from stf.core.dataset import __datasets__
 from stf.core.connections import  __group_of_group_of_connections__
 from stf.core.models import __groupofgroupofmodels__
-from stf.core.configuration import __configuration__
-
 
 class Database:
     def __init__(self):
+        """ Initialize """
+        pass
+
+    def start(self):
+        """ From some reason we should initialize the db from a method, we can not do it in the constructor """
         dbconffile = __configuration__.get_zodbconf_file()
         self.db = ZODB.config.databaseFromURL(dbconffile)
         

@@ -176,7 +176,7 @@ class Datasets(persistent.Persistent):
     def get_dataset(self,id):
         return self.datasets[id]
 
-    def delete(self, value):
+    def delete(self, value): 
         try:
             id = int(value)
             # Before deleting the dataset, delete the connections
