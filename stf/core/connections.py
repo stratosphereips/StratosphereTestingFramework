@@ -73,6 +73,12 @@ class Flow(object):
     def add_srcbytes(self, srcbytes):
         self.srcbytes = srcbytes
 
+    def add_srcUdata(self, srcUdata):
+        self.srcUdata = srcUdata
+
+    def add_dstUdata(self, dstUdata):
+        self.dstUdata = dstUdata
+
     def add_label(self,label):
         self.label = label
 
@@ -115,6 +121,12 @@ class Flow(object):
     def get_srcbytes(self):
         return self.srcbytes 
 
+    def get_srcUdata(self):
+        return self.srcUdata
+
+    def get_dstUdata(self):
+        return self.dstUdata
+
     def get_label(self):
         return self.label
 
@@ -122,7 +134,7 @@ class Flow(object):
         return self.line_separator
 
     def __repr__(self):
-        return (self.get_field_separator().join([str(self.get_id()),self.get_starttime(),self.get_duration(),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_state(),self.get_stos(),self.get_dtos(),self.get_totpkts(),self.get_totbytes(),self.get_srcbytes(),self.get_label()]))
+        return (self.get_field_separator().join([str(self.get_id()),self.get_starttime(),self.get_duration(),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_state(),self.get_stos(),self.get_dtos(),self.get_totpkts(),self.get_totbytes(),self.get_srcbytes(),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
 
 
 
@@ -161,6 +173,16 @@ class Connection(object):
             # It can happen that we don't have the SrcBytes column
             pass
         try:
+            new_flow.add_srcUdata(column_values['srcUdata'])
+        except KeyError:
+            # It can happen that we don't have the srcUdata column
+            pass
+        try:
+            new_flow.add_dstUdata(column_values['dstUdata'])
+        except KeyError:
+            # It can happen that we don't have the dstUdata column
+            pass
+        try:
             new_flow.add_label(column_values['Label'])
         except KeyError:
             # It can happen that we don't have the label column
@@ -175,6 +197,10 @@ class Connection(object):
 
     def get_flows(self):
         return self.flows.values()
+
+    def show_flows(self):
+        for flow in self.flows:
+            print_info(self.flows[flow])
 
 
 
@@ -213,7 +239,7 @@ class Group_Of_Connections(object):
 
     def find_columns_names(self,line):
         """ Usually the columns in a binetflow file are 
-        StartTime,Dur,Proto,SrcAddr,Sport,Dir,DstAddr,Dport,State,sTos,dTos,TotPkts,TotBytes,SrcBytes,Label
+        StartTime,Dur,Proto,SrcAddr,Sport,Dir,DstAddr,Dport,State,sTos,dTos,TotPkts,TotBytes,SrcBytes,srcUdata,dstUdata,Label
         """
         self.columns_names = line.split(self.line_separator)
             
@@ -228,12 +254,57 @@ class Group_Of_Connections(object):
             self.line_separator = ','
 
     def extract_columns_values(self, line):
+        """ Given a line text of a flow, extract the values for each column """
         column_values = {}
         i = 0
         temp_values = line.split(self.line_separator)
+        print_info(line)
+        if len(temp_values) > len(self.columns_names):
+            # If there is only one occurrence of the separator char, then try to recover...
+            print_error('There is one flow that includes one occurrence of the separation character. We will try to recover...')
+
+            # Find the index of srcudata
+            srcudata_index_starts = 0
+            for values in temp_values:
+                if 's[' in values:
+                    break
+                else:
+                    srcudata_index_starts += 1 
+
+            # Find the index of dstudata
+            dstudata_index_starts = 0
+            for values in temp_values:
+                if 'd[' in values:
+                    break
+                else:
+                    dstudata_index_starts += 1 
+           
+            # Get all the src data
+            srcudata_index_ends = dstudata_index_starts
+            temp_srcudata = temp_values[srcudata_index_starts:srcudata_index_ends]
+            srcudata = ''
+            for i in temp_srcudata:
+                srcudata = srcudata + i
+
+            # Get all the dst data. The end is one before the last field. That we know is the label.
+            dstudata_index_ends = len(temp_values) - 1
+            temp_dstudata = temp_values[dstudata_index_starts:dstudata_index_ends]
+            dstudata = ''
+            for j in temp_dstudata:
+                dstudata = dstudata + j
+
+            label = temp_values[-1]
+            
+            end_of_good_data = srcudata_index_starts 
+            temp_values = temp_values[0:end_of_good_data]
+            temp_values.append(srcudata)
+            temp_values.append(dstudata)
+            temp_values.append(label)
+
+        index = 0
         for value in temp_values:
-            column_values[self.columns_names[i]] = value
-            i += 1
+            column_values[self.columns_names[index]] = value
+            index += 1
         return column_values
 
     def get_connections(self):
@@ -353,6 +424,9 @@ class Group_Of_Connections(object):
                 amount += 1
         print_info('Amount of connections printed: {}'.format(amount))
 
+    def show_flows(self,connection_id):
+        self.connections[connection_id].show_flows()
+
 
 
 class Group_Of_Group_Of_Connections(persistent.Persistent):
@@ -413,6 +487,15 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
             group.list_connections(filter)
         except KeyError:
             print_error('No such group of connections.')
+
+    def show_flows_in_connnection(self, connection_id, filter):
+        """ Show the flows inside a connection """
+        if __datasets__.current:
+            group_id = __datasets__.current.get_id()
+            self.group_of_connections[group_id].show_flows(connection_id)
+        else:
+            print_error('There is no dataset selected.')
+        
 
 
 __group_of_group_of_connections__ = Group_Of_Group_Of_Connections()
