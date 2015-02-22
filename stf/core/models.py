@@ -64,10 +64,10 @@ class Group_of_Models(object):
         else:
             print_error('There is no group of connections to generate the models from. First generate the connections for this dataset.')
 
-    def construct_filter(self,tempfilter):
+    def construct_filter(self,filter):
         """ Get the filter string and decode all the operations """
         # If the filter string is empty, delete the filter variable
-        if not tempfilter:
+        if not filter:
             try:
                 del self.filter 
             except:
@@ -75,9 +75,7 @@ class Group_of_Models(object):
             return True
         self.filter = {}
         # Get the individual parts. We only support and's now.
-        filter = tempfilter.strip("\"") 
-        parts_of_filter = re.split('and',filter)
-        for part in parts_of_filter:
+        for part in filter:
             # Get the key
             try:
                 key = re.split('<|>|=', part)[0]
@@ -104,6 +102,7 @@ class Group_of_Models(object):
 
     def apply_filter(self,model):
         """ Use the stored filter to know what we should match"""
+        responses = {}
         try:
             self.filter
             for filter_key in self.filter:
@@ -113,22 +112,39 @@ class Group_of_Models(object):
                     state = model.get_state()
                     if operator == '<':
                         if len(state) < int(value):
-                            return True
+                            responses['statelength'] = True
+                        else:
+                            responses['statelength'] = False
                     elif operator == '>':
                         if len(state) > int(value):
-                            return True
+                            responses['statelength'] = True
+                        else:
+                            responses['statelength'] = False
                     elif operator == '=':
                         if len(state) == int(value):
-                            return True
-            return False
+                            responses['statelength'] = True
+                        else:
+                            responses['statelength'] = False
+                elif filter_key == 'nameincludes':
+                    name = model.get_id()
+                    if operator == '=':
+                        if value in name:
+                            responses['nameincludes'] = True
+                        else:
+                            responses['nameincludes'] = False
+
+            for response in responses:
+                if not responses[response]:
+                    return False
+            return True
         except AttributeError:
             # If we don't have any filter string, just return true and show everything
             return True
 
-    def list_models(self, filter_string=''):
+    def list_models(self, filter=''):
         rows = []
         # set the filter
-        self.construct_filter(filter_string)
+        self.construct_filter(filter)
         amount = 0
         print('| Model Id | State |')
         for model in self.models.values():
@@ -144,10 +160,10 @@ class Group_of_Models(object):
         except KeyError:
             print_error('That model does not exists.')
 
-    def delete_model_by_filter(self,filter_string):
+    def delete_model_by_filter(self,filter):
         try:
             # set the filter
-            self.construct_filter(filter_string)
+            self.construct_filter(filter)
             amount = 0
             ids_to_delete = []
             for model in self.models.values():
@@ -166,10 +182,10 @@ class Group_of_Models(object):
             print_error('An error ocurred while deleting models by filter.')
 
 
-    def count_models(self, filter_string=''):
+    def count_models(self, filter=''):
         rows = []
         # set the filter
-        self.construct_filter(filter_string)
+        self.construct_filter(filter)
         amount = 0
         for model in self.models.values():
             if self.apply_filter(model):
@@ -248,11 +264,11 @@ class Group_of_Group_of_Models(persistent.Persistent):
         else:
             print_error('There is no dataset selected.')
 
-    def delete_a_model_from_the_group_by_filter(self,filterstring):
+    def delete_a_model_from_the_group_by_filter(self,filter=''):
         # Get the id of the current dataset
         if __datasets__.current:
             group_id = __datasets__.current.get_id()
-            self.group_of_models[group_id].delete_model_by_filter(filterstring)
+            self.group_of_models[group_id].delete_model_by_filter(filter)
         else:
             print_error('There is no dataset selected.')
 

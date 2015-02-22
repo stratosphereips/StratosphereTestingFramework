@@ -98,10 +98,11 @@ class Commands(object):
         parser.add_argument('-g', '--generate', action="store_true", help="Generate the models for the current dataset.")
         parser.add_argument('-d', '--deletegroup', metavar="group_model_id", help="Delete a group of models.")
         parser.add_argument('-D', '--deletemodelbyid', metavar="model_id", help="Delete a specific model from the group given the id. The id is the 4-tuple of the model.")
-        parser.add_argument('-f', '--filter', metavar="filterstring", help="Use this filter to work with models. Format: \"variable[=<>]value\". You can use as variables: statelen. For example: statelen>100")
         parser.add_argument('-L', '--listmodels', metavar="group_model_id", help="List the models inside a group.")
         parser.add_argument('-C', '--countmodels', metavar="group_model_id", help="List the models inside a group.")
         parser.add_argument('-E', '--deletemodelbyfilter', metavar="model_id", help="Delete a specific model from the group using the filter.")
+        parser.add_argument('-f', '--filter', metavar="filter", nargs = '+', help="Use this filter to work with models. Format: \"variable[=<>]value\". You can use the variables: statelen, nameincludes. For example: -f statelen>100 -f nameincludes=tcp. Use multiple -f to put multiple 'and' filters.")
+
 
         try:
             args = parser.parse_args(args)
@@ -128,12 +129,13 @@ class Commands(object):
 
         # Subcomand to list the models in a group
         elif args.listmodels:
-            filterstring = ''
+            filter = ''
             try:
-                filterstring = args.filter
+                filter = args.filter
+
             except AttributeError:
                 pass
-            __groupofgroupofmodels__.list_models_in_group(int(args.listmodels), filterstring)
+            __groupofgroupofmodels__.list_models_in_group(int(args.listmodels), filter)
             __database__.root._p_changed = True
 
         # Subcomand to delete a model from a group by id
@@ -143,22 +145,22 @@ class Commands(object):
 
         # Subcomand to delete a model from a group by filter
         elif args.deletemodelbyfilter:
-            filterstring = ''
+            filter = ''
             try:
-                filterstring = args.filter
+                filter = args.filter
             except AttributeError:
                 print_error('No filter specified. If you want to delete all the models use -d')
                 return
-            __groupofgroupofmodels__.delete_a_model_from_the_group_by_filter(filterstring)
+            __groupofgroupofmodels__.delete_a_model_from_the_group_by_filter(filter)
             __database__.root._p_changed = True
 
         # Subcomand to count the amount of models
         elif args.countmodels:
             try:
-                filterstring = args.filter
+                filter = args.filter
             except AttributeError:
                 pass
-            __groupofgroupofmodels__.count_models_in_group(args.countmodels, filterstring)
+            __groupofgroupofmodels__.count_models_in_group(args.countmodels, filter)
             __database__.root._p_changed = True
 
     ##
@@ -167,11 +169,11 @@ class Commands(object):
     # This command works with connections
     def cmd_connections(self, *args):
         parser = argparse.ArgumentParser(prog="connections", description="Manage connnections", epilog="Manage connections")
-        group = parser.add_mutually_exclusive_group()
-        group.add_argument('-l', '--list', action="store_true", help="List all existing connections")
-        group.add_argument('-g', '--generate', action="store_true", help="Generate the connections from the binetflow file in the current dataset")
-        group.add_argument('-d', '--delete', metavar="group_of_connections_id", help="Create the connections from the binetflow file in the current dataset")
-
+        parser.add_argument('-l', '--list', action="store_true", help="List all existing connections")
+        parser.add_argument('-g', '--generate', action="store_true", help="Generate the connections from the binetflow file in the current dataset")
+        parser.add_argument('-d', '--delete', metavar="group_of_connections_id", help="Create the connections from the binetflow file in the current dataset")
+        parser.add_argument('-L', '--listconnections', metavar="group_connection_id", help="List the connections inside a group.")
+        parser.add_argument('-f', '--filter', metavar="filter", nargs='+', help="Use this filter to work with connections. Format: \"variable[=<>]value\". You can use the variables: nameincludes. Example: \"nameincludes=tcp\".")
         try:
             args = parser.parse_args(args)
         except:
@@ -199,6 +201,16 @@ class Commands(object):
         # Subcomand to delete a group of connections
         elif args.delete:
             __group_of_group_of_connections__.del_group_of_connections(int(args.delete))
+            __database__.root._p_changed = True
+
+        # Subcomand to list the connections in a group
+        elif args.listconnections:
+            filter = ''
+            try:
+                filter = args.filter
+            except AttributeError:
+                pass
+            __group_of_group_of_connections__.list_connections_in_group(int(args.listconnections), filter)
             __database__.root._p_changed = True
             
 

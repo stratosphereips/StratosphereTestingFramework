@@ -7,6 +7,7 @@ import persistent
 import BTrees.OOBTree
 import transaction
 import os
+import re
 
 from stf.common.out import *
 from stf.core.dataset import __datasets__
@@ -287,6 +288,71 @@ class Group_Of_Connections(object):
     def get_amount_of_connections(self):
         return len(self.connections)
 
+    def construct_filter(self,filter):
+        """ Get the filter string and decode all the operations """
+        # If the filter string is empty, delete the filter variable
+        if not filter:
+            try:
+                del self.filter 
+            except:
+                pass
+            return True
+        self.filter = {}
+        # Get the individual parts. We only support and's now.
+        for part in filter:
+            # Get the key
+            try:
+                key = re.split('<|>|=', part)[0]
+                value = re.split('<|>|=', part)[1]
+            except IndexError:
+                # No < or > or = in the string. Just stop.
+                break
+            try:
+                part.index('<')
+                operator = '<'
+            except ValueError:
+                pass
+            try:
+                part.index('>')
+                operator = '>'
+            except ValueError:
+                pass
+            try:
+                part.index('=')
+                operator = '='
+            except ValueError:
+                pass
+            self.filter[key] = (operator, value)
+
+    def apply_filter(self,connection):
+        """ Use the stored filter to know what we should match"""
+        try:
+            self.filter
+            for filter_key in self.filter:
+                operator = self.filter[filter_key][0]
+                value = self.filter[filter_key][1]
+                if filter_key == 'nameincludes':
+                    name = connection.get_id()
+                    if operator == '=':
+                        if value in name:
+                            return True
+            return False
+        except AttributeError:
+            # If we don't have any filter string, just return true and show everything
+            return True
+
+    def list_connections(self, filter_string=''):
+        rows = []
+        # set the filter
+        self.construct_filter(filter_string)
+        amount = 0
+        print('| Connection Id ')
+        for connection in self.connections.values():
+            if self.apply_filter(connection):
+                print_row([connection.get_id()])
+                amount += 1
+        print_info('Amount of connections printed: {}'.format(amount))
+
 
 
 class Group_Of_Group_Of_Connections(persistent.Persistent):
@@ -341,6 +407,12 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
         except KeyError:
             print_error('No such group of connections exists.')
 
+    def list_connections_in_group(self, id, filter=''):
+        try:
+            group = self.group_of_connections[id]
+            group.list_connections(filter)
+        except KeyError:
+            print_error('No such group of connections.')
 
 
 __group_of_group_of_connections__ = Group_Of_Group_Of_Connections()
