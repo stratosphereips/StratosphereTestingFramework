@@ -31,6 +31,18 @@ class Flow(object):
     def set_state(self,state):
         self.state = state
 
+    def get_t1(self):
+        return self.t1
+
+    def get_t2(self):
+        return self.t2
+
+    def get_td(self):
+        return self.td
+
+    def get_state(self):
+        return self.state
+
     def get_id(self):
         return self.id
 
@@ -55,8 +67,8 @@ class Flow(object):
     def add_dport(self, dport):
         self.dport = dport
 
-    def add_state(self,state):
-        self.state = state
+    def add_state(self,flowstate):
+        self.flowstate = flowstate
 
     def add_stos(self, stos):
         self.stos = stos
@@ -103,8 +115,8 @@ class Flow(object):
     def get_dport(self):
         return self.dport
 
-    def get_state(self):
-        return self.state 
+    def get_flowstate(self):
+        return self.flowstate 
 
     def get_stos(self):
         return self.stos 
@@ -134,8 +146,10 @@ class Flow(object):
         return self.line_separator
 
     def __repr__(self):
-        return (self.get_field_separator().join([str(self.get_id()),self.get_starttime(),self.get_duration(),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_state(),self.get_stos(),self.get_dtos(),self.get_totpkts(),self.get_totbytes(),self.get_srcbytes(),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
+        return (self.get_field_separator().join([str(self.get_id()),self.get_starttime(),self.get_duration(),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),self.get_totpkts(),self.get_totbytes(),self.get_srcbytes(),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
 
+    def print_flow(self):
+        print self.get_field_separator().join([str(self.get_id()),self.get_starttime(),self.get_duration(),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),self.get_totpkts(),self.get_totbytes(),self.get_srcbytes(),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]) + ' State: ' + self.get_state() + ' TD: ' + str(self.get_td()) + ' T2: ' + str(self.get_t2()) + ' T1: ' + str(self.get_t1())
 
 
 
@@ -200,7 +214,8 @@ class Connection(object):
 
     def show_flows(self):
         for flow in self.flows:
-            print_info(self.flows[flow])
+            #print_info(self.flows[flow])
+            self.flows[flow].print_flow()
 
 
 
@@ -258,10 +273,9 @@ class Group_Of_Connections(object):
         column_values = {}
         i = 0
         temp_values = line.split(self.line_separator)
-        print_info(line)
         if len(temp_values) > len(self.columns_names):
             # If there is only one occurrence of the separator char, then try to recover...
-            print_error('There is one flow that includes one occurrence of the separation character. We will try to recover...')
+            #print_error('There is one flow that includes one occurrence of the separation character. We will try to recover...')
 
             # Find the index of srcudata
             srcudata_index_starts = 0
