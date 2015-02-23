@@ -124,7 +124,7 @@ class Commands(object):
 
         # Subcomand to delete the group of models of the current dataset
         elif args.deletegroup:
-            __groupofgroupofmodels__.delete_group_of_models(int(args.deletegroup))
+            __groupofgroupofmodels__.delete_group_of_models(args.deletegroup)
             __database__.root._p_changed = True
 
         # Subcomand to list the models in a group
@@ -135,7 +135,7 @@ class Commands(object):
 
             except AttributeError:
                 pass
-            __groupofgroupofmodels__.list_models_in_group(int(args.listmodels), filter)
+            __groupofgroupofmodels__.list_models_in_group(args.listmodels, filter)
             __database__.root._p_changed = True
 
         # Subcomand to delete a model from a group by id
