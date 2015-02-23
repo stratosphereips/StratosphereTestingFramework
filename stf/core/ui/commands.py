@@ -211,7 +211,10 @@ class Commands(object):
                 filter = args.filter
             except AttributeError:
                 pass
-            __group_of_group_of_connections__.list_connections_in_group(int(args.listconnections), filter)
+            try:
+                __group_of_group_of_connections__.list_connections_in_group(int(args.listconnections), filter)
+            except ValueError:
+                print_error('The id of the group of connections should be an integer.')
             __database__.root._p_changed = True
             
         # Subcomand to show the flows in a connection
