@@ -11,10 +11,8 @@ class Model_Constructor(object):
     """
     The First Model constructor. Each of this objects is unique. We are going to instantiate them only once.
     """
-    def __init__(self):
-        self.id = 0
-        self.name = 'Model 0'
-        self.description = "This behavioral type of model has thresholds ..."
+    def __init__(self, id):
+        self.id = id
         self.threshold_time_1 = False
         self.threshold_time_2 = False
         self.threshold_time_3 = False
@@ -26,6 +24,12 @@ class Model_Constructor(object):
 
         # We store each model id with the values of T1 and T2
         self.models = {}
+
+    def set_name(self,name):
+        self.name = name  
+ 
+    def set_description(self,description):
+        self.description = description
 
     def get_state(self,flow,model_id):
         """ Receive the flow info and get a state"""
@@ -63,15 +67,21 @@ class Model_Constructor(object):
         if not model['T1'] or not model['T2']:
             periodic = -1
         elif model['T2'] >= self.get_tto():
-            state += '0'
+            # We convert it to int because we count the amount of complete hours that timeouted. The remaining time is not a timeout... 
+            t2_in_hours = model['T2'].total_seconds() / 3600.0
+            tto_in_hours = self.get_tto().total_seconds() / 3600.0
+
+            amount_of_hours = int( tto_in_hours %  t2_in_hours )
+            for i in range(amount_of_hours):
+                state += '0'
 
         if model['T1'] and model['T2']:
             # We have some values. See which is larger
             try:
                 if model['T2'] >= model['T1']:
-                    TD = datetime.timedelta(seconds=(model['T2'].total_seconds() / model['T1'].total_seconds()))
+                    TD = datetime.timedelta(seconds=(model['T2'].total_seconds() / model['T1'].total_seconds())).total_seconds()
                 else:
-                    TD = datetime.timedelta(seconds=(model['T1'].total_seconds() / model['T2'].total_seconds()))
+                    TD = datetime.timedelta(seconds=(model['T1'].total_seconds() / model['T2'].total_seconds())).total_seconds()
             except ZeroDivisionError:
                 print_error('The time difference between flows was 0. Strange. We keep going anyway.')
                 TD = 1
@@ -217,6 +227,17 @@ class Model_Constructor(object):
                     state += 'Z'
         #print_info('Model: {}, T1: {}, T2: {}, TD:{}, Periodicity: {}, State: {}'.format(model_id, model['T1'], model['T2'], [TD.total_seconds() if not isinstance(TD,int) else -1], periodic, state))
 
+        # Compute the new letters for the time of the periodicity.
+        if model['T2']:
+            if model['T2'] <= datetime.timedelta(seconds=5):
+                state += '.'
+            elif model['T2'] <= datetime.timedelta(seconds=60):
+                state += ','
+            elif model['T2'] <= datetime.timedelta(seconds=300):
+                state += '+'
+            elif model['T2'] <= datetime.timedelta(seconds=3600):
+                state += '*'
+
         # We store permanently the T1, T2 and TD values on each flow, so we can later analyze it
         flow.set_t1(model['T1'])
         flow.set_t2(model['T2'])
@@ -287,13 +308,13 @@ class Model_Constructor(object):
 class Models_Constructors(persistent.Persistent):
     def __init__(self):
         """ This class holds all the different constructors of behavioral models based on states"""
-        self.default_model_constructor = 0
+        self.default_model_constructor = 1
         self.models_constructors = BTrees.OOBTree.BTree()
 
         # Reapeat this for each new constructor
 
         # Add the first model constructor
-        first_model_constructor = Model_Constructor()
+        first_model_constructor = Model_Constructor(0)
         first_model_constructor.set_tt1(datetime.timedelta(seconds=1.05))
         first_model_constructor.set_tt2(datetime.timedelta(seconds=1.1))
         first_model_constructor.set_tt3(datetime.timedelta(seconds=5))
@@ -302,7 +323,23 @@ class Models_Constructors(persistent.Persistent):
         first_model_constructor.set_ts1(float(125))
         first_model_constructor.set_ts2(float(1100))
         first_model_constructor.set_tto(datetime.timedelta(seconds=3600))
+        first_model_constructor.set_name('Model 0')
+        first_model_constructor.set_description('First try at the thresholds.')
         self.models_constructors[first_model_constructor.get_id()] = first_model_constructor
+
+        # Add the first model constructor
+        second_model_constructor = Model_Constructor(1)
+        second_model_constructor.set_tt1(float(1.05))
+        second_model_constructor.set_tt2(float(1.3))
+        second_model_constructor.set_tt3(float(5))
+        second_model_constructor.set_td1(float(0.1))
+        second_model_constructor.set_td2(float(10))
+        second_model_constructor.set_ts1(float(125))
+        second_model_constructor.set_ts2(float(1100))
+        second_model_constructor.set_tto(datetime.timedelta(seconds=3600))
+        second_model_constructor.set_name('Model 1')
+        second_model_constructor.set_description('Second try. First use of the freq threshold.')
+        self.models_constructors[second_model_constructor.get_id()] = second_model_constructor
 
     def get_default_constructor(self):
         return self.models_constructors[self.default_model_constructor]
