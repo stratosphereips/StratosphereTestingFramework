@@ -17,6 +17,9 @@ class Flow(object):
     """ A class to manage a single flow"""
     def __init__(self,id):
         self.id = id
+        self.set_t1(False)
+        self.set_t2(False)
+        self.set_td(False)
         self.line_separator = ','
 
     def set_t1(self,t1):
