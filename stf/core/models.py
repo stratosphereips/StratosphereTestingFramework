@@ -174,8 +174,8 @@ class Group_of_Models(object):
 
     def delete_model_by_id(self,id):
         try:
+            # Now delete the group
             self.models.pop(id)
-            print_info('Model {} deleted from the group.'.format(id))
         except KeyError:
             print_error('That model does not exists.')
 
@@ -239,6 +239,16 @@ class Group_of_Group_of_Models(persistent.Persistent):
 
     def delete_group_of_models(self, id):
         try:
+            # First delete all the the models in the group
+            group = self.group_of_models[id]
+            amount = 0
+            for model in group.get_models():
+                model_id = model.get_id()
+                group.delete_model_by_id(model_id)
+                amount += 1
+            print_info('Deleted {} models inside the group'.format(amount))
+
+            # Now delete the model
             self.group_of_models.pop(id)
             print_info('Deleted group of models with id {}'.format(id))
         except KeyError:
