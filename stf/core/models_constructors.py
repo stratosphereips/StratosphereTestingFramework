@@ -293,16 +293,16 @@ class Models_Constructors(persistent.Persistent):
         # Reapeat this for each new constructor
 
         # Add the first model constructor
-        model_constructor = Model_Constructor()
-        model_constructor.set_tt1(datetime.timedelta(seconds=1.05))
-        model_constructor.set_tt2(datetime.timedelta(seconds=1.1))
-        model_constructor.set_tt3(datetime.timedelta(seconds=5))
-        model_constructor.set_td1(float(0.1))
-        model_constructor.set_td2(float(10))
-        model_constructor.set_ts1(float(125))
-        model_constructor.set_ts2(float(1100))
-        model_constructor.set_tto(datetime.timedelta(seconds=3600))
-        self.models_constructors[model_constructor.get_id()] = model_constructor
+        first_model_constructor = Model_Constructor()
+        first_model_constructor.set_tt1(datetime.timedelta(seconds=1.05))
+        first_model_constructor.set_tt2(datetime.timedelta(seconds=1.1))
+        first_model_constructor.set_tt3(datetime.timedelta(seconds=5))
+        first_model_constructor.set_td1(float(0.1))
+        first_model_constructor.set_td2(float(10))
+        first_model_constructor.set_ts1(float(125))
+        first_model_constructor.set_ts2(float(1100))
+        first_model_constructor.set_tto(datetime.timedelta(seconds=3600))
+        self.models_constructors[first_model_constructor.get_id()] = first_model_constructor
 
     def get_default_constructor(self):
         return self.models_constructors[self.default_model_constructor]
