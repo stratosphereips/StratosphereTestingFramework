@@ -44,6 +44,7 @@ class Model_Constructor(object):
         newsize = flow.get_totbytes()
         newduration = flow.get_duration()
 
+        # This flow belongs to a known model, or is the first one?
         try:
             model = self.models[model_id]
             # Update T1. Just move T2 in there
