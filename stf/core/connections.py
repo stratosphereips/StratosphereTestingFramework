@@ -20,16 +20,19 @@ class Flow(object):
         self.line_separator = ','
 
     def set_t1(self,t1):
+        # T1 is usually a timedelta. but it can be also False
         self.t1 = t1
 
     def set_t2(self,t2):
+        # T2 is usually a timedelta. but it can be also False
         self.t2 = t2
 
+
     def set_td(self,td):
-        self.td = td
+        self.td = float(td)
 
     def set_state(self,state):
-        self.state = state
+        self.state = str(state)
 
     def get_t1(self):
         return self.t1
@@ -50,55 +53,55 @@ class Flow(object):
         self.starttime = starttime
 
     def add_duration(self,dur):
-        self.duratin = dur
+        self.duration = float(dur)
 
     def add_proto(self,proto):
-        self.proto = proto
+        self.proto = str(proto)
 
     def add_scraddr(self, srcaddr):
-        self.srcaddr = srcaddr
+        self.srcaddr = str(srcaddr)
 
     def add_dir(self, dir):
-        self.dir = dir
+        self.dir = str(dir)
 
     def add_dstaddr(self, dstaddr):
-        self.dstaddr = dstaddr
+        self.dstaddr = str(dstaddr)
 
     def add_dport(self, dport):
-        self.dport = dport
+        self.dport = str(dport)
 
     def add_state(self,flowstate):
-        self.flowstate = flowstate
+        self.flowstate = str(flowstate)
 
     def add_stos(self, stos):
-        self.stos = stos
+        self.stos = str(stos)
 
     def add_dtos(self, dtos):
-        self.dtos = dtos
+        self.dtos = str(dtos)
 
     def add_totpkts(self, totpkts):
-        self.totpkts = totpkts
+        self.totpkts = int(totpkts)
 
     def add_totbytes(self, totbytes):
-        self.totbytes = totbytes
+        self.totbytes = int(totbytes)
 
     def add_srcbytes(self, srcbytes):
-        self.srcbytes = srcbytes
+        self.srcbytes = int(srcbytes)
 
     def add_srcUdata(self, srcUdata):
-        self.srcUdata = srcUdata
+        self.srcUdata = str(srcUdata)
 
     def add_dstUdata(self, dstUdata):
-        self.dstUdata = dstUdata
+        self.dstUdata = str(dstUdata)
 
     def add_label(self,label):
-        self.label = label
+        self.label = str(label)
 
     def get_starttime(self):
         return self.starttime 
 
     def get_duration(self):
-        return self.duratin 
+        return self.duration 
 
     def get_proto(self):
         return self.proto 
@@ -149,8 +152,7 @@ class Flow(object):
         return (self.get_field_separator().join([str(self.get_id()),self.get_starttime(),self.get_duration(),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),self.get_totpkts(),self.get_totbytes(),self.get_srcbytes(),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
 
     def print_flow(self):
-        #print self.get_field_separator().join([str(self.get_id()),self.get_starttime(),self.get_duration(),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),self.get_totpkts(),self.get_totbytes(),self.get_srcbytes(),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]) + ' State: ' + self.get_state() + ' TD: ' + str(self.get_td()) + ' T2: ' + str(self.get_t2()) + ' T1: ' + str(self.get_t1())
-        print_info(cyan(' State: ' + self.get_state() + ' TD: ' + str(self.get_td()) + ' T2: ' + str(self.get_t2()) + ' T1: ' + str(self.get_t1())) + '\t' + self.get_field_separator().join([str(self.get_id()),self.get_starttime(),self.get_duration(),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),self.get_totpkts(),self.get_totbytes(),self.get_srcbytes(),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
+        print_info(cyan(' State: \"' + self.get_state() + '\" TD: ' + str(self.get_td()) + ' T2: ' + str(self.get_t2()) + ' T1: ' + str(self.get_t1())) + '\t' + self.get_field_separator().join([self.get_starttime(),cyan(str(self.get_duration())),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),str(self.get_totpkts()),cyan(str(self.get_totbytes())),str(self.get_srcbytes()),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
 
 
 
@@ -273,10 +275,10 @@ class Group_Of_Connections(object):
         """ Given a line text of a flow, extract the values for each column """
         column_values = {}
         i = 0
-        temp_values = line.split(self.line_separator)
+        original_values = line.split(self.line_separator)
+        temp_values = original_values
         if len(temp_values) > len(self.columns_names):
             # If there is only one occurrence of the separator char, then try to recover...
-            #print_error('There is one flow that includes one occurrence of the separation character. We will try to recover...')
 
             # Find the index of srcudata
             srcudata_index_starts = 0
@@ -311,15 +313,31 @@ class Group_Of_Connections(object):
             label = temp_values[-1]
             
             end_of_good_data = srcudata_index_starts 
+            # Rewrite temp_values
             temp_values = temp_values[0:end_of_good_data]
             temp_values.append(srcudata)
             temp_values.append(dstudata)
             temp_values.append(label)
 
         index = 0
-        for value in temp_values:
-            column_values[self.columns_names[index]] = value
-            index += 1
+        try:
+            for value in temp_values:
+                column_values[self.columns_names[index]] = value
+                index += 1
+        except IndexError:
+            # Even with our fix, some data still has problems. Usually it means that there is no src data being sent, so we can not find the start of the data.
+            print_error('There was some error reading the flow\'s data. We will keep the flow, but not its data.')
+            # Just get the normal flow fields
+            index = 0
+            for value in temp_values:
+                if index <= 13:
+                    column_values[self.columns_names[index]] = value
+                    index += 1
+                else:
+                    break
+            column_values['srcUdata'] = 'Deleted because of inconsistencies'
+            column_values['dstUdata'] = 'Deleted because of inconsistencies'
+            column_values['Label'] = original_values[-1]
         return column_values
 
     def get_connections(self):
@@ -440,7 +458,10 @@ class Group_Of_Connections(object):
         print_info('Amount of connections printed: {}'.format(amount))
 
     def show_flows(self,connection_id):
-        self.connections[connection_id].show_flows()
+        try:
+            self.connections[connection_id].show_flows()
+        except KeyError:
+            print_error('That connection does not exist in this dataset.')
 
 
 
