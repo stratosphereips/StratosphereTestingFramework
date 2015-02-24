@@ -238,9 +238,11 @@ class Group_of_Group_of_Models(persistent.Persistent):
             print(table(header=['Group of Model Id', 'Amount of Models', 'Dataset Id', 'Dataset Name'], rows=rows))
 
     def delete_group_of_models(self, id):
+        """Get the id of a dataset and delete all the models that were generated from it"""
         try:
-            # First delete all the the models in the group
+            # Get the group
             group = self.group_of_models[id]
+            # First delete all the the models in the group
             amount = 0
             for model in group.get_models():
                 model_id = model.get_id()
@@ -252,7 +254,24 @@ class Group_of_Group_of_Models(persistent.Persistent):
             self.group_of_models.pop(id)
             print_info('Deleted group of models with id {}'.format(id))
         except KeyError:
-            print_error('That group of models does not exists.')
+            print_error('No such group of models id.')
+
+    def delete_group_of_models_with_dataset_id(self, id):
+        """Get the id of a dataset and delete all the models that were generated from it"""
+        for group in self.group_of_models.values():
+            dataset_id = group.get_dataset_id()
+            if dataset_id == id:
+                # First delete all the the models in the group
+                amount = 0
+                for model in group.get_models():
+                    model_id = model.get_id()
+                    group.delete_model_by_id(model_id)
+                    amount += 1
+                print_info('Deleted {} models inside the group'.format(amount))
+
+                # Now delete the model
+                self.group_of_models.pop(id)
+                print_info('Deleted group of models with id {}'.format(id))
 
     def generate_group_of_models(self):
         if __datasets__.current:
@@ -285,8 +304,10 @@ class Group_of_Group_of_Models(persistent.Persistent):
                 group_of_models.set_group_connection_id(group_connection_id)
                 # Set the dataset id for this group of models
                 group_of_models.set_dataset_id(dataset_id)
-                # Store
+                # Store the model
                 self.group_of_models[group_of_models_id] = group_of_models
+                # Update the dataset to include this group of models
+                __datasets__.current.add_group_of_models(group_of_models_id)
 
             # Generate the models
             group_of_models.generate_models()
@@ -300,20 +321,21 @@ class Group_of_Group_of_Models(persistent.Persistent):
         except KeyError:
             print_error('No such group of models.')
 
-    def delete_a_model_from_the_group_by_id(self,id):
+    def delete_a_model_from_the_group_by_id(self, group_of_models_id, model_id):
         # Get the id of the current dataset
         if __datasets__.current:
-            group_id = __datasets__.current.get_id()
-            self.group_of_models[group_id].delete_model_by_id(id)
+            self.group_of_models[group_of_models_id].delete_model_by_id(model_id)
         else:
+            # This is not necesary to work, but is a nice precaution
             print_error('There is no dataset selected.')
 
-    def delete_a_model_from_the_group_by_filter(self,filter=''):
+    def delete_a_model_from_the_group_by_filter(self, group_of_models_id, filter=''):
         # Get the id of the current dataset
         if __datasets__.current:
-            group_id = __datasets__.current.get_id()
-            self.group_of_models[group_id].delete_model_by_filter(filter)
+            # HERE we dont know which is the id of the current group of models. It was the same id as the dataset, but now it is not! SOLVE IT
+            self.group_of_models[group_of_models_id].delete_model_by_filter(filter)
         else:
+            # This is not necesary to work, but is a nice precaution
             print_error('There is no dataset selected.')
 
     def count_models_in_group(self, id, filter=''):
