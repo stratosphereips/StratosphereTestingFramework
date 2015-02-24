@@ -13,6 +13,9 @@ from stf.common.out import *
 from stf.core.file import File
 
 
+###########################
+###########################
+###########################
 class Dataset(persistent.Persistent):
     """
     The Dataset class.
@@ -27,6 +30,8 @@ class Dataset(persistent.Persistent):
         self.files = {}
         # Foler that holds all the files for this dataset
         self.folder = None
+        # This dict holds all the groups of models related with this dataset. There can be many because there are several models constructors. Is a dict only to search faster.
+        self.group_of_models = {}
 
     def get_file_type(self,type):
         """ Return the file with type x in this dataset"""
@@ -41,6 +46,9 @@ class Dataset(persistent.Persistent):
 
     def get_id(self):
         return self.id
+
+    def get_group_id(self):
+        return self.group_of_connections_id
 
     def get_name(self):
         return self.name
@@ -164,8 +172,30 @@ class Dataset(persistent.Persistent):
     def __repr__(self):
         return (' > Dataset id {}, and name {}.'.format(self.id, self.name))
 
+    def add_group_of_models(self, group_of_models_id):
+        """ Add the group of models id to the list of groups of models related with this dataset """
+        self.group_of_models[group_of_models_id] = None
+
+    def get_group_of_models(self):
+        return self.group_of_models
+        
+    def has_group_of_models(self,group_of_models_id):
+        return self.group_of_models.has_key(group_of_models_id)
+    
+    def add_group_of_connections_id(self, group_of_connections_id):
+        """ Add the group of connections that is related to this dataset. Is only one, but we store it this way. """
+        self.group_of_connections_id = group_of_connections_id
+
+    def get_group_of_connections_id(self):
+        try:
+            return self.group_of_connections_id 
+        except AttributeError:
+            return False
 
 
+###########################
+###########################
+###########################
 class Datasets(persistent.Persistent):
     def __init__(self):
         self.current = False
@@ -174,7 +204,11 @@ class Datasets(persistent.Persistent):
         self.datasets = BTrees.OOBTree.BTree()
 
     def get_dataset(self,id):
-        return self.datasets[id]
+        try:
+            return self.datasets[id]
+        except:
+            print_error('No such dataset id')
+            return False
 
     def delete(self, value): 
         try:
@@ -182,9 +216,9 @@ class Datasets(persistent.Persistent):
             # Before deleting the dataset, delete the connections
             from stf.core.connections import __group_of_group_of_connections__
             __group_of_group_of_connections__.del_group_of_connections(id)
-            # Before deleting the dataset, delete the connections
+            # Before deleting the dataset, delete the models
             from stf.core.models import __groupofgroupofmodels__
-            __groupofgroupofmodels__.delete_group_of_models(id)
+            __groupofgroupofmodels__.delete_group_of_models_with_dataset_id(id)
 
             # Now delete the dataset
             self.datasets.pop(id)
@@ -338,7 +372,7 @@ class Datasets(persistent.Persistent):
             # Do we have a pcap file in the folder?
         else:
             print_error('No dataset selected. Use -s option.')
-        
+
 
 
 
