@@ -97,10 +97,10 @@ class Commands(object):
         parser.add_argument('-l', '--listgroups', action="store_true", help="List all the groups of  models. If a dataset is selected it only shows the models in that dataset.")
         parser.add_argument('-g', '--generate', action="store_true", help="Generate the models for the current dataset.")
         parser.add_argument('-d', '--deletegroup', metavar="group_model_id", help="Delete a group of models.")
-        parser.add_argument('-D', '--deletemodelbyid', metavar="model_id", help="Delete a specific model from the group given the id. The id is the 4-tuple of the model.")
+        parser.add_argument('-D', '--deletemodel', metavar="group_model_id", help="Delete a model from the group. This is the id of the group. Use -i to give the model id to delete (4-tuple) or -f to use a filter.")
+        parser.add_argument('-i', '--modelid', metavar="model_id", help="Use this model id (4-tuple). Commonly used with -D.")
         parser.add_argument('-L', '--listmodels', metavar="group_model_id", help="List the models inside a group.")
         parser.add_argument('-C', '--countmodels', metavar="group_model_id", help="Count the models inside a group.")
-        parser.add_argument('-E', '--deletemodelbyfilter', metavar="model_id", help="Delete a specific model from the group given a filter.")
         parser.add_argument('-f', '--filter', metavar="filter", nargs = '+', help="Use this filter to work with models. Format: \"variable[=<>]value\". You can use the variables: statelen, nameincludes. For example: -f statelen>100 nameincludes=tcp.")
 
 
@@ -139,20 +139,17 @@ class Commands(object):
             __database__.root._p_changed = True
 
         # Subcomand to delete a model from a group by id
-        elif args.deletemodelbyid:
-            __groupofgroupofmodels__.delete_a_model_from_the_group_by_id(args.deletemodel)
-            __database__.root._p_changed = True
+        elif args.deletemodel:
 
-        # Subcomand to delete a model from a group by filter
-        elif args.deletemodelbyfilter:
-            filter = ''
-            try:
-                filter = args.filter
-            except AttributeError:
-                print_error('No filter specified. If you want to delete all the models use -d')
-                return
-            __groupofgroupofmodels__.delete_a_model_from_the_group_by_filter(filter)
-            __database__.root._p_changed = True
+            # By id or filter?
+            if args.modelid:
+                # By id
+                __groupofgroupofmodels__.delete_a_model_from_the_group_by_id(args.deletemodel, args.modelid)
+                __database__.root._p_changed = True
+            elif args.filter:
+                # By filter
+                __groupofgroupofmodels__.delete_a_model_from_the_group_by_filter(args.deletemodel, args.filter)
+                __database__.root._p_changed = True
 
         # Subcomand to count the amount of models
         elif args.countmodels:
@@ -186,18 +183,8 @@ class Commands(object):
 
         # Subcomand to create a new group of connections
         elif args.generate:
-            # We should have a current dataset
-            if not __datasets__.current:
-                print_error('You should first select a dataset with datasets -s <id>')
-                return False
-            # We should have a binetflow file in the dataset
-            binetflow_file = __datasets__.current.get_file_type('binetflow')
-            if binetflow_file:
-                __group_of_group_of_connections__.create_group_of_connections(binetflow_file.get_name(), __datasets__.current.get_id(), binetflow_file.get_id() )
+                __group_of_group_of_connections__.create_group_of_connections()
                 __database__.root._p_changed = True
-            else:
-                print_error('You should have a binetflow file in your dataset')
-                return False
 
         # Subcomand to delete a group of connections
         elif args.delete:
