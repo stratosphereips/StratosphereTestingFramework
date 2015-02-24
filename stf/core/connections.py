@@ -13,6 +13,9 @@ from stf.common.out import *
 from stf.core.dataset import __datasets__
 
 
+########################
+########################
+########################
 class Flow(object):
     """ A class to manage a single flow"""
     def __init__(self,id):
@@ -159,6 +162,9 @@ class Flow(object):
 
 
 
+########################
+########################
+########################
 class Connection(object):
     """
     One 4-tuple is a connection. A dataset has a lot of these
@@ -226,6 +232,9 @@ class Connection(object):
 
 
 
+########################
+########################
+########################
 class Group_Of_Connections(object):
     """
     This holds a group of connections from the same dataset
@@ -467,7 +476,9 @@ class Group_Of_Connections(object):
             print_error('That connection does not exist in this dataset.')
 
 
-
+########################
+########################
+########################
 class Group_Of_Group_Of_Connections(persistent.Persistent):
     """ A class to manage all the connections for all the datasets. Each dataset may have one group of connections. """
     def __init__(self):
@@ -480,25 +491,40 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
         except KeyError:
             return False
 
-    def create_group_of_connections(self,binetflow_filename, dataset_id, file_id):
+    def create_group_of_connections(self):
         """ Create a group of connections for the current dataset """
-
-        # Don't create the connections if we already have them
-        try:
-            self.group_of_connections[dataset_id]
-            # Is here
-            print_info('This dataset already have connections')
+        # We should have a current dataset
+        if __datasets__.current:
+            # We should have a binetflow file in the dataset
+            binetflow_file = __datasets__.current.get_file_type('binetflow')
+            binetflow_filename = binetflow_file.get_name()
+            file_id = binetflow_file.get_id()
+            if binetflow_file:
+                # Don't create the connections if we already have them
+                group_of_connections_id = __datasets__.current.get_group_of_connections_id()
+                if group_of_connections_id:
+                    # Do we already have a group of connections for this dataset?
+                    # Is here
+                    print_info('This dataset already have connections')
+                    return False
+                else:
+                    dataset_id = __datasets__.current.get_id()
+                    # First time
+                    # The id of the group of connections is the same as the dataset because it is a 1-1 relationship
+                    group_of_connections_id = dataset_id
+                    new_group_of_connections = Group_Of_Connections(group_of_connections_id)
+                    new_group_of_connections.set_filename(binetflow_filename)
+                    new_group_of_connections.set_dataset_id(dataset_id)
+                    new_group_of_connections.set_file_id(file_id)
+                    self.group_of_connections[group_of_connections_id] = new_group_of_connections
+                    # Order to create the connections
+                    new_group_of_connections.create_connections()
+            else:
+                print_error('You should have a binetflow file in your dataset')
+                return False
+        else:
+            print_error('You should first select a dataset with datasets -s <id>')
             return False
-        except KeyError:
-            # First time
-            new_group_of_connections = Group_Of_Connections(dataset_id)
-            # The id of the group of connections is the same as the dataset because it is a 1-1 relationship
-            new_group_of_connections.set_filename(binetflow_filename)
-            new_group_of_connections.set_dataset_id(dataset_id)
-            new_group_of_connections.set_file_id(file_id)
-            self.group_of_connections[dataset_id] = new_group_of_connections
-            # Order to create the connections
-            new_group_of_connections.create_connections()
 
     def list_group_of_connections(self):
         """ List all the groups of connections """
