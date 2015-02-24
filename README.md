@@ -45,6 +45,10 @@ Unfortunately distutils does not have a way to uninstall packages. So your best 
 # TODO
 
 - Delete connections by id or filter.
+- Change the default model constructor
+- Show more info about the constructor
+- Show table for each constructor?
+- Implement the constructors as modules?
 - Make a nice instalation
     - put configs in /etc or in ~/.stf/
     - create the database folder
