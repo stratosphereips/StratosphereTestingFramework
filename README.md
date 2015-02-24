@@ -44,6 +44,7 @@ Unfortunately distutils does not have a way to uninstall packages. So your best 
 
 # TODO
 
+- Delete connections by id or filter.
 - Make a nice instalation
     - put configs in /etc or in ~/.stf/
     - create the database folder
