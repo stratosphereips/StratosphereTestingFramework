@@ -8,6 +8,9 @@ import BTrees.OOBTree
 import transaction
 import os
 import re
+import sys
+import subprocess
+import tempfile
 
 from stf.common.out import *
 from stf.core.dataset import __datasets__
@@ -158,8 +161,10 @@ class Flow(object):
         return (self.get_field_separator().join([str(self.get_id()),self.get_starttime(),self.get_duration(),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),self.get_totpkts(),self.get_totbytes(),self.get_srcbytes(),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
 
     def print_flow(self):
-        print_info(cyan(' State: \"' + self.get_state() + '\" TD: ' + str(self.get_td()) + ' T2: ' + str(self.get_t2()) + ' T1: ' + str(self.get_t1())) + '\t' + self.get_field_separator().join([self.get_starttime(),cyan(str(self.get_duration())),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),str(self.get_totpkts()),cyan(str(self.get_totbytes())),str(self.get_srcbytes()),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
+        print_info(red(' State: \"' + self.get_state()) + cyan('\" TD: ' + str(self.get_td()) + ' T2: ' + str(self.get_t2()) + ' T1: ' + str(self.get_t1())) + '\t' + self.get_field_separator().join([self.get_starttime(),cyan(str(self.get_duration())),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),str(self.get_totpkts()),cyan(str(self.get_totbytes())),str(self.get_srcbytes()),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
 
+    def return_flow_info(self):
+        return (red(' State: \"' + self.get_state()) + cyan('\" TD: ' + str(self.get_td()) + ' T2: ' + str(self.get_t2()) + ' T1: ' + str(self.get_t1())) + '\t' + self.get_field_separator().join([self.get_starttime(),cyan(str(self.get_duration())),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),str(self.get_totpkts()),cyan(str(self.get_totbytes())),str(self.get_srcbytes()),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
 
 
 ########################
@@ -225,9 +230,17 @@ class Connection(object):
         return self.flows.values()
 
     def show_flows(self):
+        all_text=''
         for flow in self.flows:
-            #print_info(self.flows[flow])
-            self.flows[flow].print_flow()
+            all_text = all_text + self.flows[flow].return_flow_info() + '\n'
+        f = tempfile.NamedTemporaryFile()
+        f.write(all_text)
+        p = subprocess.Popen('less -R ' + f.name, shell=True, stdin=subprocess.PIPE)
+        p.communicate()
+        sys.stdout = sys.__stdout__ 
+        f.close()
+
+        
 
 
 
