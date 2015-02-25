@@ -605,7 +605,7 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
         else:
             print_error('There is no dataset selected.')
 
-    def delete_a_connection_from_the_group_by_id(self, group_id, connection_id):A
+    def delete_a_connection_from_the_group_by_id(self, group_id, connection_id):
         """ Delete a unique connection id from a connection group """
         # Get the id of the current dataset
         if __datasets__.current:
