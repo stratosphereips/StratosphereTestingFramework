@@ -488,6 +488,37 @@ class Group_Of_Connections(object):
         except KeyError:
             print_error('That connection does not exist in this dataset.')
 
+    def delete_connection_by_id(self,id):
+        try:
+            # Now delete the connection
+            self.connections.pop(id)
+        except KeyError:
+            print_error('That connection does not exists.')
+
+    def delete_connections_if_model_deleted(self):
+        """ Delete the connections only of all the models related to that connection were deleted """
+        amount = 0
+        ids_to_delete = []
+        for connection in self.connections.values():
+            # Get the groups of groups of models
+            groups_of_models = __groupofgroupofmodels__.get_groups()
+            is_in_a_group = False
+            for group in groups_of_models:
+                # See if this group of models has models with the id of the connection
+                if group.has_model(connection.get_id()):
+                    is_in_a_group = True
+                    break
+            # If this connection
+            if not is_in_a_group:
+                ids_to_delete.append(connection.get_id())
+                amount += 1
+    
+        # We should delete the connections AFTER finding them, if not, for some reason the following model after a match is missed.
+        for id in ids_to_delete:
+            self.models.pop(id)
+
+        print_info('Amount of modules deleted: {}'.format(amount))
+
 
 ########################
 ########################
@@ -572,6 +603,24 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
             group_id = __datasets__.current.get_id()
             self.group_of_connections[group_id].show_flows(connection_id)
         else:
+            print_error('There is no dataset selected.')
+
+    def delete_a_connection_from_the_group_by_id(self, group_id, connection_id):A
+        """ Delete a unique connection id from a connection group """
+        # Get the id of the current dataset
+        if __datasets__.current:
+            self.group_of_connections[group_id].delete_connection_by_id(connection_id)
+        else:
+            # This is not necesary to work, but is a nice precaution
+            print_error('There is no dataset selected.')
+
+    def delete_a_connection_from_the_group_if_model_deleted(self, group_id):
+        """ Delete connections from a connection group using the filter"""
+        # Get the id of the current dataset
+        if __datasets__.current:
+            self.group_of_connections[group_id].delete_connections_if_model_deleted()
+        else:
+            # This is not necesary to work, but is a nice precaution
             print_error('There is no dataset selected.')
         
 
