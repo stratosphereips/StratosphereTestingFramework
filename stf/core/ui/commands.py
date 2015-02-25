@@ -138,7 +138,7 @@ class Commands(object):
             __groupofgroupofmodels__.list_models_in_group(args.listmodels, filter)
             __database__.root._p_changed = True
 
-        # Subcomand to delete a model from a group by id
+        # Subcomand to delete a model from a group by id or filter
         elif args.deletemodel:
 
             # By id or filter?
@@ -172,6 +172,8 @@ class Commands(object):
         parser.add_argument('-L', '--listconnections', metavar="group_connection_id", help="List the connections inside a group.")
         parser.add_argument('-F', '--showflows', metavar="connection_id", type=str, help="List the flows inside a specific connection.")
         parser.add_argument('-f', '--filter', metavar="filter", nargs='+', help="Use this filter to work with connections. Format: \"variable[=<>]value\". You can use the variables: nameincludes. Example: \"nameincludes=tcp\".")
+        parser.add_argument('-D', '--deleteconnection', metavar="group_connection_id", help="Delete a connection from the group. This is the id of the group. Use -i to give the connection id to delete (4-tuple) or -f to use a filter.")
+        parser.add_argument('-i', '--connectionid', metavar="connection_id", help="Use this connection id (4-tuple). Commonly used with -D.")
         try:
             args = parser.parse_args(args)
         except:
@@ -213,6 +215,19 @@ class Commands(object):
                 pass
             __group_of_group_of_connections__.show_flows_in_connnection(args.showflows, filter)
             __database__.root._p_changed = True
+
+        # Subcomand to delete a connection from a group by id or filter
+        elif args.deleteconnection:
+
+            # By id or filter?
+            if args.connectionid:
+                # By id
+                __group_of_group_of_connections__.delete_a_connection_from_the_group_by_id(args.deleteconnection, args.connectionid)
+                __database__.root._p_changed = True
+            elif args.filter:
+                # By filter
+                __group_of_group_of_connections__.delete_a_connection_from_the_group_by_filter(args.deleteconnection, args.filter)
+                __database__.root._p_changed = True
 
 
     ##
