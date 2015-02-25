@@ -174,7 +174,7 @@ class Group_of_Models(object):
 
     def delete_model_by_id(self,id):
         try:
-            # Now delete the group
+            # Now delete the model
             self.models.pop(id)
         except KeyError:
             print_error('That model does not exists.')
@@ -210,6 +210,14 @@ class Group_of_Models(object):
                 amount += 1
         print_info('Amount of modules filtered: {}'.format(amount))
 
+    def has_model(self, id):
+        if self.models.has_key(id):
+            return True
+        else:
+            return False
+        
+
+
 
 ###############################
 ###############################
@@ -218,6 +226,9 @@ class Group_of_Group_of_Models(persistent.Persistent):
     def __init__(self):
         """ This class holds all the groups of models"""
         self.group_of_models = BTrees.OOBTree.BTree()
+
+    def get_groups(self):
+        return self.group_of_models.values()
 
     def list_groups(self):
         print_info('Groups of Models')
@@ -332,7 +343,6 @@ class Group_of_Group_of_Models(persistent.Persistent):
     def delete_a_model_from_the_group_by_filter(self, group_of_models_id, filter=''):
         # Get the id of the current dataset
         if __datasets__.current:
-            # HERE we dont know which is the id of the current group of models. It was the same id as the dataset, but now it is not! SOLVE IT
             self.group_of_models[group_of_models_id].delete_model_by_filter(filter)
         else:
             # This is not necesary to work, but is a nice precaution
