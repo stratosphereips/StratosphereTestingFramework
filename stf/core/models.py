@@ -2,7 +2,7 @@ import persistent
 import BTrees.OOBTree
 import re
 import tempfile
-import subprocess
+from subprocess import Popen, PIPE
 
 from stf.common.out import *
 from stf.core.dataset import __datasets__
@@ -176,7 +176,7 @@ class Group_of_Models(object):
         f = tempfile.NamedTemporaryFile()
         f.write(all_text)
         f.flush()
-        p = subprocess.Popen('less -R ' + f.name, shell=True, stdin=subprocess.PIPE)
+        p = Popen('less -R ' + f.name, shell=True, stdin=PIPE)
         p.communicate()
         sys.stdout = sys.__stdout__ 
         f.close()
@@ -224,6 +224,19 @@ class Group_of_Models(object):
             return True
         else:
             return False
+
+    def plot_histogram(self):
+        """ Plot the histogram of length of states using an external tool """
+        distribution_path = Popen('bash -i -c "type distribution"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
+        if distribution_path:
+            all_text = ''
+            for model in self.get_models():
+                state_len = str(len(model.get_state()))
+                all_text += state_len + '\n'
+            Popen('echo \"' + all_text + '\" |distribution', shell=True).communicate()
+        else:
+            print_error('For ploting the histogram we use the tool https://github.com/philovivero/distribution. Please install it in the system to enable this command.')
+
         
 
 
@@ -363,6 +376,14 @@ class Group_of_Group_of_Models(persistent.Persistent):
             group.count_models(filter)
         except KeyError:
             print_error('No such group of models.')
+
+    def plot_histogram(self, group_of_models_id):
+        try:
+            group = self.group_of_models[group_of_models_id]
+            group.plot_histogram()
+        except KeyError:
+            print_error('No such group of models.')
+        
 
 
 
