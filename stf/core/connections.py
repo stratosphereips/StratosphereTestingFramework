@@ -4,12 +4,14 @@
 import time
 import datetime
 import persistent
+import BTrees.IOBTree
 import BTrees.OOBTree
 import transaction
 import os
 import re
 import sys
-import subprocess
+from subprocess import Popen
+from subprocess import PIPE
 import tempfile
 
 from stf.common.out import *
@@ -53,7 +55,11 @@ class Flow(object):
         return self.td
 
     def get_state(self):
-        return self.state
+        try:
+            return self.state
+        except AttributeError:
+            # It can be that a flow does not have a state because we generate the models, then delete the flow, and then generate the flows again.
+            return ''
 
     def get_id(self):
         return self.id
@@ -146,10 +152,16 @@ class Flow(object):
         return self.srcbytes 
 
     def get_srcUdata(self):
-        return self.srcUdata
+        try:
+            return self.srcUdata
+        except AttributeError:
+            return ''
 
     def get_dstUdata(self):
-        return self.dstUdata
+        try:
+            return self.dstUdata
+        except AttributeError:
+            return ''
 
     def get_label(self):
         return self.label
@@ -164,8 +176,7 @@ class Flow(object):
         print_info(red(' State: \"' + self.get_state()) + cyan('\" TD: ' + str(self.get_td()) + ' T2: ' + str(self.get_t2()) + ' T1: ' + str(self.get_t1())) + '\t' + self.get_field_separator().join([self.get_starttime(),cyan(str(self.get_duration())),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),str(self.get_totpkts()),cyan(str(self.get_totbytes())),str(self.get_srcbytes()),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
 
     def return_flow_info(self):
-        return (red(' State: \"' + self.get_state()) + cyan('\" TD: ' + str(self.get_td()) + ' T2: ' + str(self.get_t2()) + ' T1: ' + str(self.get_t1())) + '\t' + self.get_field_separator().join([self.get_starttime(),cyan(str(self.get_duration())),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),str(self.get_totpkts()),cyan(str(self.get_totbytes())),str(self.get_srcbytes()),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
-
+            return (red(' State: \"' + self.get_state()) + cyan('\" TD: ' + str(self.get_td()) + ' T2: ' + str(self.get_t2()) + ' T1: ' + str(self.get_t1())) + '\t' + self.get_field_separator().join([self.get_starttime(),cyan(str(self.get_duration())),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),str(self.get_totpkts()),cyan(str(self.get_totbytes())),str(self.get_srcbytes()),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
 
 
 
@@ -233,11 +244,11 @@ class Connection(object):
 
     def show_flows(self):
         all_text=''
-        for flow in self.flows:
-            all_text = all_text + self.flows[flow].return_flow_info() + '\n'
+        for flow_id in self.flows:
+            all_text = all_text + self.flows[flow_id].return_flow_info() + '\n'
         f = tempfile.NamedTemporaryFile()
         f.write(all_text)
-        p = subprocess.Popen('less -R ' + f.name, shell=True, stdin=subprocess.PIPE)
+        p = Popen('less -R ' + f.name, shell=True, stdin=PIPE)
         p.communicate()
         sys.stdout = sys.__stdout__ 
         f.close()
@@ -247,6 +258,10 @@ class Connection(object):
         for flow in self.flows.values():
             self.flows.pop(flow.get_id())
 
+    def trim_flows(self, trim_amount):
+        """ Trim the amount of flows in this connection to the first trim_amount """
+        from itertools import islice
+        self.flows =  dict(islice(self.flows.iteritems(), trim_amount))
 
 
 
@@ -390,8 +405,8 @@ class Group_Of_Connections(object):
             self.connections[tuple4] = connection
         return connection
 
-    def del_connection(self,id):
-        """ Delete a specific connection inside the group"""
+    def delete_connection_by_id(self,id):
+        """ Delete a specific connection inside the group using the id """
         try:
             # First call the deletion of all the flows objects
             self.get_connection_by_id(id).delete_all_flows()
@@ -401,10 +416,22 @@ class Group_Of_Connections(object):
         except KeyError:
             print_error('There is no such connection id.')
 
+    def delete_all_connections(self):
+        """ Delete all the connections in the group """
+        ids_to_delete = []
+        # For a strange reason we need to get first the ids and the delete them. If not one every two is missed
+        for connection in self.get_connections():
+            ids_to_delete.append(connection.get_id())
+        # Now delete
+        amount = 0
+        for id in ids_to_delete:
+            self.delete_connection_by_id(id)
+            amount += 1
+        print_info('Amount of connections deleted: {}'.format(amount))
+
 
     def create_connections(self):
         """ Read the flows and creates the connections """
-        # Don't create the connections if we already have them
 
         # Open the binetflow file
         file = open(self.filename)
@@ -473,27 +500,47 @@ class Group_Of_Connections(object):
             for filter_key in self.filter:
                 operator = self.filter[filter_key][0]
                 value = self.filter[filter_key][1]
-                if filter_key == 'nameincludes':
+                if filter_key == 'name':
                     name = connection.get_id()
                     if operator == '=':
                         if value in name:
                             return True
+                if filter_key == 'flowamount':
+                    value = int(value)
+                    amount_of_flows = len(connection.flows)
+                    if operator == '=':
+                        if value == amount_of_flows:
+                            return True
+                    elif operator == '<':
+                        if amount_of_flows < value:
+                            return True
+                    elif operator == '>':
+                        if amount_of_flows > value:
+                            return True
+                else:
+                    return False
             return False
         except AttributeError:
             # If we don't have any filter string, just return true and show everything
             return True
 
     def list_connections(self, filter_string=''):
-        rows = []
-        # set the filter
+        all_text='| Connection Id | Amount of flows |\n'
+        # construct the filter
         self.construct_filter(filter_string)
         amount = 0
-        print('| Connection Id ')
         for connection in self.connections.values():
             if self.apply_filter(connection):
-                print_row([connection.get_id()])
+                all_text += '{:40} | {}\n'.format(connection.get_id(), len(connection.get_flows()))
                 amount += 1
-        print_info('Amount of connections printed: {}'.format(amount))
+        all_text += 'Amount of connections printed: {}'.format(amount)
+        f = tempfile.NamedTemporaryFile()
+        f.write(all_text)
+        f.flush()
+        p = Popen('less -R ' + f.name, shell=True, stdin=PIPE)
+        p.communicate()
+        sys.stdout = sys.__stdout__ 
+        f.close()
 
     def show_flows(self,connection_id):
         try:
@@ -501,12 +548,21 @@ class Group_Of_Connections(object):
         except KeyError:
             print_error('That connection does not exist in this dataset.')
 
-    def delete_connection_by_id(self,id):
-        try:
-            # Now delete the connection
-            self.connections.pop(id)
-        except KeyError:
-            print_error('That connection does not exists.')
+    def delete_connection_by_filter(self, filter):
+        """ Delete connections from the group by filter """
+        # construct the filter
+        self.construct_filter(filter)
+        ids_to_delete = []
+        for connection in self.connections.values():
+            if self.apply_filter(connection):
+                ids_to_delete.append(connection.get_id())
+        # We should delete the connections AFTER finding them, if not, for some reason the following model after a match is missed.
+        amount = 0
+        for id in ids_to_delete:
+            self.delete_connection_by_id(id)
+            amount += 1
+        print_info('Amount of connections deleted: {}'.format(amount))
+
 
     def delete_connections_if_model_deleted(self):
         """ Delete the connections only of all the models related to that connection were deleted """
@@ -529,9 +585,13 @@ class Group_Of_Connections(object):
     
         # We should delete the connections AFTER finding them, if not, for some reason the following model after a match is missed.
         for id in ids_to_delete:
-            self.del_connection(id)
-
+            self.delete_connection_by_id(id)
         print_info('Amount of connections deleted: {}'.format(amount))
+
+    def trim_flows(self, trim_amount):
+        """ For each connection in this group, tell it  to trim the amount of flows """
+        for connection in self.connections.values():
+            connection.trim_flows(trim_amount)
 
 
 ########################
@@ -541,7 +601,7 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
     """ A class to manage all the connections for all the datasets. Each dataset may have one group of connections. """
     def __init__(self):
         # The index of the group_of_connections is the dataset id
-        self.group_of_connections = BTrees.OOBTree.BTree()
+        self.group_of_connections = BTrees.IOBTree.BTree()
 
     def get_group(self,id):
         try:
@@ -555,7 +615,11 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
         if __datasets__.current:
             # We should have a binetflow file in the dataset
             binetflow_file = __datasets__.current.get_file_type('binetflow')
-            binetflow_filename = binetflow_file.get_name()
+            try:
+                binetflow_filename = binetflow_file.get_name()
+            except:
+                print_error('You should have a binetflow file in your dataset. Use datasets -g')
+                return False
             file_id = binetflow_file.get_id()
             if binetflow_file:
                 # Don't create the connections if we already have them
@@ -579,7 +643,7 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
                     new_group_of_connections.create_connections()
                     __datasets__.current.set_group_of_connections_id(group_of_connections_id)
             else:
-                print_error('You should have a binetflow file in your dataset')
+                print_error('You should have a binetflow file in your dataset. Use datasets -g')
                 return False
         else:
             print_error('You should first select a dataset with datasets -s <id>')
@@ -598,11 +662,18 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
                 rows.append([group_connection.get_id(), group_connection.get_dataset_id(), group_connection.get_filename(), group_connection.get_amount_of_connections()])
         print(table(header=['Id of Group of Connections', 'Dataset Id', 'Filename', 'Amount of Connections'], rows=rows))
 
-    def del_group_of_connections(self, conn_id):
-        try:
+    def delete_group_of_connections(self, conn_id):
+        group = self.get_group(conn_id)
+        if group:
+            # First delete all the connections inside the group of connections
+            group.delete_all_connections()
+            # Now delete the group of connections
             self.group_of_connections.pop(conn_id)
             print_info('Deleted group of connections with id {}'.format(conn_id))
-        except KeyError:
+            # Delete the reference to this group from the dataset
+            dataset = __datasets__.get_dataset(conn_id)
+            dataset.remove_group_of_connections_id(conn_id)
+        else:
             print_error('No such group of connections exists.')
 
     def list_connections_in_group(self, id, filter=''):
@@ -616,22 +687,32 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
         """ Show the flows inside a connection """
         if __datasets__.current:
             group_id = __datasets__.current.get_id()
-            self.group_of_connections[group_id].show_flows(connection_id)
+            try:
+                self.group_of_connections[group_id].show_flows(connection_id)
+            except KeyError:
+                print_error('The connection {} does not longer exists in the database.'.format(connection_id))
         else:
             print_error('There is no dataset selected.')
 
     def delete_a_connection_from_the_group_by_id(self, group_id, connection_id):
         """ Delete a unique connection id from a connection group """
-        # Get the id of the current dataset
         if __datasets__.current:
             self.group_of_connections[group_id].delete_connection_by_id(connection_id)
         else:
             # This is not necesary to work, but is a nice precaution
             print_error('There is no dataset selected.')
 
+    def delete_a_connection_from_the_group_by_filter(self, group_id, filter):
+        """ Delete connections from a the group by filter """
+        if __datasets__.current:
+            group = self.get_group(int(group_id))
+            group.delete_connection_by_filter(filter)
+        else:
+            # This is not necesary to work, but is a nice precaution
+            print_error('There is no dataset selected.')
+
     def delete_a_connection_from_the_group_if_model_deleted(self, group_id):
         """ Delete connections from a connection group using the filter"""
-        # Get the id of the current dataset
         if __datasets__.current:
             # Get the id of the groups of connections
             group_of_connections_id = __datasets__.current.get_group_of_connections_id()
@@ -639,7 +720,19 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
         else:
             # This is not necesary to work, but is a nice precaution
             print_error('There is no dataset selected.')
-        
+
+    def trim_flows(self, group_of_connections_id, trim_amount):
+        """ Get a group id and call the trimmer on the group """
+        if __datasets__.current:
+            group = self.get_group(group_of_connections_id)
+            if group:
+                group.trim_flows(trim_amount)
+            else:
+                print_error('No group with that id.')
+        else:
+            # This is not necesary to work, but is a nice precaution
+            print_error('There is no dataset selected.')
+
 
 
 __group_of_group_of_connections__ = Group_Of_Group_Of_Connections()
