@@ -101,7 +101,7 @@ class Commands(object):
         parser.add_argument('-i', '--modelid', metavar="model_id", help="Use this model id (4-tuple). Commonly used with -D.")
         parser.add_argument('-L', '--listmodels', metavar="group_model_id", help="List the models inside a group.")
         parser.add_argument('-C', '--countmodels', metavar="group_model_id", help="Count the models inside a group.")
-        parser.add_argument('-f', '--filter', metavar="filter", nargs = '+', help="Use this filter to work with models. Format: \"variable[=<>]value\". You can use the variables: statelen, nameincludes. For example: -f statelen>100 nameincludes=tcp.")
+        parser.add_argument('-f', '--filter', metavar="filter", nargs = '+', help="Use this filter to work with models. Format: \"variable[=<>]value\". You can use the variables: statelen, name. For example: -f statelen>100 name=tcp.")
         parser.add_argument('-H', '--histogram', metavar="group_model_id", help="Plot a histogram of the lengths of models states in the given id of group of models.")
 
 
@@ -180,10 +180,11 @@ class Commands(object):
         parser.add_argument('-d', '--delete', metavar="group_of_connections_id", help="Delete the group of connections.")
         parser.add_argument('-L', '--listconnections', metavar="group_connection_id", help="List the connections inside a group.")
         parser.add_argument('-F', '--showflows', metavar="connection_id", type=str, help="List the flows inside a specific connection.")
-        parser.add_argument('-f', '--filter', metavar="filter", nargs='+', help="Use this filter to work with connections. Format: \"variable[=<>]value\". You can use the variables: nameincludes. Example: \"nameincludes=tcp\".")
+        parser.add_argument('-f', '--filter', metavar="filter", nargs='+', help="Use this filter to work with connections. Format: \"variable[=<>]value\". You can use the variables: name, flowamount. Example: \"name=tcp\". Or \"flowamount<10\"")
         parser.add_argument('-D', '--deleteconnection', metavar="group_connection_id", help="Delete a connection from the group. This is the id of the group. Use -i to give the connection id to delete (4-tuple) or -f to use a filter.")
         parser.add_argument('-i', '--connectionid', metavar="connection_id", help="Use this connection id (4-tuple). Commonly used with -D.")
         parser.add_argument('-M', '--deleteconnectionifmodel', metavar="group_connection_id", help="Delete the connections from the group which models were deleted. Only give the connection group id. Useful to clean the  database of connections that are not used.")
+        parser.add_argument('-t', '--trimflows', metavar="group_connection_id", help="Trim all the connections so that each connection has at most 100 flows. Only give the connection group id. Useful to have some info about the connections but not all the data.")
         try:
             args = parser.parse_args(args)
         except:
@@ -200,7 +201,7 @@ class Commands(object):
 
         # Subcomand to delete a group of connections
         elif args.delete:
-            __group_of_group_of_connections__.del_group_of_connections(int(args.delete))
+            __group_of_group_of_connections__.delete_group_of_connections(int(args.delete))
             __database__.root._p_changed = True
 
         # Subcomand to list the connections in a group
@@ -231,13 +232,20 @@ class Commands(object):
             if args.connectionid:
                 # By id
                 __group_of_group_of_connections__.delete_a_connection_from_the_group_by_id(args.deleteconnection, args.connectionid)
-                __database__.root._p_changed = True
+            elif args.filter:
+                __group_of_group_of_connections__.delete_a_connection_from_the_group_by_filter(args.deleteconnection, args.filter)
+            __database__.root._p_changed = True
 
         # Subcomand to delete the connections from a group which models were deleted
         elif args.deleteconnectionifmodel:
             __group_of_group_of_connections__.delete_a_connection_from_the_group_if_model_deleted(int(args.deleteconnectionifmodel))
             __database__.root._p_changed = True
 
+        # Subcomand to trim the amount of flows in the connections
+        elif args.trimflows:
+            # Now just trim to keep 100 flows
+            __group_of_group_of_connections__.trim_flows(int(args.trimflows), 100)
+            __database__.root._p_changed = True
 
     ##
     # DATASETS
@@ -273,7 +281,7 @@ class Commands(object):
 
         # Subcomand to delete
         elif args.delete:
-            __datasets__.delete(args.delete)
+            __datasets__.delete(int(args.delete))
             __database__.root._p_changed = True
 
         # Subcomand to select a dataset
