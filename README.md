@@ -42,6 +42,17 @@ Unfortunately distutils does not have a way to uninstall packages. So your best 
 > sudo bash -c "cat files.txt | xargs rm -rf"
 
 
+
+# Tips on usage
+
+- When looking at the list of models or list of connections, stf uses 'less -R' to show you the information paginated. Whoever if you want to store the output in a file for later analysis, you can run '! cat % > /tmp/file' from inside less and store the file to disk.
+
+
+
+
+
+
+
 # TODO
 
 - Delete connections by id or filter.
