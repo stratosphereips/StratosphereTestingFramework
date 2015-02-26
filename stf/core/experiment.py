@@ -4,7 +4,7 @@
 import time
 import datetime
 import persistent
-import BTrees.OOBTree
+import BTrees.IOBTree
 import transaction
 
 from stf.common.out import *
@@ -42,7 +42,7 @@ class Experiment(object):
 class Experiments(persistent.Persistent):
     def __init__(self):
         self.current = None
-        self.experiments = BTrees.OOBTree.BTree()
+        self.experiments = BTrees.IOBTree.BTree()
         # The main dictionary of experiments objects using its id as index
         #self.experiments = {}
         print_info('Creating the Experiments object')
@@ -77,9 +77,6 @@ class Experiments(persistent.Persistent):
                     if e.get_name() == value:
                         self.current = e
                         print_info("Switched to experiment {}".format(self.current.get_name()))
-
-
-
 
     def create(self,name):
         """ Create an experiment """
