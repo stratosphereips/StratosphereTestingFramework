@@ -1,6 +1,7 @@
 import ZODB.config
 import persistent
 import transaction
+import time
 from datetime import datetime
 
 from stf.core.configuration import __configuration__
@@ -61,6 +62,7 @@ class Database:
         """ Close the db """
         transaction.commit()
         self.connection.close()
+        # In the future we should try to pack based on time
         self.db.pack
         self.db.close()
 
