@@ -226,7 +226,7 @@ class Commands(object):
 
         # Subcomand to delete the connections from a group which models were deleted
         elif args.deleteconnectionifmodel:
-            __group_of_group_of_connections__.delete_a_connection_from_the_group_if_model_deleted(args.deleteconnection)
+            __group_of_group_of_connections__.delete_a_connection_from_the_group_if_model_deleted(int(args.deleteconnectionifmodel))
             __database__.root._p_changed = True
 
 
