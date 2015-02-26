@@ -96,13 +96,14 @@ class Group_of_Models(object):
             return True
         self.filter = {}
         # Get the individual parts. We only support and's now.
+        #filter=["name!=25-tcp","statelength<500"]
         for part in filter:
             # Get the key
             try:
-                key = re.split('<|>|=', part)[0]
-                value = re.split('<|>|=', part)[1]
+                key = re.split('<|>|=|\!=', part)[0]
+                value = re.split('<|>|=|\!=', part)[1]
             except IndexError:
-                # No < or > or = in the string. Just stop.
+                # No < or > or = or != in the string. Just stop.
                 break
             try:
                 part.index('<')
@@ -114,11 +115,17 @@ class Group_of_Models(object):
                 operator = '>'
             except ValueError:
                 pass
+            # We should search for != before =
             try:
-                part.index('=')
-                operator = '='
+                part.index('!=')
+                operator = '!='
             except ValueError:
-                pass
+                # Now we search for =
+                try:
+                    part.index('=')
+                    operator = '='
+                except ValueError:
+                    pass
             self.filter[key] = (operator, value)
 
     def apply_filter(self,model):
@@ -146,13 +153,20 @@ class Group_of_Models(object):
                             responses['statelength'] = True
                         else:
                             responses['statelength'] = False
-                elif filter_key == 'nameincludes':
+                elif filter_key == 'name':
                     name = model.get_id()
                     if operator == '=':
                         if value in name:
-                            responses['nameincludes'] = True
+                            responses['name'] = True
                         else:
-                            responses['nameincludes'] = False
+                            responses['name'] = False
+                    elif operator == '!=':
+                        if value not in name:
+                            responses['name'] = True
+                        else:
+                            responses['name'] = False
+                else:
+                    return False
 
             for response in responses:
                 if not responses[response]:
@@ -182,6 +196,7 @@ class Group_of_Models(object):
         f.close()
 
     def delete_model_by_id(self,id):
+        """ Delete one model given a model id """
         try:
             # Now delete the model
             self.models.pop(id)
@@ -199,15 +214,12 @@ class Group_of_Models(object):
                 if self.apply_filter(model):
                     ids_to_delete.append(model.get_id())
                     amount += 1
-        
             # We should delete the models AFTER finding them, if not, for some reason the following model after a match is missed.
             for id in ids_to_delete:
                 self.models.pop(id)
-
             print_info('Amount of modules deleted: {}'.format(amount))
         except:
             print_error('An error ocurred while deleting models by filter.')
-
 
     def count_models(self, filter=''):
         rows = []
@@ -229,11 +241,12 @@ class Group_of_Models(object):
         """ Plot the histogram of length of states using an external tool """
         distribution_path = Popen('bash -i -c "type distribution"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
         if distribution_path:
+            print 'Key=Length of state'
             all_text = ''
             for model in self.get_models():
                 state_len = str(len(model.get_state()))
                 all_text += state_len + '\n'
-            Popen('echo \"' + all_text + '\" |distribution', shell=True).communicate()
+            Popen('echo \"' + all_text + '\" |distribution --height=900', shell=True).communicate()
         else:
             print_error('For ploting the histogram we use the tool https://github.com/philovivero/distribution. Please install it in the system to enable this command.')
 
@@ -289,22 +302,17 @@ class Group_of_Group_of_Models(persistent.Persistent):
         except KeyError:
             print_error('No such group of models id.')
 
-    def delete_group_of_models_with_dataset_id(self, id):
+    def delete_group_of_models_with_dataset_id(self, target_dataset_id):
         """Get the id of a dataset and delete all the models that were generated from it"""
         for group in self.group_of_models.values():
-            dataset_id = group.get_dataset_id()
-            if dataset_id == id:
+            dataset_id_of_group = group.get_dataset_id()
+            group_id = group.get_id()
+            if dataset_id_of_group == target_dataset_id:
                 # First delete all the the models in the group
-                amount = 0
-                for model in group.get_models():
-                    model_id = model.get_id()
-                    group.delete_model_by_id(model_id)
-                    amount += 1
-                print_info('Deleted {} models inside the group'.format(amount))
-
+                group.delete_model_by_filter('statelength>0')
                 # Now delete the model
-                self.group_of_models.pop(id)
-                print_info('Deleted group of models with id {}'.format(id))
+                self.group_of_models.pop(group_id)
+                print_info('Deleted group of models with id {}'.format(group_id))
 
     def generate_group_of_models(self):
         if __datasets__.current:
@@ -385,6 +393,8 @@ class Group_of_Group_of_Models(persistent.Persistent):
             print_error('No such group of models.')
         
 
-
+# from ZODB.blob import Blob
+# uid = Blob(imagebinary.read()
+# use uid as a file;
 
 __groupofgroupofmodels__ = Group_of_Group_of_Models()
