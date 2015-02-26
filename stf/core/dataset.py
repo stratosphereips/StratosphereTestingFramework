@@ -4,7 +4,7 @@
 import time
 import datetime
 import persistent
-import BTrees.OOBTree
+import BTrees.IOBTree
 import transaction
 import os
 from subprocess import Popen,PIPE
@@ -190,6 +190,9 @@ class Dataset(persistent.Persistent):
         """ Add the group of connections that is related to this dataset. Is only one, but we store it this way. """
         self.group_of_connections_id = group_of_connections_id
 
+    def remove_group_of_connections_id(self, group_of_connections_id):
+        self.group_of_connections_id = False
+
     def get_group_of_connections_id(self):
         try:
             return self.group_of_connections_id
@@ -208,31 +211,31 @@ class Datasets(persistent.Persistent):
         self.current = False
         print_info('Creating the Dataset object')
         # The main dictionary of datasets objects using its id as index
-        #self.datasets = BTrees.OOBTree.BTree()
         self.datasets = BTrees.IOBTree.BTree()
 
     def get_dataset(self,id):
+        """ Return a dataset objet given the id """
         try:
             return self.datasets[id]
         except:
             print_error('No such dataset id')
             return False
 
-    def delete(self, value): 
-        try:
-            id = int(value)
-            # Before deleting the dataset, delete the connections
-            from stf.core.connections import __group_of_group_of_connections__
-            __group_of_group_of_connections__.del_group_of_connections(id)
-            # Before deleting the dataset, delete the models
-            from stf.core.models import __groupofgroupofmodels__
-            __groupofgroupofmodels__.delete_group_of_models_with_dataset_id(id)
+    def delete(self, dataset_id): 
+        """ Delete a dataset from the list of datasets """
+        # Before deleting the dataset, delete the connections
+        from stf.core.connections import __group_of_group_of_connections__
+        __group_of_group_of_connections__.delete_group_of_connections(dataset_id)
+        # Before deleting the dataset, delete the models
+        from stf.core.models import __groupofgroupofmodels__
+        __groupofgroupofmodels__.delete_group_of_models_with_dataset_id(dataset_id)
 
+        try:
             # Now delete the dataset
-            self.datasets.pop(id)
-            print_info("Deleted dataset #{0}".format(id))
+            self.datasets.pop(dataset_id)
+            print_info("Deleted dataset #{0}".format(dataset_id))
             # If it was the current dataset, we have no current
-            if self.current and self.current.get_id() == id:
+            if self.current and self.current.get_id() == dataset_id:
                 self.current = False
         except ValueError:
             print_info('You should give an dataset id')
