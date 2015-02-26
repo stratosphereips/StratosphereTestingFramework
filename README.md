@@ -55,7 +55,7 @@ Unfortunately distutils does not have a way to uninstall packages. So your best 
 
 # TODO
 
-- Delete connections by id or filter.
+- Check when we delete connections with -M that the amount of connections remaining is the same as the amount of models.
 - Change the default model constructor
 - Show more info about the constructor
 - Show table for each constructor?
