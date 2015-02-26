@@ -167,6 +167,8 @@ class Flow(object):
         return (red(' State: \"' + self.get_state()) + cyan('\" TD: ' + str(self.get_td()) + ' T2: ' + str(self.get_t2()) + ' T1: ' + str(self.get_t1())) + '\t' + self.get_field_separator().join([self.get_starttime(),cyan(str(self.get_duration())),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),str(self.get_totpkts()),cyan(str(self.get_totbytes())),str(self.get_srcbytes()),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
 
 
+
+
 ########################
 ########################
 ########################
@@ -240,7 +242,10 @@ class Connection(object):
         sys.stdout = sys.__stdout__ 
         f.close()
 
-        
+    def delete_all_flows(self):
+        """ Delete all the flows of the model"""
+        for flow in self.flows.values():
+            self.flows.pop(flow.get_id())
 
 
 
@@ -351,7 +356,7 @@ class Group_Of_Connections(object):
                 index += 1
         except IndexError:
             # Even with our fix, some data still has problems. Usually it means that there is no src data being sent, so we can not find the start of the data.
-            print_error('There was some error reading the flow\'s data. We will keep the flow, but not its data.')
+            print_error('There was some error reading the data inside a flow. Most surely it includes the field separator of the flows. We will keep the flow, but not its data.')
             # Just get the normal flow fields
             index = 0
             for value in temp_values:
@@ -369,8 +374,12 @@ class Group_Of_Connections(object):
         """ Returns the list of connections """
         return self.connections.values()
 
+    def get_connection_by_id(self, id):
+        return self.connections[id]
+
     def get_connection(self, column_values):
         """ Finds the connection for this data or creates a new one"""
+        """ Maybe I should get out of here the creation of the connection object"""
         tuple4 = column_values['SrcAddr']+'-'+column_values['DstAddr']+'-'+column_values['Dport']+'-'+column_values['Proto']
         try:
             connection = self.connections[tuple4]
@@ -384,7 +393,11 @@ class Group_Of_Connections(object):
     def del_connection(self,id):
         """ Delete a specific connection inside the group"""
         try:
+            # First call the deletion of all the flows objects
+            self.get_connection_by_id(id).delete_all_flows()
+            # Then delete the connection from the group
             self.connections.pop(id)
+            # Here we should delete the flows.
         except KeyError:
             print_error('There is no such connection id.')
 
@@ -497,6 +510,7 @@ class Group_Of_Connections(object):
 
     def delete_connections_if_model_deleted(self):
         """ Delete the connections only of all the models related to that connection were deleted """
+        from stf.core.models import __groupofgroupofmodels__
         amount = 0
         ids_to_delete = []
         for connection in self.connections.values():
@@ -515,9 +529,9 @@ class Group_Of_Connections(object):
     
         # We should delete the connections AFTER finding them, if not, for some reason the following model after a match is missed.
         for id in ids_to_delete:
-            self.models.pop(id)
+            self.del_connection(id)
 
-        print_info('Amount of modules deleted: {}'.format(amount))
+        print_info('Amount of connections deleted: {}'.format(amount))
 
 
 ########################
@@ -563,6 +577,7 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
                     self.group_of_connections[group_of_connections_id] = new_group_of_connections
                     # Order to create the connections
                     new_group_of_connections.create_connections()
+                    __datasets__.current.set_group_of_connections_id(group_of_connections_id)
             else:
                 print_error('You should have a binetflow file in your dataset')
                 return False
@@ -618,6 +633,8 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
         """ Delete connections from a connection group using the filter"""
         # Get the id of the current dataset
         if __datasets__.current:
+            # Get the id of the groups of connections
+            group_of_connections_id = __datasets__.current.get_group_of_connections_id()
             self.group_of_connections[group_id].delete_connections_if_model_deleted()
         else:
             # This is not necesary to work, but is a nice precaution
