@@ -102,6 +102,7 @@ class Commands(object):
         parser.add_argument('-L', '--listmodels', metavar="group_model_id", help="List the models inside a group.")
         parser.add_argument('-C', '--countmodels', metavar="group_model_id", help="Count the models inside a group.")
         parser.add_argument('-f', '--filter', metavar="filter", nargs = '+', help="Use this filter to work with models. Format: \"variable[=<>]value\". You can use the variables: statelen, nameincludes. For example: -f statelen>100 nameincludes=tcp.")
+        parser.add_argument('-H', '--histogram', metavar="group_model_id", help="Plot a histogram of the lengths of models states in the given id of group of models.")
 
 
         try:
@@ -159,6 +160,14 @@ class Commands(object):
                 pass
             __groupofgroupofmodels__.count_models_in_group(args.countmodels, filter)
             __database__.root._p_changed = True
+
+        # Subcomand to plot histogram of states lengths
+        elif args.histogram:
+            #try:
+                #filter = args.filter
+            #except AttributeError:
+                #pass
+            __groupofgroupofmodels__.plot_histogram(args.histogram)
 
     ##
     # CONNECTIONS
