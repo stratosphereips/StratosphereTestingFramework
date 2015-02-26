@@ -132,49 +132,50 @@ class Group_of_Models(object):
         responses = []
         try:
             self.filter
-            for filter in self.filter:
-                key = filter[0]
-                operator = filter[1]
-                value = filter[2]
-                if key == 'statelength':
-                    state = model.get_state()
-                    if operator == '<':
-                        if len(state) < int(value):
-                            responses.append(True)
-                        else:
-                            responses.appen(False)
-                    elif operator == '>':
-                        if len(state) > int(value):
-                            responses.append(True)
-                        else:
-                            responses.append(False)
-                    elif operator == '=':
-                        if len(state) == int(value):
-                            responses.appen(True)
-                        else:
-                            responses.appen(False)
-                elif key == 'name':
-                    name = model.get_id()
-                    if operator == '=':
-                        if value in name:
-                            responses.append(True)
-                        else:
-                            responses.append(False)
-                    elif operator == '!=':
-                        if value not in name:
-                            responses.append(True)
-                        else:
-                            responses.append(False)
-                else:
-                    return False
-
-            for response in responses:
-                if not response:
-                    return False
-            return True
         except AttributeError:
             # If we don't have any filter string, just return true and show everything
             return True
+        # Check each filter
+        for filter in self.filter:
+            key = filter[0]
+            operator = filter[1]
+            value = filter[2]
+            if key == 'statelength':
+                state = model.get_state()
+                if operator == '<':
+                    if len(state) < int(value):
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '>':
+                    if len(state) > int(value):
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '=':
+                    if len(state) == int(value):
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            elif key == 'name':
+                name = model.get_id()
+                if operator == '=':
+                    if value in name:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if value not in name:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            else:
+                return False
+
+        for response in responses:
+            if not response:
+                return False
+        return True
 
     def list_models(self, filter):
         all_text='| Model Id | State |\n'
