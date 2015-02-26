@@ -94,9 +94,8 @@ class Group_of_Models(object):
             except:
                 pass
             return True
-        self.filter = {}
+        self.filter = []
         # Get the individual parts. We only support and's now.
-        #filter=["name!=25-tcp","statelength<500"]
         for part in filter:
             # Get the key
             try:
@@ -126,57 +125,58 @@ class Group_of_Models(object):
                     operator = '='
                 except ValueError:
                     pass
-            self.filter[key] = (operator, value)
+            self.filter.append((key, operator, value))
 
     def apply_filter(self,model):
         """ Use the stored filter to know what we should match"""
-        responses = {}
+        responses = []
         try:
             self.filter
-            for filter_key in self.filter:
-                operator = self.filter[filter_key][0]
-                value = self.filter[filter_key][1]
-                if filter_key == 'statelength':
+            for filter in self.filter:
+                key = filter[0]
+                operator = filter[1]
+                value = filter[2]
+                if key == 'statelength':
                     state = model.get_state()
                     if operator == '<':
                         if len(state) < int(value):
-                            responses['statelength'] = True
+                            responses.append(True)
                         else:
-                            responses['statelength'] = False
+                            responses.appen(False)
                     elif operator == '>':
                         if len(state) > int(value):
-                            responses['statelength'] = True
+                            responses.append(True)
                         else:
-                            responses['statelength'] = False
+                            responses.append(False)
                     elif operator == '=':
                         if len(state) == int(value):
-                            responses['statelength'] = True
+                            responses.appen(True)
                         else:
-                            responses['statelength'] = False
-                elif filter_key == 'name':
+                            responses.appen(False)
+                elif key == 'name':
                     name = model.get_id()
                     if operator == '=':
                         if value in name:
-                            responses['name'] = True
+                            responses.append(True)
                         else:
-                            responses['name'] = False
+                            responses.append(False)
                     elif operator == '!=':
                         if value not in name:
-                            responses['name'] = True
+                            responses.append(True)
                         else:
-                            responses['name'] = False
+                            responses.append(False)
                 else:
                     return False
 
             for response in responses:
-                if not responses[response]:
+                if not response:
                     return False
             return True
         except AttributeError:
             # If we don't have any filter string, just return true and show everything
             return True
 
-    def list_models(self, filter=''):
+    def list_models(self, filter):
         all_text='| Model Id | State |\n'
         # construct the filter
         self.construct_filter(filter)
@@ -355,7 +355,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
         else:
             print_error('There is no dataset selected.')
 
-    def list_models_in_group(self, id, filter=''):
+    def list_models_in_group(self, id, filter):
         try:
             group = self.group_of_models[id]
             group.list_models(filter)
