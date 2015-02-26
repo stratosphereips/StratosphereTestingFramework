@@ -213,7 +213,6 @@ class File(object):
             # Get the amount of bytes every 10 mins
             if self.get_bytes_histo():
                 rows.append(['Time Range (secs)', 'Amount of Packets' ])
-                print self.histoinfo
                 for histo_header in sorted(self.histoinfo):
                     rows.append([self.histoinfo[histo_header].split('|')[0], self.histoinfo[histo_header].split('|')[1]])
 
