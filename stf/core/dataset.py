@@ -32,6 +32,8 @@ class Dataset(persistent.Persistent):
         self.folder = None
         # This dict holds all the groups of models related with this dataset. There can be many because there are several models constructors. Is a dict only to search faster.
         self.group_of_models = {}
+        # This stores the id of the group of connections related with this dataset. Only one group of connections is related.
+        self.group_of_connections_id = False
 
     def get_file_type(self,type):
         """ Return the file with type x in this dataset"""
@@ -118,9 +120,11 @@ class Dataset(persistent.Persistent):
     def list_files(self):
         rows = []
         for file in self.files.values():
-                rows.append([file.get_short_name(), file.get_id() , file.get_modificationtime(), file.get_size_in_megabytes(), file.get_duration(), file.get_type()])
+                #rows.append([file.get_short_name(), file.get_id() , file.get_modificationtime(), file.get_size_in_megabytes(), file.get_duration(), file.get_type()])
+                rows.append([file.get_short_name(), file.get_id() , file.get_modificationtime(), file.get_size_in_megabytes(), file.get_type()])
 
-        print(table(header=['File Name', 'Id', 'Creation Time', 'Size', 'Duration', 'Type'], rows=rows))
+        #print(table(header=['File Name', 'Id', 'Creation Time', 'Size', 'Duration', 'Type'], rows=rows))
+        print(table(header=['File Name', 'Id', 'Creation Time', 'Size', 'Type'], rows=rows))
 
     def info_about_file(self,file_id):
         file = self.files[int(file_id)]
@@ -188,9 +192,12 @@ class Dataset(persistent.Persistent):
 
     def get_group_of_connections_id(self):
         try:
-            return self.group_of_connections_id 
+            return self.group_of_connections_id
         except AttributeError:
             return False
+
+    def set_group_of_connections_id(self, group_of_connections_id):
+        self.group_of_connections_id = group_of_connections_id
 
 
 ###########################
@@ -201,7 +208,8 @@ class Datasets(persistent.Persistent):
         self.current = False
         print_info('Creating the Dataset object')
         # The main dictionary of datasets objects using its id as index
-        self.datasets = BTrees.OOBTree.BTree()
+        #self.datasets = BTrees.OOBTree.BTree()
+        self.datasets = BTrees.IOBTree.BTree()
 
     def get_dataset(self,id):
         try:
