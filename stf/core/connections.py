@@ -164,7 +164,10 @@ class Flow(object):
             return ''
 
     def get_label(self):
-        return self.label
+        try:
+            return self.label
+        except AttributeError:
+            return ''
 
     def get_field_separator(self):
         return self.line_separator
@@ -173,10 +176,10 @@ class Flow(object):
         return (self.get_field_separator().join([str(self.get_id()),self.get_starttime(),self.get_duration(),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),self.get_totpkts(),self.get_totbytes(),self.get_srcbytes(),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
 
     def print_flow(self):
-        print_info(red(' State: \"' + self.get_state()) + cyan('\" TD: ' + str(self.get_td()) + ' T2: ' + str(self.get_t2()) + ' T1: ' + str(self.get_t1())) + '\t' + self.get_field_separator().join([self.get_starttime(),cyan(str(self.get_duration())),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),str(self.get_totpkts()),cyan(str(self.get_totbytes())),str(self.get_srcbytes()),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
+        print_info(red(' State: \"' + self.get_state() + '\"') + cyan(' TD: ' + str(self.get_td()) + ' T2: ' + str(self.get_t2()) + ' T1: ' + str(self.get_t1())) + '\t' + self.get_field_separator().join([self.get_starttime(),cyan(str(self.get_duration())),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),str(self.get_totpkts()),cyan(str(self.get_totbytes())),str(self.get_srcbytes()),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
 
     def return_flow_info(self):
-            return (red(' State: \"' + self.get_state()) + cyan('\" TD: ' + str(self.get_td()) + ' T2: ' + str(self.get_t2()) + ' T1: ' + str(self.get_t1())) + '\t' + self.get_field_separator().join([self.get_starttime(),cyan(str(self.get_duration())),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),str(self.get_totpkts()),cyan(str(self.get_totbytes())),str(self.get_srcbytes()),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
+        return (red(' State: \"' + self.get_state() + '\"') + cyan(' TD: ' + str(self.get_td()) + ' T2: ' + str(self.get_t2()) + ' T1: ' + str(self.get_t1())) + '\t' + self.get_field_separator().join([self.get_starttime(),cyan(str(self.get_duration())),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),str(self.get_totpkts()),cyan(str(self.get_totbytes())),str(self.get_srcbytes()),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
 
 
 
@@ -248,6 +251,7 @@ class Connection(object):
             all_text = all_text + self.flows[flow_id].return_flow_info() + '\n'
         f = tempfile.NamedTemporaryFile()
         f.write(all_text)
+        f.flush()
         p = Popen('less -R ' + f.name, shell=True, stdin=PIPE)
         p.communicate()
         sys.stdout = sys.__stdout__ 
@@ -524,7 +528,7 @@ class Group_Of_Connections(object):
             # If we don't have any filter string, just return true and show everything
             return True
 
-    def list_connections(self, filter_string=''):
+    def list_connections(self, filter_string):
         all_text='| Connection Id | Amount of flows |\n'
         # construct the filter
         self.construct_filter(filter_string)
@@ -592,6 +596,16 @@ class Group_Of_Connections(object):
         """ For each connection in this group, tell it  to trim the amount of flows """
         for connection in self.connections.values():
             connection.trim_flows(trim_amount)
+
+    def count_connections(self, filter):
+        """ Count the connections in the group that match the filter """
+        # construct the filter
+        self.construct_filter(filter)
+        amount = 0
+        for connection in self.connections.values():
+            if self.apply_filter(connection):
+                amount += 1
+        print_info('Amount of connections that match the filter: {}'.format(amount))
 
 
 ########################
@@ -676,7 +690,7 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
         else:
             print_error('No such group of connections exists.')
 
-    def list_connections_in_group(self, id, filter=''):
+    def list_connections_in_group(self, id, filter):
         try:
             group = self.group_of_connections[id]
             group.list_connections(filter)
@@ -733,6 +747,18 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
             # This is not necesary to work, but is a nice precaution
             print_error('There is no dataset selected.')
 
+    def count_connections_in_group(self, group_of_connections_id, filter):
+        if __datasets__.current:
+            group = self.get_group(int(group_of_connections_id))
+            if group:
+                group.count_connections(filter)
+            else:
+                print_error('No group with that id.')
+
+        else:
+            # This is not necesary to work, but is a nice precaution
+            print_error('There is no dataset selected.')
+        
 
 
 __group_of_group_of_connections__ = Group_Of_Group_Of_Connections()
