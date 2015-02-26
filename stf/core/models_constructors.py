@@ -72,8 +72,8 @@ class Model_Constructor(object):
             t2_in_hours = model['T2'].total_seconds() / 3600.0
             tto_in_hours = self.get_tto().total_seconds() / 3600.0
 
-            amount_of_hours = int( tto_in_hours %  t2_in_hours )
-            for i in range(amount_of_hours):
+            # Should be int always
+            for i in range(int(t2_in_hours)):
                 state += '0'
 
         if model['T1'] and model['T2']:
