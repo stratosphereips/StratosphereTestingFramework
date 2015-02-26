@@ -1,6 +1,8 @@
 import persistent
 import BTrees.OOBTree
 import re
+import tempfile
+import subprocess
 
 from stf.common.out import *
 from stf.core.dataset import __datasets__
@@ -161,16 +163,23 @@ class Group_of_Models(object):
             return True
 
     def list_models(self, filter=''):
-        rows = []
-        # set the filter
+        all_text='| Model Id | State |\n'
+        # construct the filter
         self.construct_filter(filter)
         amount = 0
-        print('| Model Id | State |')
         for model in self.models.values():
             if self.apply_filter(model):
-                print_row([model.get_id(), model.get_state()])
+                all_text += '{:40} | {}\n'.format(model.get_id(), model.get_state())
+                #all_text += model.get_id() + ' | ' + '\n'
                 amount += 1
-        print_info('Amount of modules printed: {}'.format(amount))
+        all_text += 'Amount of models printed: {}'.format(amount)
+        f = tempfile.NamedTemporaryFile()
+        f.write(all_text)
+        f.flush()
+        p = subprocess.Popen('less -R ' + f.name, shell=True, stdin=subprocess.PIPE)
+        p.communicate()
+        sys.stdout = sys.__stdout__ 
+        f.close()
 
     def delete_model_by_id(self,id):
         try:
