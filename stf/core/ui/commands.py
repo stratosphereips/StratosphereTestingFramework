@@ -101,7 +101,7 @@ class Commands(object):
         parser.add_argument('-i', '--modelid', metavar="model_id", help="Use this model id (4-tuple). Commonly used with -D.")
         parser.add_argument('-L', '--listmodels', metavar="group_model_id", help="List the models inside a group.")
         parser.add_argument('-C', '--countmodels', metavar="group_model_id", help="Count the models inside a group.")
-        parser.add_argument('-f', '--filter', metavar="filter", nargs = '+', help="Use this filter to work with models. Format: \"variable[=<>]value\". You can use the variables: statelen, name. For example: -f statelen>100 name=tcp.")
+        parser.add_argument('-f', '--filter', metavar="filter", nargs = '+', help="Use this filter to work with models. You can use multiple filter separated by a space. Format: \"variable[=<>]value\". You can use the variables: statelen, name. For example: -f statelen>100 name=tcp.")
         parser.add_argument('-H', '--histogram', metavar="group_model_id", help="Plot a histogram of the lengths of models states in the given id of group of models.")
 
 
@@ -133,7 +133,6 @@ class Commands(object):
             filter = ''
             try:
                 filter = args.filter
-
             except AttributeError:
                 pass
             __groupofgroupofmodels__.list_models_in_group(args.listmodels, filter)
@@ -185,6 +184,7 @@ class Commands(object):
         parser.add_argument('-i', '--connectionid', metavar="connection_id", help="Use this connection id (4-tuple). Commonly used with -D.")
         parser.add_argument('-M', '--deleteconnectionifmodel', metavar="group_connection_id", help="Delete the connections from the group which models were deleted. Only give the connection group id. Useful to clean the  database of connections that are not used.")
         parser.add_argument('-t', '--trimflows', metavar="group_connection_id", help="Trim all the connections so that each connection has at most 100 flows. Only give the connection group id. Useful to have some info about the connections but not all the data.")
+        parser.add_argument('-C', '--countconnections', metavar="group_connection_id", help="Count the amount of connections matching the filter. This is the id of the group.")
         try:
             args = parser.parse_args(args)
         except:
@@ -245,6 +245,15 @@ class Commands(object):
         elif args.trimflows:
             # Now just trim to keep 100 flows
             __group_of_group_of_connections__.trim_flows(int(args.trimflows), 100)
+            __database__.root._p_changed = True
+
+        # Subcomand to count the amount of models
+        elif args.countconnections:
+            try:
+                filter = args.filter
+            except AttributeError:
+                pass
+            __group_of_group_of_connections__.count_connections_in_group(args.countconnections, filter)
             __database__.root._p_changed = True
 
     ##
