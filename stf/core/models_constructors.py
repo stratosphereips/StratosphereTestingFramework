@@ -1,5 +1,5 @@
 import persistent
-import BTrees.OOBTree
+import BTrees.IOBTree
 from dateutil import parser
 import datetime
 
@@ -310,7 +310,7 @@ class Models_Constructors(persistent.Persistent):
     def __init__(self):
         """ This class holds all the different constructors of behavioral models based on states"""
         self.default_model_constructor = 1
-        self.models_constructors = BTrees.OOBTree.BTree()
+        self.models_constructors = BTrees.IOBTree.BTree()
 
         # Reapeat this for each new constructor
 
