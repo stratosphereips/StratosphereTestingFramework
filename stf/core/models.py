@@ -184,7 +184,7 @@ class Group_of_Models(object):
         amount = 0
         for model in self.models.values():
             if self.apply_filter(model):
-                all_text += '{:40} | {}\n'.format(model.get_id(), model.get_state())
+                all_text += '{:40} | {}\n'.format(cyan(model.get_id()), model.get_state())
                 #all_text += model.get_id() + ' | ' + '\n'
                 amount += 1
         all_text += 'Amount of models printed: {}'.format(amount)
@@ -242,12 +242,12 @@ class Group_of_Models(object):
         """ Plot the histogram of length of states using an external tool """
         distribution_path = Popen('bash -i -c "type distribution"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
         if distribution_path:
-            print 'Key=Length of state'
-            all_text = ''
+            all_text_state = ''
             for model in self.get_models():
                 state_len = str(len(model.get_state()))
-                all_text += state_len + '\n'
-            Popen('echo \"' + all_text + '\" |distribution --height=900', shell=True).communicate()
+                all_text_state += state_len + '\n'
+            print 'Key=Length of state'
+            Popen('echo \"' + all_text_state + '\" |distribution --height=900 | sort -nk1', shell=True).communicate()
         else:
             print_error('For ploting the histogram we use the tool https://github.com/philovivero/distribution. Please install it in the system to enable this command.')
 
