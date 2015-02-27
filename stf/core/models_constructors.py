@@ -338,8 +338,8 @@ class Models_Constructors(persistent.Persistent):
         second_model_constructor.set_ts1(float(125))
         second_model_constructor.set_ts2(float(1100))
         second_model_constructor.set_tto(datetime.timedelta(seconds=3600))
-        second_model_constructor.set_name('Model 1')
-        second_model_constructor.set_description('Second try. First use of the freq threshold.')
+        second_model_constructor.set_name('Model Bundchen')
+        second_model_constructor.set_description('Uses the symbols between flows to store the time.')
         self.models_constructors[second_model_constructor.get_id()] = second_model_constructor
 
     def get_default_constructor(self):
