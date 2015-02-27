@@ -185,6 +185,7 @@ class Commands(object):
         parser.add_argument('-M', '--deleteconnectionifmodel', metavar="group_connection_id", help="Delete the connections from the group which models were deleted. Only give the connection group id. Useful to clean the  database of connections that are not used.")
         parser.add_argument('-t', '--trimflows', metavar="group_connection_id", help="Trim all the connections so that each connection has at most 100 flows. Only give the connection group id. Useful to have some info about the connections but not all the data.")
         parser.add_argument('-C', '--countconnections', metavar="group_connection_id", help="Count the amount of connections matching the filter. This is the id of the group.")
+        parser.add_argument('-H', '--histogram', metavar="connection_id", type=str, help="Show the histograms for state len, duration and size of all the flows in this connection id (4-tuple).")
         try:
             args = parser.parse_args(args)
         except:
@@ -255,6 +256,10 @@ class Commands(object):
                 pass
             __group_of_group_of_connections__.count_connections_in_group(args.countconnections, filter)
             __database__.root._p_changed = True
+
+        # Subcomand to show the histograms 
+        elif args.histogram:
+            __group_of_group_of_connections__.show_histograms(args.histogram)
 
     ##
     # DATASETS
