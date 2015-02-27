@@ -179,6 +179,8 @@ class Flow(object):
         print_info(red(' State: \"' + self.get_state() + '\"') + cyan(' TD: ' + str(self.get_td()) + ' T2: ' + str(self.get_t2()) + ' T1: ' + str(self.get_t1())) + '\t' + self.get_field_separator().join([self.get_starttime(),cyan(str(self.get_duration())),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),str(self.get_totpkts()),cyan(str(self.get_totbytes())),str(self.get_srcbytes()),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
 
     def return_flow_info(self):
+        # Usual binetflow header
+        # StartTime,Dur,Proto,SrcAddr,Sport,Dir,DstAddr,Dport,State,sTos,dTos,TotPkts,TotBytes,SrcBytes,srcUdata,dstUdata,Label
         return (red(' State: \"' + self.get_state() + '\"') + cyan(' TD: ' + str(self.get_td()) + ' T2: ' + str(self.get_t2()) + ' T1: ' + str(self.get_t1())) + '\t' + self.get_field_separator().join([self.get_starttime(),cyan(str(self.get_duration())),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),str(self.get_totpkts()),cyan(str(self.get_totbytes())),str(self.get_srcbytes()),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
 
 
@@ -266,6 +268,33 @@ class Connection(object):
         """ Trim the amount of flows in this connection to the first trim_amount """
         from itertools import islice
         self.flows =  dict(islice(self.flows.iteritems(), trim_amount))
+
+    def show_histograms(self):
+        """ Show the histograms for this connection """
+        distribution_path = Popen('bash -i -c "type distribution"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
+        if distribution_path:
+            durations = self.get_durations_as_text()
+            sizes = self.get_sizes_as_text()
+            print 'Key=Duration (limited to 2 decimals)'
+            Popen('echo \"' + durations + '\" |distribution --height=900 | sort -nk1', shell=True).communicate()
+            print 'Key=Size'
+            Popen('echo \"' + sizes + '\" |distribution --height=900 | sort -nk1', shell=True).communicate()
+        else:
+            print_error('For ploting the histogram we use the tool https://github.com/philovivero/distribution. Please install it in the system to enable this command.')
+
+    def get_durations_as_text(self):
+        text = ''
+        for flow in self.get_flows():
+            dur = str('{:.2f}'.format(flow.get_duration()))
+            text += dur + '\n'
+        return text
+
+    def get_sizes_as_text(self):
+        text = ''
+        for flow in self.get_flows():
+            size = str(flow.get_totbytes()) 
+            text += size + '\n'
+        return text
 
 
 
@@ -607,6 +636,14 @@ class Group_Of_Connections(object):
                 amount += 1
         print_info('Amount of connections that match the filter: {}'.format(amount))
 
+    def show_histograms(self, connection_id):
+        """ Get a 4-tuple and call the histograms """
+        try:
+            self.connections[connection_id].show_histograms()
+        except KeyError:
+            print_error('That connection does not exist in this dataset.')
+
+
 
 ########################
 ########################
@@ -759,6 +796,15 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
             # This is not necesary to work, but is a nice precaution
             print_error('There is no dataset selected.')
         
-
+    def show_histograms(self, connection_id):
+        """ Get a group id and call the histograms """
+        if __datasets__.current:
+            group_id = __datasets__.current.get_id()
+            try:
+                self.group_of_connections[group_id].show_histograms(connection_id)
+            except KeyError:
+                print_error('The connection {} does not longer exists in the database.'.format(connection_id))
+        else:
+            print_error('There is no dataset selected.')
 
 __group_of_group_of_connections__ = Group_Of_Group_Of_Connections()
