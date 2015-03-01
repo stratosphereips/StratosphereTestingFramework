@@ -335,7 +335,7 @@ class Models_Constructors(persistent.Persistent):
         second_model_constructor.set_tt3(float(5))
         second_model_constructor.set_td1(float(0.1))
         second_model_constructor.set_td2(float(10))
-        second_model_constructor.set_ts1(float(125))
+        second_model_constructor.set_ts1(float(250))
         second_model_constructor.set_ts2(float(1100))
         second_model_constructor.set_tto(datetime.timedelta(seconds=3600))
         second_model_constructor.set_name('Model Bundchen')
