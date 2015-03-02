@@ -528,34 +528,48 @@ class Group_Of_Connections(object):
 
     def apply_filter(self,connection):
         """ Use the stored filter to know what we should match"""
+        responses = [] 
+        # There is an error applying two filters like " name=udp and flowamount>4"
         try:
             self.filter
-            for filter_key in self.filter:
-                operator = self.filter[filter_key][0]
-                value = self.filter[filter_key][1]
-                if filter_key == 'name':
-                    name = connection.get_id()
-                    if operator == '=':
-                        if value in name:
-                            return True
-                if filter_key == 'flowamount':
-                    value = int(value)
-                    amount_of_flows = len(connection.flows)
-                    if operator == '=':
-                        if value == amount_of_flows:
-                            return True
-                    elif operator == '<':
-                        if amount_of_flows < value:
-                            return True
-                    elif operator == '>':
-                        if amount_of_flows > value:
-                            return True
-                else:
-                    return False
-            return False
         except AttributeError:
             # If we don't have any filter string, just return true and show everything
             return True
+        for filter_key in self.filter:
+            operator = self.filter[filter_key][0]
+            value = self.filter[filter_key][1]
+            if filter_key == 'name':
+                name = connection.get_id()
+                if operator == '=':
+                    if value in name:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+
+            elif filter_key == 'flowamount':
+                value = int(value)
+                amount_of_flows = len(connection.flows)
+                if operator == '=':
+                    if value == amount_of_flows:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '<':
+                    if amount_of_flows < value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '>':
+                    if amount_of_flows > value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            else:
+                responses.append(False)
+        for response in responses:
+            if not response:
+                return False
+        return True
 
     def list_connections(self, filter_string):
         all_text='| Connection Id | Amount of flows |\n'
@@ -727,9 +741,9 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
         else:
             print_error('No such group of connections exists.')
 
-    def list_connections_in_group(self, id, filter):
+    def list_connections_in_group(self, group_id, filter):
         try:
-            group = self.group_of_connections[id]
+            group = self.get_group(int(group_id))
             group.list_connections(filter)
         except KeyError:
             print_error('No such group of connections.')
@@ -748,7 +762,8 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
     def delete_a_connection_from_the_group_by_id(self, group_id, connection_id):
         """ Delete a unique connection id from a connection group """
         if __datasets__.current:
-            self.group_of_connections[group_id].delete_connection_by_id(connection_id)
+            group = self.get_group(int(group_id))
+            group.delete_connection_by_id(connection_id)
         else:
             # This is not necesary to work, but is a nice precaution
             print_error('There is no dataset selected.')
