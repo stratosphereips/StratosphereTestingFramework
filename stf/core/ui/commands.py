@@ -103,6 +103,9 @@ class Commands(object):
         parser.add_argument('-C', '--countmodels', metavar="group_model_id", help="Count the models inside a group.")
         parser.add_argument('-f', '--filter', metavar="filter", nargs = '+', help="Use this filter to work with models. You can use multiple filter separated by a space. Format: \"variable[=<>]value\". You can use the variables: statelen, name. For example: -f statelen>100 name=tcp.")
         parser.add_argument('-H', '--histogram', metavar="group_model_id", help="Plot a histogram of the lengths of models states in the given id of group of models.")
+        parser.add_argument('-N', '--delnote', metavar='group_model_id', help="Delete completely the note related with this model id. Use -i to give the model id to add the note to (4-tuple).")
+        parser.add_argument('-n', '--editnote', metavar='group_model_id', help="Edit the note related with this model id. Use -i to give the model id to add the note to (4-tuple).")
+        parser.add_argument('-o', '--listnotes', metavar='group_model_id', help="List the notes related with this model id.f")
 
 
         try:
@@ -168,6 +171,27 @@ class Commands(object):
             #except AttributeError:
                 #pass
             __groupofgroupofmodels__.plot_histogram(args.histogram)
+
+        # Subcomand to edit the note of this model
+        elif args.editnote:
+            if args.modelid:
+                __groupofgroupofmodels__.edit_note(args.editnote, args.modelid)
+                __database__.root._p_changed = True
+            else:
+                print_error('You should give a model id also with -i.')
+            
+        # Subcomand to delete the note of this model
+        elif args.delnote :
+            if args.modelid:
+                __groupofgroupofmodels__.del_note(args.delnote, args.modelid)
+                __database__.root._p_changed = True
+            else:
+                print_error('You should give a model id also with -i.')
+
+        # Subcomand to list the note of this model
+        elif args.listnotes :
+            __groupofgroupofmodels__.list_notes(args.listnotes)
+            __database__.root._p_changed = True
 
     ##
     # CONNECTIONS
