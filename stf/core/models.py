@@ -413,8 +413,4 @@ class Group_of_Group_of_Models(persistent.Persistent):
             print_error('No such group of models.')
         
 
-# from ZODB.blob import Blob
-# uid = Blob(imagebinary.read()
-# use uid as a file;
-
 __groupofgroupofmodels__ = Group_of_Group_of_Models()
