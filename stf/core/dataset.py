@@ -11,6 +11,7 @@ from subprocess import Popen,PIPE
 
 from stf.common.out import *
 from stf.core.file import File
+from stf.core.notes import __notes__
 
 
 ###########################
@@ -202,6 +203,29 @@ class Dataset(persistent.Persistent):
     def set_group_of_connections_id(self, group_of_connections_id):
         self.group_of_connections_id = group_of_connections_id
 
+    def edit_note(self):
+        """ Edit the note related with this dataset or create a new one and edit it """
+        try:
+            note_id = self.note_id
+            __notes__.edit_note(note_id)
+        except AttributeError:
+            self.note_id = __notes__.new_note()
+            __notes__.edit_note(self.note_id)
+
+    def del_note(self):
+        """ Delete the note related with this dataset """
+        try:
+            # First delete the note
+            note_id = self.note_id
+            __notes__.del_note(note_id)
+            # Then delete the reference to the note
+            del self.note_id 
+
+        except AttributeError:
+            print_error('No such note id exists.')
+
+
+
 
 ###########################
 ###########################
@@ -384,7 +408,15 @@ class Datasets(persistent.Persistent):
         else:
             print_error('No dataset selected. Use -s option.')
 
+    def edit_note(self, dataset_id):
+        """ Get a dataset id and edit its note """
+        dataset = self.datasets[int(dataset_id)]
+        dataset.edit_note()
 
+    def del_note(self, dataset_id):
+        """ Get a dataset id and delete its note """
+        dataset = self.datasets[int(dataset_id)]
+        dataset.del_note()
 
 
 __datasets__ = Datasets()
