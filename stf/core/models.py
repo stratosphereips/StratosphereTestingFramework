@@ -8,6 +8,7 @@ from stf.common.out import *
 from stf.core.dataset import __datasets__
 from stf.core.connections import  __group_of_group_of_connections__
 from stf.core.models_constructors import __modelsconstructors__ 
+from stf.core.notes import __notes__
 
 ###############################
 ###############################
@@ -39,11 +40,47 @@ class Model(object):
     def get_state(self):
         return self.state
 
+    def set_note_id(self, note_id):
+        self.note_id = note_id
+
+    def get_note_id(self):
+        return self.note_id 
+
+    def edit_note(self):
+        """ Edit the note related with this model or create a new one and edit it """
+        try:
+            note_id = self.note_id
+            __notes__.edit_note(note_id)
+        except AttributeError:
+            nid = __notes__.new_note()
+            self.set_note_id(nid)
+            __notes__.edit_note(self.get_note_id())
+
+    def del_note(self):
+        """ Delete the note related with this model """
+        try:
+            # First delete the note
+            note_id = self.note_id
+            __notes__.del_note(note_id)
+            # Then delete the reference to the note
+            del self.note_id 
+        except AttributeError:
+            print_error('No such note id exists.')
+
+    def get_short_note(self):
+        """ Return a short text of the note """
+        try:
+            note_id = self.note_id
+            return __notes__.get_short_note(note_id)
+        except AttributeError:
+            return ''
+
+
 
 ###############################
 ###############################
 ###############################
-class Group_of_Models(object):
+class Group_of_Models(persistent.Persistent):
     def __init__(self, id):
         """ This class holds all the models for a dataset"""
         self.id = id
@@ -259,8 +296,40 @@ class Group_of_Models(object):
         else:
             print_error('For ploting the histogram we use the tool https://github.com/philovivero/distribution. Please install it in the system to enable this command.')
 
-        
+    def list_notes(self, filter_string=''):
+        """ List the notes in all the models """
+        all_text='| Model Id | Note(...) |\n'
+        # construct the filter
+        self.construct_filter(filter_string)
+        amount = 0
+        for model in self.get_models():
+            if self.apply_filter(model) and model.get_short_note():
+                all_text += '{:40} | {}\n'.format(model.get_id(), model.get_short_note())
+                amount += 1
+        all_text += 'Amount of models listed: {}'.format(amount)
+        f = tempfile.NamedTemporaryFile()
+        f.write(all_text)
+        f.flush()
+        p = Popen('less -R ' + f.name, shell=True, stdin=PIPE)
+        p.communicate()
+        sys.stdout = sys.__stdout__ 
+        f.close()
 
+    def edit_note_in_model(self, model_id):
+        """ Edit note in model """
+        try:
+            model = self.models[model_id]
+            model.edit_note()
+        except KeyError:
+            print_error('That model does not exists.')
+
+    def del_note_in_model(self, model_id):
+        """ Delete the note in a model """
+        try:
+            model = self.models[model_id]
+            model.del_note()
+        except KeyError:
+            print_error('That model does not exists.')
 
 
 ###############################
@@ -411,6 +480,38 @@ class Group_of_Group_of_Models(persistent.Persistent):
             group.plot_histogram()
         except KeyError:
             print_error('No such group of models.')
+
+    def edit_note(self, group_of_models_id, model_id):
+        """ Get a model id and edit its note """
+        if __datasets__.current:
+            group_of_models = self.group_of_models[group_of_models_id]
+            try:
+                group_of_models.edit_note_in_model(model_id)
+            except KeyError:
+                print_error('No such model id.')
+        else:
+            print_error('There is no dataset selected.')
+
+    def del_note(self, group_of_models_id, model_id):
+        """ Get a model id and delete its note """
+        if __datasets__.current:
+            group_of_models = self.group_of_models[group_of_models_id]
+            try:
+                group_of_models.del_note_in_model(model_id)
+            except KeyError:
+                print_error('No such model id.')
+        else:
+            print_error('There is no dataset selected.')
+
+    def list_notes(self, group_of_models_id):
+        """ List the notes in a group_of_models """
+        if __datasets__.current:
+            group_of_models = self.group_of_models[group_of_models_id]
+            group_of_models.list_notes()
+        else:
+            print_error('There is no dataset selected.')
+
+
         
 
 __groupofgroupofmodels__ = Group_of_Group_of_Models()
