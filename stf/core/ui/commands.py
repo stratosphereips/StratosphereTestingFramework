@@ -284,6 +284,8 @@ class Commands(object):
         group.add_argument('-D', '--dele', metavar='file_id', help="Delete a file from the dataset.")
         group.add_argument('-g', '--generate', action='store_true', help="Try to generate the biargus and binetflow files for the selected dataset if they do not exists.")
         group.add_argument('-u', '--unselect', action='store_true', help="Unselect the current dataset.")
+        group.add_argument('-n', '--editnote', metavar='dataset_id', help="Edit the note related with this dataset id.")
+        group.add_argument('-N', '--delnote', metavar='dataset_id', help="Delete completely the note related with this dataset id.")
 
         try:
             args = parser.parse_args(args)
@@ -337,9 +339,18 @@ class Commands(object):
         elif args.unselect :
             __datasets__.unselect_current()
 
+        # Subcomand to edit the note of this dataset
+        elif args.editnote :
+            __datasets__.edit_note(args.editnote)
+            __database__.root._p_changed = True
+            
+        # Subcomand to delete the note of this dataset
+        elif args.delnote :
+            __datasets__.del_note(args.delnote)
+            __database__.root._p_changed = True
+
         else:
             parser.print_usage()
-
 
 
     ##
