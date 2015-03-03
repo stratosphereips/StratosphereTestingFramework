@@ -10,6 +10,7 @@ from stf.common.out import *
 class Model_Constructor(object):
     """
     The First Model constructor. Each of this objects is unique. We are going to instantiate them only once.
+    Each model constructor object is related with a unique model.
     """
     def __init__(self, id):
         self.id = id
@@ -22,8 +23,16 @@ class Model_Constructor(object):
         self.threshold_size_2 = False
         self.threshold_timeout = False
 
-        # We store each model id with the values of T1 and T2
         self.models = {}
+      
+
+    def del_model(self, model_id):
+        """ Delete this model from the list of models used by this constructor. This allow us to regenerate the state of a model without problems """
+        try:
+            self.models.pop(model_id)
+        except KeyError:
+            print_error('There is no such model in the constructor to delete.')
+
 
     def set_name(self,name):
         self.name = name  
@@ -31,10 +40,8 @@ class Model_Constructor(object):
     def set_description(self,description):
         self.description = description
 
-    def get_state(self,flow,model_id):
-        """ Receive the flow info and get a state"""
-        #print_info(flow)
-
+    def get_state(self, flow, model_id):
+        """ Receive the flow info and the model id and get a state"""
         # Temporal TD
         TD = -1
         state = ''
@@ -47,6 +54,7 @@ class Model_Constructor(object):
         # This flow belongs to a known model, or is the first one?
         try:
             model = self.models[model_id]
+            # We already have this model
             # Update T1. Just move T2 in there
             model['T1'] = model['T2']
             # Get the new time from the new flow
@@ -240,6 +248,7 @@ class Model_Constructor(object):
                 state += '*'
 
         # We store permanently the T1, T2 and TD values on each flow, so we can later analyze it
+        #FOR SOME REASON IF WE REGENERATE THE MODELS THE FIRST LETTERS ARE NOT NUMBERS
         flow.set_t1(model['T1'])
         flow.set_t2(model['T2'])
         flow.set_td(TD)
@@ -343,6 +352,7 @@ class Models_Constructors(persistent.Persistent):
         self.models_constructors[second_model_constructor.get_id()] = second_model_constructor
 
     def get_default_constructor(self):
+        """ Since we return an object, all the models share the same constructor """
         return self.models_constructors[self.default_model_constructor]
 
     def list_constructors(self):
