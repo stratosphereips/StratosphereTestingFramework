@@ -201,8 +201,10 @@ class Group_of_Models(object):
         try:
             # Now delete the model
             self.models.pop(id)
+            return True
         except KeyError:
             print_error('That model does not exists.')
+            return False
 
     def delete_model_by_filter(self,filter):
         """ Delete the models using the filter. Do not delete the related connections """
@@ -289,19 +291,24 @@ class Group_of_Group_of_Models(persistent.Persistent):
         try:
             # Get the group
             group = self.group_of_models[id]
-            # First delete all the the models in the group
-            amount = 0
-            for model in group.get_models():
-                model_id = model.get_id()
-                group.delete_model_by_id(model_id)
-                amount += 1
-            print_info('Deleted {} models inside the group'.format(amount))
-
-            # Now delete the model
-            self.group_of_models.pop(id)
-            print_info('Deleted group of models with id {}'.format(id))
         except KeyError:
-            print_error('No such group of models id.')
+            print_error('There is no such an id for a group of models.')
+        # First delete all the the models in the group
+        ids_to_delete = []
+        for model in group.get_models():
+            model_id = model.get_id()
+            ids_to_delete.append(model_id)
+
+        # We should delete the models AFTER finding them, if not, for some reason the following model after a match is missed.
+        amount = 0
+        for modelid in ids_to_delete:
+            if group.delete_model_by_id(modelid):
+                amount += 1
+        print_info('Deleted {} models inside the group'.format(amount))
+
+        # Now delete the model
+        self.group_of_models.pop(id)
+        print_info('Deleted group of models with id {}'.format(id))
 
     def delete_group_of_models_with_dataset_id(self, target_dataset_id):
         """Get the id of a dataset and delete all the models that were generated from it"""
@@ -365,6 +372,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
 
     def delete_a_model_from_the_group_by_id(self, group_of_models_id, model_id):
         # Get the id of the current dataset
+        print_info('a')
         if __datasets__.current:
             self.group_of_models[group_of_models_id].delete_model_by_id(model_id)
         else:
@@ -373,6 +381,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
 
     def delete_a_model_from_the_group_by_filter(self, group_of_models_id, filter=''):
         # Get the id of the current dataset
+        print_info('b')
         if __datasets__.current:
             self.group_of_models[group_of_models_id].delete_model_by_filter(filter)
         else:
