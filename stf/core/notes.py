@@ -23,7 +23,6 @@ class Note(persistent.Persistent):
         # Create a new temporary file.
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.md')
         # Write the text that we have into the temp file
-        print_info('Text in the note: {}'.format(self.text))
         tmp.write(self.text)
         tmp.file.flush()
         # Open the temporary file with the default editor, or with nano.
@@ -39,6 +38,14 @@ class Note(persistent.Persistent):
         """ Delete the text of the note """
         self.text = ""
 
+    def get_note(self):
+        """ Return text of the note """
+        return self.text
+
+    def get_short_note(self):
+        """ Return text of the note until the first enter"""
+        enter = self.text.index('\n')
+        return self.text[:enter]
 
 ###############################
 ###############################
@@ -79,5 +86,13 @@ class Group_of_Notes(persistent.Persistent):
             note.edit()
         except KeyError:
             print_error('No such note id')
+
+    def get_short_note(self, note_id):
+        try:
+            note = self.notes[note_id]
+            return note.get_short_note()
+        except KeyError:
+            return ''
+
 
 __notes__ = Group_of_Notes()
