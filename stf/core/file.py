@@ -91,6 +91,8 @@ class File(object):
             self.set_type('weblog')
         elif 'argus' in extension:
             self.set_type('biargus')
+        elif 'exe' in extension:
+            self.set_type('exe')
         else:
             self.set_type('Unknown')
 
@@ -192,6 +194,15 @@ class File(object):
         elif self.histoinfo and self.get_type() == 'pcap':
             return True
 
+    def get_md5(self):
+        """ Return the md5 of the file """
+        try:
+            return self.md5
+        except AttributeError:
+            self.md5 = tshark_data = Popen('md5sum '+self.get_name()+' | awk \'{print $1}\'', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0]
+            return self.md5
+
+
     def info(self):
         rows = []
         print_info('Information of file name {} with id {}'.format(self.get_short_name(), self.get_id()))
@@ -217,11 +228,14 @@ class File(object):
                     rows.append([self.histoinfo[histo_header].split('|')[0], self.histoinfo[histo_header].split('|')[1]])
 
         # Get more info from binetflow files
-        if 'binetflow' in self.get_type():
-            print_info(self.get_binetflowinfos())
+        elif 'binetflow' in self.get_type():
             if self.get_binetflowinfos():
                 for infotype in self.binetflowinfo:
                     rows.append([infotype, self.binetflowinfo[infotype]])
+        elif 'exe' in self.get_type():
+            # Get exe data
+            # md5
+            rows.append(['MD5', self.get_md5()])
 
         print(table(header=['Key', 'Value'], rows=rows))
 
