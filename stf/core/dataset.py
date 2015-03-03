@@ -50,9 +50,6 @@ class Dataset(persistent.Persistent):
     def get_id(self):
         return self.id
 
-    def get_group_id(self):
-        return self.group_of_connections_id
-
     def get_name(self):
         return self.name
     
@@ -88,7 +85,6 @@ class Dataset(persistent.Persistent):
         if not os.path.exists(filename) or not os.path.isfile(filename):
             print_error('File not found: {}'.format(filename))
             return
-
         # We should have only one file per type
         short_name = os.path.split(filename)[1]
         extension = short_name.split('.')[-1]
@@ -97,14 +93,12 @@ class Dataset(persistent.Persistent):
             if extension in self.files[file].get_type():
                 print_error('Only one type of file per dataset is allowed.')
                 return False
-
         # Get the new id for this file
         try:
             # Get the id of the last file in the dataset
             f_id = self.files[list(self.files.keys())[-1]].get_id() + 1
         except (KeyError, IndexError):
             f_id = 0
-
         # Create the file object
         f = File(filename, f_id)
         # Add it to the list of files related to this dataset
@@ -183,7 +177,7 @@ class Dataset(persistent.Persistent):
 
     def get_group_of_models(self):
         return self.group_of_models
-        
+
     def has_group_of_models(self,group_of_models_id):
         return self.group_of_models.has_key(group_of_models_id)
     
@@ -224,6 +218,14 @@ class Dataset(persistent.Persistent):
         except AttributeError:
             print_error('No such note id exists.')
 
+    def get_note_id(self):
+        """ Return the note id or false """
+        try:
+            note_id = self.note_id
+            return True
+        except AttributeError:
+            return False
+
 
 
 
@@ -237,7 +239,7 @@ class Datasets(persistent.Persistent):
         # The main dictionary of datasets objects using its id as index
         self.datasets = BTrees.IOBTree.BTree()
 
-    def get_dataset(self,id):
+    def get_dataset(self, id):
         """ Return a dataset objet given the id """
         try:
             return self.datasets[id]
@@ -266,7 +268,7 @@ class Datasets(persistent.Persistent):
         except KeyError:
             print_info('Dataset ID non existant.')
 
-    def add_file(self,filename):
+    def add_file(self, filename):
         """ Add a new file to the current dataset"""
         if self.current:
             # Check that the file exists 
@@ -332,8 +334,8 @@ class Datasets(persistent.Persistent):
         rows = []
         for dataset in self.datasets.values():
                 main_file = dataset.get_main_file()
-                rows.append([dataset.get_name(), dataset.get_id() , dataset.get_atime() , main_file.get_short_name(), main_file.get_modificationtime(), dataset.get_folder(), True if (self.current and self.current.get_id() == dataset.get_id()) else False ])
-        print(table(header=['Dataset Name', 'Id', 'Added Time', 'Main File Name', 'Main File Creation Time', 'Folder', 'Current'], rows=rows))
+                rows.append([dataset.get_name(), dataset.get_id() , dataset.get_atime() , main_file.get_short_name(), main_file.get_modificationtime(), dataset.get_folder(), True if (self.current and self.current.get_id() == dataset.get_id()) else False, dataset.get_note_id() ])
+        print(table(header=['Dataset Name', 'Id', 'Added Time', 'Main File Name', 'Main File Creation Time', 'Folder', 'Current', 'Note'], rows=rows))
 
     def list_files(self):
         """ List all the files in dataset """
@@ -410,13 +412,19 @@ class Datasets(persistent.Persistent):
 
     def edit_note(self, dataset_id):
         """ Get a dataset id and edit its note """
-        dataset = self.datasets[int(dataset_id)]
-        dataset.edit_note()
+        try:
+            dataset = self.datasets[int(dataset_id)]
+            dataset.edit_note()
+        except KeyError:
+            print_error('No such dataset id.')
 
     def del_note(self, dataset_id):
         """ Get a dataset id and delete its note """
-        dataset = self.datasets[int(dataset_id)]
-        dataset.del_note()
+        try:
+            dataset = self.datasets[int(dataset_id)]
+            dataset.del_note()
+        except KeyError:
+            print_error('No such dataset id.')
 
 
 __datasets__ = Datasets()
