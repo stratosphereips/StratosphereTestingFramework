@@ -140,7 +140,6 @@ class Commands(object):
 
         # Subcomand to delete a model from a group by id or filter
         elif args.deletemodel:
-
             # By id or filter?
             if args.modelid:
                 # By id
@@ -150,6 +149,8 @@ class Commands(object):
                 # By filter
                 __groupofgroupofmodels__.delete_a_model_from_the_group_by_filter(args.deletemodel, args.filter)
                 __database__.root._p_changed = True
+            else:
+                print_error('You should provide the id of the model (4-tuple) with -i or a filter with -f')
 
         # Subcomand to count the amount of models
         elif args.countmodels:
