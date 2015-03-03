@@ -744,7 +744,10 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
     def list_connections_in_group(self, group_id, filter):
         try:
             group = self.get_group(int(group_id))
-            group.list_connections(filter)
+            if group:
+                group.list_connections(filter)
+            else:
+                print_error('No group with that id')
         except KeyError:
             print_error('No such group of connections.')
 
@@ -772,7 +775,10 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
         """ Delete connections from a the group by filter """
         if __datasets__.current:
             group = self.get_group(int(group_id))
-            group.delete_connection_by_filter(filter)
+            if group:
+                group.delete_connection_by_filter(filter)
+            else:
+                print_error('No group with that id')
         else:
             # This is not necesary to work, but is a nice precaution
             print_error('There is no dataset selected.')
