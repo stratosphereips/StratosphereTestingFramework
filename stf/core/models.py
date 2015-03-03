@@ -19,6 +19,8 @@ class Model(object):
     def __init__(self, id):
         self.id = id
         self.state = ''
+        # To hold information stored by the constructors
+        self.constructor_info = {}
 
     def get_id(self):
         return self.id
@@ -196,17 +198,21 @@ class Group_of_Models(object):
         sys.stdout = sys.__stdout__ 
         f.close()
 
-    def delete_model_by_id(self,id):
+
+    def delete_model_by_id(self, model_id):
         """ Delete one model given a model id """
         try:
+            # Before deleting the model, delete its relation in the constructor
+            model = self.models[model_id]
+            model.constructor.del_model(model_id)
             # Now delete the model
-            self.models.pop(id)
+            self.models.pop(model_id)
             return True
         except KeyError:
             print_error('That model does not exists.')
             return False
 
-    def delete_model_by_filter(self,filter):
+    def delete_model_by_filter(self, filter):
         """ Delete the models using the filter. Do not delete the related connections """
         try:
             # set the filter
@@ -219,7 +225,7 @@ class Group_of_Models(object):
                     amount += 1
             # We should delete the models AFTER finding them, if not, for some reason the following model after a match is missed.
             for id in ids_to_delete:
-                self.models.pop(id)
+                self.delete_model_by_id(id)
             print_info('Amount of modules deleted: {}'.format(amount))
         except:
             print_error('An error ocurred while deleting models by filter.')
@@ -265,6 +271,9 @@ class Group_of_Group_of_Models(persistent.Persistent):
         """ This class holds all the groups of models"""
         self.group_of_models = BTrees.OOBTree.BTree()
 
+    def get_group(self, group_id):
+        return self.group_of_models[group_id]
+
     def get_groups(self):
         return self.group_of_models.values()
 
@@ -308,6 +317,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
 
         # Now delete the model
         self.group_of_models.pop(id)
+        # Here we should put all the t1 and t2 of the models in zero somehow????
         print_info('Deleted group of models with id {}'.format(id))
 
     def delete_group_of_models_with_dataset_id(self, target_dataset_id):
@@ -368,7 +378,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
             group = self.group_of_models[id]
             group.list_models(filter)
         except KeyError:
-            print_error('No such group of models.')
+            print_error('Inexistant id of group of models.')
 
     def delete_a_model_from_the_group_by_id(self, group_of_models_id, model_id):
         # Get the id of the current dataset
