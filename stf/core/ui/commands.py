@@ -184,7 +184,8 @@ class Commands(object):
         parser.add_argument('-D', '--deleteconnection', metavar="group_connection_id", help="Delete a connection from the group. This is the id of the group. Use -i to give the connection id to delete (4-tuple) or -f to use a filter.")
         parser.add_argument('-i', '--connectionid', metavar="connection_id", help="Use this connection id (4-tuple). Commonly used with -D.")
         parser.add_argument('-M', '--deleteconnectionifmodel', metavar="group_connection_id", help="Delete the connections from the group which models were deleted. Only give the connection group id. Useful to clean the  database of connections that are not used.")
-        parser.add_argument('-t', '--trimflows', metavar="group_connection_id", help="Trim all the connections so that each connection has at most 100 flows. Only give the connection group id. Useful to have some info about the connections but not all the data.")
+        parser.add_argument('-t', '--trimgroupid', metavar="group_connection_id", help="Trim all the connections so that each connection has at most 100 flows. Only give the connection group id. Useful to have some info about the connections but not all the data.")
+        parser.add_argument('-a', '--amounttotrim', metavar="amount_to_trim", type=int, help="Define the amount of flows to trim with -t. By default 100.")
         parser.add_argument('-C', '--countconnections', metavar="group_connection_id", help="Count the amount of connections matching the filter. This is the id of the group.")
         parser.add_argument('-H', '--histogram', metavar="connection_id", type=str, help="Show the histograms for state len, duration and size of all the flows in this connection id (4-tuple).")
         try:
@@ -244,9 +245,13 @@ class Commands(object):
             __database__.root._p_changed = True
 
         # Subcomand to trim the amount of flows in the connections
-        elif args.trimflows:
+        elif args.trimgroupid:
             # Now just trim to keep 100 flows
-            __group_of_group_of_connections__.trim_flows(int(args.trimflows), 100)
+            if args.amounttotrim:
+                amount_to_trim = args.amounttotrim
+            else:
+                amount_to_trim = 100
+            __group_of_group_of_connections__.trim_flows(int(args.trimgroupid), amount_to_trim)
             __database__.root._p_changed = True
 
         # Subcomand to count the amount of models
