@@ -184,7 +184,7 @@ class File(object):
                 for line in tshark_info:
                     header = line.split('|')[1].strip()
                     # Store the key as int for later sorting
-                    number_in_header = int(header.split('<>')[0].strip())
+                    number_in_header = float(header.split('<>')[0].strip())
                     info = line.split('|')[2].strip()
                     self.histoinfo[number_in_header] = header + '|' + info
                 return True
