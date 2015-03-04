@@ -188,7 +188,7 @@ class Flow(object):
 ########################
 ########################
 ########################
-class Connection(object):
+class Connection(persistent.Persistent):
     """
     One 4-tuple is a connection. A dataset has a lot of these
     """
@@ -276,9 +276,15 @@ class Connection(object):
             durations = self.get_durations_as_text()
             sizes = self.get_sizes_as_text()
             print 'Key=Duration (limited to 2 decimals)'
-            Popen('echo \"' + durations + '\" |distribution --height=900 | sort -nk1', shell=True).communicate()
+            try:
+                Popen('echo \"' + durations + '\" |distribution --height=900 | sort -nk1', shell=True).communicate()
+            except OSError:
+                print_error('Maybe the list of data is too long. Try trimming the amount of flows.')
             print 'Key=Size'
-            Popen('echo \"' + sizes + '\" |distribution --height=900 | sort -nk1', shell=True).communicate()
+            try:
+                Popen('echo \"' + sizes + '\" |distribution --height=900 | sort -nk1', shell=True).communicate()
+            except OSError:
+                print_error('Maybe the list of data is too long. Try trimming the amount of flows.')
         else:
             print_error('For ploting the histogram we use the tool https://github.com/philovivero/distribution. Please install it in the system to enable this command.')
 
