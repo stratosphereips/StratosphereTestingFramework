@@ -22,6 +22,7 @@ class Model(object):
         self.state = ''
         # To hold information stored by the constructors
         self.constructor_info = {}
+        self.note_id = False
 
     def get_id(self):
         return self.id
@@ -46,15 +47,20 @@ class Model(object):
     def get_note_id(self):
         return self.note_id 
 
-    def edit_note(self):
-        """ Edit the note related with this model or create a new one and edit it """
+    def get_note_id(self):
         try:
-            note_id = self.note_id
-            __notes__.edit_note(note_id)
-        except AttributeError:
-            nid = __notes__.new_note()
-            self.set_note_id(nid)
-            __notes__.edit_note(self.get_note_id())
+            return self.note_id
+        except KeyError:
+            return False
+
+    def edit_note(self, note_id):
+        """ Edit a note """
+        __notes__.edit_note(note_id)
+
+    def add_note(self):
+        """ Add a note to the model """
+        note_id = __notes__.new_note()
+        self.set_note_id(note_id)
 
     def del_note(self):
         """ Delete the note related with this model """
@@ -65,7 +71,8 @@ class Model(object):
             # Then delete the reference to the note
             del self.note_id 
         except AttributeError:
-            print_error('No such note id exists.')
+            # Note does not exist, but don't print nothing becase there are a lot of models to delete
+            pass
 
     def get_short_note(self):
         """ Return a short text of the note """
@@ -242,6 +249,8 @@ class Group_of_Models(persistent.Persistent):
             # Before deleting the model, delete its relation in the constructor
             model = self.models[model_id]
             model.constructor.del_model(model_id)
+            # Delete the notes in the model
+            model.del_note()
             # Now delete the model
             self.models.pop(model_id)
             return True
@@ -268,7 +277,6 @@ class Group_of_Models(persistent.Persistent):
             print_error('An error ocurred while deleting models by filter.')
 
     def count_models(self, filter=''):
-        rows = []
         # set the filter
         self.construct_filter(filter)
         amount = 0
@@ -319,7 +327,14 @@ class Group_of_Models(persistent.Persistent):
         """ Edit note in model """
         try:
             model = self.models[model_id]
-            model.edit_note()
+            if model.get_note_id():
+                note_id = model.get_note_id()
+                model.edit_note(note_id)
+            else:
+                model.add_note()
+                note_id = model.get_note_id()
+                model.edit_note(note_id)
+
         except KeyError:
             print_error('That model does not exists.')
 
@@ -453,7 +468,8 @@ class Group_of_Group_of_Models(persistent.Persistent):
         # Get the id of the current dataset
         print_info('a')
         if __datasets__.current:
-            self.group_of_models[group_of_models_id].delete_model_by_id(model_id)
+            group_of_models = self.group_of_models[group_of_models_id]
+            group_of_models.delete_model_by_id(model_id)
         else:
             # This is not necesary to work, but is a nice precaution
             print_error('There is no dataset selected.')
@@ -462,7 +478,8 @@ class Group_of_Group_of_Models(persistent.Persistent):
         # Get the id of the current dataset
         print_info('b')
         if __datasets__.current:
-            self.group_of_models[group_of_models_id].delete_model_by_filter(filter)
+            group_of_models = self.group_of_models[group_of_models_id]
+            group_of_models.delete_model_by_filter(filter)
         else:
             # This is not necesary to work, but is a nice precaution
             print_error('There is no dataset selected.')
