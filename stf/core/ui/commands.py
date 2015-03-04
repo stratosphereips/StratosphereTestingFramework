@@ -17,6 +17,7 @@ from stf.core.database import __database__
 from stf.core.connections import __group_of_group_of_connections__
 from stf.core.models_constructors import __modelsconstructors__
 from stf.core.models import __groupofgroupofmodels__
+from stf.core.notes import __notes__
 
 class Commands(object):
 
@@ -31,6 +32,7 @@ class Commands(object):
             connections=dict(obj=self.cmd_connections, description="Manage the connections. A dataset should be selected first."),
             models=dict(obj=self.cmd_models, description="Manage the models. A dataset should be selected first."),
             database=dict(obj=self.cmd_models, description="Manage the models. A dataset should be selected first."),
+            notes=dict(obj=self.cmd_notes, description="Manage the notes."),
             exit=dict(obj=self.cmd_exit, description="Exit"),
         )
 
@@ -85,6 +87,33 @@ class Commands(object):
             ))
         else:
             print_info('There is no current experiment')
+
+    ##
+    # NOTES
+    #
+    # This command works with notes
+    def cmd_notes(self, *args):
+        parser = argparse.ArgumentParser(prog="notes", description="Manage notes", epilog="Manage notes")
+        parser.add_argument('-l', '--listnotes', action="store_true", help="List all the notes in the system.")
+        parser.add_argument('-d', '--deletenote', metavar="note_id", help="Delete a note.")
+        parser.add_argument('-f', '--filter', metavar="filter", nargs = '+', help="Use this filter to work with notes. You can use multiple filter separated by a space. Format: \"variable[=<>]value\". You can use the variables: text. For example: -f text=hi text!=p2p.")
+
+
+        try:
+            args = parser.parse_args(args)
+        except:
+            return
+
+        # Subcomand to list the notes
+        if args.listnotes:
+            __notes__.list_notes()
+            __database__.root._p_changed = True
+
+        # Subcomand to delte a note
+        elif args.deletenote:
+            __notes__.delete_note(int(args.deletenote))
+            __database__.root._p_changed = True
+
 
 
     ##
