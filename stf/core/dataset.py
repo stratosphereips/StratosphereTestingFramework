@@ -277,7 +277,6 @@ class Datasets(persistent.Persistent):
                 return
             # Add this file to the dataset
             self.current.add_file(filename)
-            self._p_changed = True
         else:
             print_error('No dataset selected. Use -s option.')
 
