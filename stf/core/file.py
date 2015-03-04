@@ -3,10 +3,11 @@ import os
 from subprocess import Popen,PIPE
 import datetime
 from dateutil import parser
+import persistent
 
 from stf.common.out import *
 
-class File(object):
+class File(persistent.Persistent):
     """ A Class to store all the info of different file types"""
     def __init__(self, filename, id):
         # initialize some of the attributes
@@ -64,7 +65,6 @@ class File(object):
 
     def set_modificationtime(self):
         ctime = time.ctime(os.path.getmtime(self.get_name()))
-        print_info(ctime)
         self.ctime = ctime
 
     def get_modificationtime(self):
