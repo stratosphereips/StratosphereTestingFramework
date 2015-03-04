@@ -34,6 +34,9 @@ class Note(persistent.Persistent):
         # Finally, remove the temporary file.
         os.remove(tmp.name)
 
+    def get_text(self):
+        return self.text 
+
     def delete_text(self):
         """ Delete the text of the note """
         self.text = ""
@@ -47,6 +50,9 @@ class Note(persistent.Persistent):
         enter = self.text.index('\n')
         return self.text[:enter]
 
+    def __repr__(self):
+        return self.text
+
 ###############################
 ###############################
 ###############################
@@ -55,6 +61,17 @@ class Group_of_Notes(persistent.Persistent):
     def __init__(self):
         self.notes = BTrees.IOBTree.BTree()
         # We are not storing here the relationship between the note and the object to which the note is related. The relationship is stored in the other object.
+        
+    def get_note(self, note_id):
+        """ Return all the notes """
+        try:
+            return self.notes[note_id]
+        except KeyError:
+            return False
+
+    def get_notes(self):
+        """ Return all the notes """
+        return self.notes.values()
 
     def new_note(self):
         """ Creates a new note and returns its id """
@@ -69,7 +86,7 @@ class Group_of_Notes(persistent.Persistent):
         self.notes[note_id] = new_note
         return note_id
     
-    def del_note(self, note_id):
+    def delete_note(self, note_id):
         try:
             # Just in case delete the text of the note before
             note = self.notes[note_id]
@@ -93,6 +110,15 @@ class Group_of_Notes(persistent.Persistent):
             return note.get_short_note()
         except KeyError:
             return ''
+
+    def list_notes(self):
+        """ List all the notes """
+        rows = []
+        print_info('Note Id | Text')
+        for note in self.get_notes():
+            print'Note id {}'.format(note.get_id())
+            print '##############'
+            print'{}'.format(note.get_text())
 
 
 __notes__ = Group_of_Notes()
