@@ -3,7 +3,7 @@
 The Stratosphere Testing Framework is a research framework to analyze the behavior of network connections using machine learning models and algorithms. Is the main research part of the Stratosphere IPS. Its goal is to help improving the detection models and algorithms.
 
 
-# Installation
+# Installation and Dependencies
 Before installing stf, you need to install the dependencies:
 
 - prettytable (apt-get install python-prettytable)
@@ -44,22 +44,18 @@ Unfortunately distutils does not have a way to uninstall packages. So your best 
 
 
 # Tips on usage
-
 - When looking at the list of models or list of connections, stf uses 'less -R' to show you the information paginated. Whoever if you want to store the output in a file for later analysis, you can run '! cat % > /tmp/file' from inside less and store the file to disk.
 
 
 
 
-
-
-
 # TODO
-
-- Check when we delete connections with -M that the amount of connections remaining is the same as the amount of models.
-- Change the default model constructor
 - Show more info about the constructor
 - Show table for each constructor?
 - Implement the constructors as modules?
-- Make a nice instalation
-    - put configs in /etc or in ~/.stf/
-    - create the database folder
+
+# Bugs
+- Note 0 can not be edited with "note -e 0"
+- Do not detect when the 'distribution' program is not there.
+- Try to cluster with simhash
+- Add autotext note when I delete models or connections
