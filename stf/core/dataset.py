@@ -197,6 +197,9 @@ class Dataset(persistent.Persistent):
     def set_group_of_connections_id(self, group_of_connections_id):
         self.group_of_connections_id = group_of_connections_id
 
+    def set_note_id(self, note_id):
+        self.note_id = note_id
+
     def edit_note(self):
         """ Edit the note related with this dataset or create a new one and edit it """
         try:
@@ -221,8 +224,7 @@ class Dataset(persistent.Persistent):
     def get_note_id(self):
         """ Return the note id or false """
         try:
-            note_id = self.note_id
-            return True
+            return self.note_id
         except AttributeError:
             return False
 
@@ -333,7 +335,7 @@ class Datasets(persistent.Persistent):
         rows = []
         for dataset in self.datasets.values():
                 main_file = dataset.get_main_file()
-                rows.append([dataset.get_name(), dataset.get_id() , dataset.get_atime() , main_file.get_short_name(), main_file.get_modificationtime(), dataset.get_folder(), True if (self.current and self.current.get_id() == dataset.get_id()) else False, dataset.get_note_id() ])
+                rows.append([dataset.get_name(), dataset.get_id() , dataset.get_atime() , main_file.get_short_name(), main_file.get_modificationtime(), dataset.get_folder(), True if (self.current and self.current.get_id() == dataset.get_id()) else False, dataset.get_note_id() if dataset.get_note_id() >= 0 else '' ])
         print(table(header=['Dataset Name', 'Id', 'Added Time', 'Main File Name', 'Main File Creation Time', 'Folder', 'Current', 'Note'], rows=rows))
 
     def list_files(self):
