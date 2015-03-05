@@ -45,9 +45,6 @@ class Model(object):
         self.note_id = note_id
 
     def get_note_id(self):
-        return self.note_id 
-
-    def get_note_id(self):
         try:
             return self.note_id
         except KeyError:
@@ -223,14 +220,17 @@ class Group_of_Models(persistent.Persistent):
                 return False
         return True
 
-    def list_models(self, filter):
-        all_text='| Model Id | State |\n'
+    def list_models(self, filter, max_letters=0):
+        all_text=' Note | Model Id | State |\n'
         # construct the filter
         self.construct_filter(filter)
         amount = 0
         for model in self.models.values():
             if self.apply_filter(model):
-                all_text += '{:40} | {}\n'.format(cyan(model.get_id()), model.get_state())
+                if max_letters:
+                    all_text += '[{:3}] | {:50} | {}\n'.format(model.get_note_id() if model.get_note_id() else '', cyan(model.get_id()), model.get_state()[:max_letters])
+                else:
+                    all_text += '[{:3}] | {:50} | {}\n'.format(model.get_note_id() if model.get_note_id() else '', cyan(model.get_id()), model.get_state())
                 #all_text += model.get_id() + ' | ' + '\n'
                 amount += 1
         all_text += 'Amount of models printed: {}'.format(amount)
@@ -457,16 +457,15 @@ class Group_of_Group_of_Models(persistent.Persistent):
         else:
             print_error('There is no dataset selected.')
 
-    def list_models_in_group(self, id, filter):
+    def list_models_in_group(self, id, filter, max_letters=0):
         try:
             group = self.group_of_models[id]
-            group.list_models(filter)
+            group.list_models(filter, max_letters)
         except KeyError:
             print_error('Inexistant id of group of models.')
 
     def delete_a_model_from_the_group_by_id(self, group_of_models_id, model_id):
         # Get the id of the current dataset
-        print_info('a')
         if __datasets__.current:
             group_of_models = self.group_of_models[group_of_models_id]
             group_of_models.delete_model_by_id(model_id)
@@ -476,7 +475,6 @@ class Group_of_Group_of_Models(persistent.Persistent):
 
     def delete_a_model_from_the_group_by_filter(self, group_of_models_id, filter=''):
         # Get the id of the current dataset
-        print_info('b')
         if __datasets__.current:
             group_of_models = self.group_of_models[group_of_models_id]
             group_of_models.delete_model_by_filter(filter)
