@@ -16,6 +16,7 @@ import tempfile
 
 from stf.common.out import *
 from stf.core.dataset import __datasets__
+from stf.core.notes import __notes__
 
 
 ########################
@@ -275,12 +276,18 @@ class Connection(persistent.Persistent):
         if distribution_path:
             durations = self.get_durations_as_text()
             sizes = self.get_sizes_as_text()
-            print 'Key=Duration (limited to 2 decimals)'
+            t2s = self.get_t2s_as_text()
+            print 'Key=T2 in secs (limited to 2 decimals)'
+            try:
+                Popen('echo \"' + t2s + '\" |distribution --height=900 | sort -nk1', shell=True).communicate()
+            except OSError:
+                print_error('Maybe the list of data is too long. Try trimming the amount of flows.')
+            print '\nKey=Duration in secs (limited to 2 decimals)'
             try:
                 Popen('echo \"' + durations + '\" |distribution --height=900 | sort -nk1', shell=True).communicate()
             except OSError:
                 print_error('Maybe the list of data is too long. Try trimming the amount of flows.')
-            print 'Key=Size'
+            print '\nKey=Size in bytes'
             try:
                 Popen('echo \"' + sizes + '\" |distribution --height=900 | sort -nk1', shell=True).communicate()
             except OSError:
@@ -300,6 +307,14 @@ class Connection(persistent.Persistent):
         for flow in self.get_flows():
             size = str(flow.get_totbytes()) 
             text += size + '\n'
+        return text
+
+    def get_t2s_as_text(self):
+        text = ''
+        for flow in self.get_flows():
+            if flow.get_t2():
+                t2 = str('{:.1f}'.format(flow.get_t2().total_seconds())) 
+                text += t2 + '\n'
         return text
 
 
@@ -645,6 +660,8 @@ class Group_Of_Connections(object):
         """ For each connection in this group, tell it  to trim the amount of flows """
         for connection in self.connections.values():
             connection.trim_flows(trim_amount)
+        # now ad the note to the dataset
+        self.add_note_to_dataset('The trim command was applied in this dataset to trim connections to a maximum of {} flows.'.format(trim_amount))
 
     def count_connections(self, filter):
         """ Count the connections in the group that match the filter """
@@ -663,6 +680,16 @@ class Group_Of_Connections(object):
         except KeyError:
             print_error('That connection does not exist in this dataset.')
 
+    def add_note_to_dataset(self, text_to_add):
+        # Now log in the note that we did this
+        note_id = __datasets__.current.get_note_id()
+        if note_id:
+            __notes__.add_auto_text_to_note(note_id, text_to_add)
+        else:
+            # There was no not yet. Create it and add the text.
+            note_id = __notes__.new_note()
+            __datasets__.current.set_note_id(note_id)
+            __notes__.add_auto_text_to_note(note_id, text_to_add)
 
 
 ########################
