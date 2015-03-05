@@ -68,6 +68,13 @@ class Note(persistent.Persistent):
         sys.stdout = sys.__stdout__ 
         f.close()
 
+    def has_text(self, text_to_search):
+        """ Searchs a text. Ignore case"""
+        if text_to_search.lower() in self.text.lower():
+            return True
+        else:
+            return False
+
 
 ###############################
 ###############################
@@ -147,10 +154,17 @@ class Group_of_Notes(persistent.Persistent):
         if note:
             note.show_text()
             
-    def edi_note(self, note_id):
+    def edit_note(self, note_id):
         """ Edit a note """
         note = self.get_note(note_id)
         if note:
             note.edit()
+            
+    def search_text(self, text_to_search):
+        """ Search a text in all notes """
+        for note in self.get_notes():
+            if note.has_text(text_to_search):
+                print_info(cyan('Note {}'.format(note.get_id())))
+                print'{}'.format(note.get_text())
 
 __notes__ = Group_of_Notes()
