@@ -134,7 +134,8 @@ class Commands(object):
         parser.add_argument('-H', '--histogram', metavar="group_model_id", help="Plot a histogram of the lengths of models states in the given id of group of models.")
         parser.add_argument('-N', '--delnote', metavar='group_model_id', help="Delete completely the note related with this model id. Use -i to give the model id to add the note to (4-tuple).")
         parser.add_argument('-n', '--editnote', metavar='group_model_id', help="Edit the note related with this model id. Use -i to give the model id to add the note to (4-tuple).")
-        parser.add_argument('-o', '--listnotes', metavar='group_model_id', help="List the notes related with this model id.f")
+        parser.add_argument('-o', '--listnotes', default=0,  metavar='group_model_id', help="List the notes related with this model id.f")
+        parser.add_argument('-a', '--amountoflettersinstate', default=0, metavar='amount_of_letters', help="When used with -L, limit the maximum amount of letters in the state to show per line. Helps avoiding dangerously long lines.")
 
 
         try:
@@ -167,7 +168,7 @@ class Commands(object):
                 filter = args.filter
             except AttributeError:
                 pass
-            __groupofgroupofmodels__.list_models_in_group(args.listmodels, filter)
+            __groupofgroupofmodels__.list_models_in_group(args.listmodels, filter, int(args.amountoflettersinstate))
             __database__.root._p_changed = True
 
         # Subcomand to delete a model from a group by id or filter
