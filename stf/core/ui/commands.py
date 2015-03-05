@@ -97,6 +97,8 @@ class Commands(object):
         parser.add_argument('-l', '--listnotes', action="store_true", help="List all the notes in the system.")
         parser.add_argument('-d', '--deletenote', metavar="note_id", help="Delete a note.")
         parser.add_argument('-f', '--filter', metavar="filter", nargs = '+', help="Use this filter to work with notes. You can use multiple filter separated by a space. Format: \"variable[=<>]value\". You can use the variables: text. For example: -f text=hi text!=p2p.")
+        parser.add_argument('-s', '--show', type=int, metavar="note_id", help="Show this note id.")
+        parser.add_argument('-e', '--edit', type=int, metavar="note_id", help="Edit this note id.")
 
 
         try:
@@ -114,6 +116,13 @@ class Commands(object):
             __notes__.delete_note(int(args.deletenote))
             __database__.root._p_changed = True
 
+        # Subcomand to show a note
+        elif args.show:
+            __notes__.show_note(args.show)
+
+        # Subcomand to edit a note
+        elif args.edit:
+            __notes__.edit_note(args.edit)
 
 
     ##
