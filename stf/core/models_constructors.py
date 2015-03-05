@@ -325,16 +325,16 @@ class Models_Constructors(persistent.Persistent):
 
         # Add the first model constructor
         first_model_constructor = Model_Constructor(0)
-        first_model_constructor.set_tt1(datetime.timedelta(seconds=1.05))
-        first_model_constructor.set_tt2(datetime.timedelta(seconds=1.1))
-        first_model_constructor.set_tt3(datetime.timedelta(seconds=5))
+        first_model_constructor.set_tt1(float(1.05))
+        first_model_constructor.set_tt2(float(1.1))
+        first_model_constructor.set_tt3(float(5))
         first_model_constructor.set_td1(float(0.1))
         first_model_constructor.set_td2(float(10))
         first_model_constructor.set_ts1(float(125))
         first_model_constructor.set_ts2(float(1100))
         first_model_constructor.set_tto(datetime.timedelta(seconds=3600))
         first_model_constructor.set_name('Model 0')
-        first_model_constructor.set_description('First try at the thresholds.')
+        first_model_constructor.set_description('To try at the thresholds.')
         self.models_constructors[first_model_constructor.get_id()] = first_model_constructor
 
         # Add the first model constructor
@@ -348,7 +348,7 @@ class Models_Constructors(persistent.Persistent):
         second_model_constructor.set_ts2(float(1100))
         second_model_constructor.set_tto(datetime.timedelta(seconds=3600))
         second_model_constructor.set_name('Model Bundchen')
-        second_model_constructor.set_description('Uses the symbols between flows to store the time.')
+        second_model_constructor.set_description('Uses the symbols between flows to store the time. Better thresholds.')
         self.models_constructors[second_model_constructor.get_id()] = second_model_constructor
 
     def get_default_constructor(self):
