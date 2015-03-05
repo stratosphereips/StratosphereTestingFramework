@@ -2,6 +2,7 @@ import persistent
 import BTrees.IOBTree
 import tempfile
 import os
+from datetime import datetime
 
 from stf.common.out import *
 
@@ -52,6 +53,10 @@ class Note(persistent.Persistent):
 
     def __repr__(self):
         return self.text
+
+    def add_text(self, text_to_add):
+        """ Add text to the note without intervention """
+        self.text += text_to_add
 
 ###############################
 ###############################
@@ -120,5 +125,10 @@ class Group_of_Notes(persistent.Persistent):
             print '##############'
             print'{}'.format(note.get_text())
 
+    def add_auto_text_to_note(self, note_id, text_to_add):
+        """ Gets a text to be automatically added to the note. Used to log internal operations of the framework in the notes. Such as, the flows in this connection had been trimed """
+        note = self.get_note(note_id)
+        now = str(datetime.now())
+        note.add_text('\n[#] ' + now + ': ' + text_to_add)
 
 __notes__ = Group_of_Notes()
