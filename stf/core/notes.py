@@ -3,6 +3,7 @@ import BTrees.IOBTree
 import tempfile
 import os
 from datetime import datetime
+from subprocess import Popen, PIPE
 
 from stf.common.out import *
 
@@ -57,6 +58,16 @@ class Note(persistent.Persistent):
     def add_text(self, text_to_add):
         """ Add text to the note without intervention """
         self.text += text_to_add
+
+    def show_text(self):
+        f = tempfile.NamedTemporaryFile()
+        f.write(self.text)
+        f.flush()
+        p = Popen('less -R ' + f.name, shell=True, stdin=PIPE)
+        p.communicate()
+        sys.stdout = sys.__stdout__ 
+        f.close()
+
 
 ###############################
 ###############################
@@ -119,16 +130,27 @@ class Group_of_Notes(persistent.Persistent):
     def list_notes(self):
         """ List all the notes """
         rows = []
-        print_info('Note Id | Text')
         for note in self.get_notes():
-            print'Note id {}'.format(note.get_id())
-            print '##############'
+            print_info(cyan('Note {}'.format(note.get_id())))
             print'{}'.format(note.get_text())
 
     def add_auto_text_to_note(self, note_id, text_to_add):
         """ Gets a text to be automatically added to the note. Used to log internal operations of the framework in the notes. Such as, the flows in this connection had been trimed """
         note = self.get_note(note_id)
-        now = str(datetime.now())
-        note.add_text('\n[#] ' + now + ': ' + text_to_add)
+        if note:
+            now = str(datetime.now())
+            note.add_text('\n[#] ' + now + ': ' + text_to_add)
+
+    def show_note(self, note_id):
+        """ Show a note """
+        note = self.get_note(note_id)
+        if note:
+            note.show_text()
+            
+    def edi_note(self, note_id):
+        """ Edit a note """
+        note = self.get_note(note_id)
+        if note:
+            note.edit()
 
 __notes__ = Group_of_Notes()
