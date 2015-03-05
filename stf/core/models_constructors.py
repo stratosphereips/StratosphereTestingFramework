@@ -70,8 +70,6 @@ class Model_Constructor(object):
             self.models[model_id]['LastTime'] = newtime
             model = self.models[model_id]
 
-
-
         # Compute the periodic
         if not model['T1'] or not model['T2']:
             periodic = -1
