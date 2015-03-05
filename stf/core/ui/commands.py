@@ -99,6 +99,7 @@ class Commands(object):
         parser.add_argument('-f', '--filter', metavar="filter", nargs = '+', help="Use this filter to work with notes. You can use multiple filter separated by a space. Format: \"variable[=<>]value\". You can use the variables: text. For example: -f text=hi text!=p2p.")
         parser.add_argument('-s', '--show', type=int, metavar="note_id", help="Show this note id.")
         parser.add_argument('-e', '--edit', type=int, metavar="note_id", help="Edit this note id.")
+        parser.add_argument('-S', '--search', type=str, metavar="text", help="Search a text in all the notes, and list the notes.")
 
 
         try:
@@ -123,6 +124,11 @@ class Commands(object):
         # Subcomand to edit a note
         elif args.edit:
             __notes__.edit_note(args.edit)
+            __database__.root._p_changed = True
+
+        # Subcomand to search a text
+        elif args.search:
+            __notes__.search_text(args.search)
 
 
     ##
