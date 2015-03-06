@@ -42,10 +42,8 @@ class Experiment(object):
 class Experiments(persistent.Persistent):
     def __init__(self):
         self.current = None
-        self.experiments = BTrees.IOBTree.BTree()
         # The main dictionary of experiments objects using its id as index
-        #self.experiments = {}
-        print_info('Creating the Experiments object')
+        self.experiments = BTrees.IOBTree.BTree()
 
     def is_current(self, experiment_id):
         if self.current == experiment_id:
