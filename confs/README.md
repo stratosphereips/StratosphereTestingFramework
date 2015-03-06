@@ -1,7 +1,7 @@
 # Configuration files
 
 ## Main STF configuration
-The main stf configuration is stf.conf. In this file are the paths to the other configuration files needed for the databases and programs.
+The main stf configuration is stf.conf. This file contains the paths to the other configuration files needed for the databases and programs.
 
 ## Argus configuration files
 The configuration files for argus and ra are the following. They will be used by the execution of argus and ra in the stf program. These configuration are special to get bidirectional flows and to store some payload data inside the flow.
