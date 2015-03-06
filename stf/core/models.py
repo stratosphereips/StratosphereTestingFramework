@@ -13,7 +13,7 @@ from stf.core.notes import __notes__
 ###############################
 ###############################
 ###############################
-class Model(object):
+class Model(persistent.Persistent):
     """
     The Model
     """
@@ -331,6 +331,7 @@ class Group_of_Models(persistent.Persistent):
                 note_id = model.get_note_id()
                 model.edit_note(note_id)
             else:
+                print_info('Model {} does not have a note attached yet.'.format(model.get_id()))
                 model.add_note()
                 note_id = model.get_note_id()
                 model.edit_note(note_id)
