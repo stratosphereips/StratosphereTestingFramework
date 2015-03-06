@@ -293,8 +293,9 @@ class Group_of_Models(persistent.Persistent):
 
     def plot_histogram(self):
         """ Plot the histogram of length of states using an external tool """
-        distribution_path = Popen('bash -i -c "type distribution"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
-        if distribution_path:
+        dist_path,error = Popen('bash -i -c "type distribution"', shell=True, stderr=PIPE, stdin=PIPE, stdout=PIPE).communicate()
+        if not error:
+            distribution_path = dist_path.split()[0]
             all_text_state = ''
             for model in self.get_models():
                 state_len = str(len(model.get_state()))
