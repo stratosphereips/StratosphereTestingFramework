@@ -52,10 +52,9 @@ Unfortunately distutils does not have a way to uninstall packages. So your best 
 # TODO
 - Show more info about the constructor
 - Show table for each constructor?
-- Implement the constructors as modules?
-
-# Bugs
-- Note 0 can not be edited with "note -e 0"
-- Do not detect when the 'distribution' program is not there.
+- Implement the constructors as modules
 - Try to cluster with simhash
 - Add autotext note when I delete models or connections
+
+# Bugs
+- Do not detect when the 'distribution' program is not there.
