@@ -237,7 +237,6 @@ class Dataset(persistent.Persistent):
 class Datasets(persistent.Persistent):
     def __init__(self):
         self.current = False
-        print_info('Creating the Dataset object')
         # The main dictionary of datasets objects using its id as index
         self.datasets = BTrees.IOBTree.BTree()
 
