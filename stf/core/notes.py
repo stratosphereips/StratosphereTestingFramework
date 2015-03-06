@@ -119,14 +119,6 @@ class Group_of_Notes(persistent.Persistent):
         except KeyError:
             print_error('No such note id.')
 
-    def edit_note(self, note_id):
-        """ Edit a note """
-        try:
-            note = self.notes[note_id]
-            note.edit()
-        except KeyError:
-            print_error('No such note id')
-
     def get_short_note(self, note_id):
         try:
             note = self.notes[note_id]
@@ -159,6 +151,8 @@ class Group_of_Notes(persistent.Persistent):
         note = self.get_note(note_id)
         if note:
             note.edit()
+        else:
+            print_error('No such note id.')
             
     def search_text(self, text_to_search):
         """ Search a text in all notes """
