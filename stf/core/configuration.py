@@ -24,8 +24,6 @@ class Configuration(object):
         except:
             print_error('Errors in the configuration files.')
             return False
-        print_info('Using ZEO configuration file {}'.format(self.zeoconffile))
-        print_info('Using ZODB configuration file {}'.format(self.zodbconffile))
         return True
 
     def get_zeoconf_file(self):
