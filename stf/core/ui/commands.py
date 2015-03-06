@@ -241,7 +241,7 @@ class Commands(object):
     #
     # This command works with connections
     def cmd_connections(self, *args):
-        parser = argparse.ArgumentParser(prog="connections", description="Manage connnections", epilog="Manage connections")
+        parser = argparse.ArgumentParser(prog="connections", description="Manage connections", epilog="Manage connections")
         parser.add_argument('-l', '--list', action="store_true", help="List all existing connections")
         parser.add_argument('-g', '--generate', action="store_true", help="Generate the connections from the binetflow file in the current dataset")
         parser.add_argument('-d', '--delete', metavar="group_of_connections_id", help="Delete the group of connections.")

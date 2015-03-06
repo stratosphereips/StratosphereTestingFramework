@@ -237,7 +237,6 @@ class Dataset(persistent.Persistent):
 class Datasets(persistent.Persistent):
     def __init__(self):
         self.current = False
-        print_info('Creating the Dataset object')
         # The main dictionary of datasets objects using its id as index
         self.datasets = BTrees.IOBTree.BTree()
 
@@ -310,7 +309,7 @@ class Datasets(persistent.Persistent):
         dataset = Dataset(dat_id)
 
         # Ask for a dataset name or default to the file name
-        name = raw_input('Enter the name of the dataset or Enter to use last folder name as its name:')
+        name = raw_input('The name of the dataset or \'Enter\' to use the name of the last folder:')
         if not name:
             name = os.path.split(filename)[0].split('/')[-1]
 

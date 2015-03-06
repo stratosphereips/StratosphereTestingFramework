@@ -1,6 +1,6 @@
 # This file is part of the Stratosphere Testing Framework 
 # See the file 'LICENSE' for copying permission.
-# Most of this file is copied from Viper
+# A large part of this file is taken from the Viper tool
 
 import os
 import glob
@@ -13,6 +13,13 @@ from stf.common.out import *
 def logo():
     print("""
     Stratosphere Testing Framework
+             _    __ 
+            | |  / _|
+         ___| |_| |_ 
+        / __| __|  _|
+        \__ \ |_| |  
+    ... |___/\__|_|  ...
+
     """)
 
 
