@@ -1,6 +1,6 @@
 # This file is part of the Stratosphere Testing Framework 
 # See the file 'LICENSE' for copying permission.
-# Most of this file is copied from Viper
+# A large part of this file is taken from the Viper tool
 
 import os
 import glob
@@ -9,12 +9,17 @@ import readline
 import traceback
 
 from stf.common.out import *
-from stf.core.ui.commands import Commands
-from stf.core.database import __database__
 
 def logo():
     print("""
     Stratosphere Testing Framework
+             _    __ 
+            | |  / _|
+         ___| |_| |_ 
+        / __| __|  _|
+        \__ \ |_| |  
+    ... |___/\__|_|  ...
+
     """)
 
 
@@ -22,12 +27,23 @@ def logo():
 class Console(object):
 
     def __init__(self):
+        # Create the nessesary folders first
+        self.create_folders()
+
         # This will keep the main loop active as long as it's set to True.
+        from stf.core.ui.commands import Commands
+
+        # From some reason we should initialize the db from a method, we can not do it in the constructor
+        from stf.core.database import __database__
+        __database__.start()
+
         self.active = True
         self.cmd = Commands()
-        # Open the connection to the db
+        # Open the connection to the db. We need to make this here.
         self.db = __database__
+        # When we exit, close the db
         atexit.register(self.db.close)
+        self.prefix = ''
 
     def parse(self, data):
         root = ''
@@ -94,9 +110,26 @@ class Console(object):
         # Stop main loop.
         self.active = False
         # Close the db
-        self.db.close()
+        print_info('Wait until the database is synced...')
+        self.db.close()                            
+
+    def create_folders(self):
+        """ Create the folders for the program"""
+        # The name of the folder should read from the configuration file
+        home_folder = '~/.stf/'
+        stf_home_folder = os.path.expanduser(home_folder)
+
+        # Create the ~/.stf/ folder for storing the history and the database
+        if os.path.exists(stf_home_folder) == False:
+            os.makedirs(stf_home_folder)
+
+        # if there is an history file, read from it and load the history
+        # so that they can be loaded in the shell.
+        # just store it in the home directory.
+        self.history_path = os.path.expanduser(stf_home_folder+'.stfhistory')
 
     def start(self):
+        from stf.core.dataset import __datasets__
         # Logo.
         logo()
         self.db.list()
@@ -109,9 +142,9 @@ class Console(object):
                 return cmds[state]
 
             # Try to autocomplete modules.
-            mods = [i for i in __modules__ if i.startswith(text)]
-            if state < len(mods):
-                return mods[state]
+            #mods = [i for i in __modules__ if i.startswith(text)]
+            #if state < len(mods):
+                #return mods[state]
 
             # Then autocomplete paths.
             if text.startswith("~"):
@@ -128,22 +161,20 @@ class Console(object):
         # Save commands in history file.
         def save_history(path):
             readline.write_history_file(path)
-
-        # If there is an history file, read from it and load the history
-        # so that they can be loaded in the shell.
-        # Just store it in the home directory.
-        history_path = os.path.expanduser('~/.stfhistory')
-
-        if os.path.exists(history_path):
-            readline.read_history_file(history_path)
+        
+        if os.path.exists(self.history_path):
+            readline.read_history_file(self.history_path)
 
         # Register the save history at program's exit.
-        atexit.register(save_history, path=history_path)
+        atexit.register(save_history, path=self.history_path)
 
         # Main loop.
         while self.active:
-            prefix = ''
-            prompt = prefix + cyan('stf > ', True)
+            if __datasets__.current:
+                self.prefix = red(__datasets__.current.get_name() + ': ')
+            else:
+                self.prefix = ''
+            prompt = self.prefix + cyan('stf > ', True)
 
             # Wait for input from the user.
             try:

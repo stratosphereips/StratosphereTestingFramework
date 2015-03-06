@@ -1,4 +1,4 @@
-# This file is part of Viper - https://github.com/botherder/viper
+# This file was mostly taken from Viper - https://github.com/botherder/viper
 # See the file 'LICENSE' for copying permission.
 
 from prettytable import PrettyTable
@@ -10,6 +10,14 @@ def print_info(message):
 
 def print_item(message, tabs=0):
     print(" {0}".format("  " * tabs) + cyan("-") + " {0}".format(message))
+
+def print_row(data):
+    """ Intended for long tables. We want to see the output quickly and not wait some minutes until the table is created """
+    print('| '),
+    for datum in data:
+        print('{:80}'.format(datum)), 
+        print('| '),
+    print
 
 def print_warning(message):
     print(bold(yellow("[!]")) + " {0}".format(message))
