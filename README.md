@@ -4,19 +4,26 @@ The Stratosphere Testing Framework is a research framework to analyze the behavi
 
 
 # Installation and Dependencies
-Before installing stf, you need to install the dependencies:
+Before installing stf, you need to install the dependencies. You can use _pip_ to install them, like:
+- sudo pip install -r dependencies.txt  
 
+Or you can install them by hand
 - prettytable (apt-get install python-prettytable)
 - transaction (apt-get install python-transaction)
 - zodb (apt-get install python-zodb)
-- 
 
 Then you are ready to use stf.py.
 
-# How to use the stf program
-The most common usage of the program is to just execute it:
+If you want to also use the histogram commands (which give you awesome ascii-art histogram of the data) you need to install manually the program https://github.com/philovivero/distribution.
 
-> stf.py
+
+# How to use the stf program
+To start using the program you just need to execute it:
+
+> ./stf.py
+
+And you should see something like 
+
 
 By default the program will search for the configuration file in confs/stf.conf. From that file it will read where are the configuration files for the ZODB and the ZEO server if it is being used. Upon the first run, stf will create the folder ~/.stf/, containing the .stfhistory file (the history of commands).
 The database folder is also relative to the local folder and is by default ./database 
@@ -35,13 +42,6 @@ If you want to separate the database from the clients, probably to allow several
     > runzeo -C confs/zeo.conf
 4- Use the stf.py normally.
 
-# Uninstall
-Unfortunately distutils does not have a way to uninstall packages. So your best option is
-
-> sudo python setup.py install --record files.txt
-> sudo bash -c "cat files.txt | xargs rm -rf"
-
-
 
 # Tips on usage
 - When looking at the list of models or list of connections, stf uses 'less -R' to show you the information paginated. Whoever if you want to store the output in a file for later analysis, you can run '! cat % > /tmp/file' from inside less and store the file to disk.
@@ -51,10 +51,7 @@ Unfortunately distutils does not have a way to uninstall packages. So your best 
 
 # TODO
 - Show more info about the constructor
-- Show table for each constructor?
+- Show table for each constructor
 - Implement the constructors as modules
-- Try to cluster with simhash
 - Add autotext note when I delete models or connections
-
-# Bugs
-- Do not detect when the 'distribution' program is not there.
+- Try to cluster with simhash
