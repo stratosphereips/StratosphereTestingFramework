@@ -272,8 +272,9 @@ class Connection(persistent.Persistent):
 
     def show_histograms(self):
         """ Show the histograms for this connection """
-        distribution_path = Popen('bash -i -c "type distribution"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
-        if distribution_path:
+        dist_path,error = Popen('bash -i -c "type distribution"', shell=True, stderr=PIPE, stdin=PIPE, stdout=PIPE).communicate()
+        if not error:
+            distribution_path = dist_path.split()[0]
             durations = self.get_durations_as_text()
             sizes = self.get_sizes_as_text()
             t2s = self.get_t2s_as_text()
