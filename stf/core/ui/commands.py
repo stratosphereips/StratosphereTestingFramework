@@ -31,7 +31,7 @@ class Commands(object):
             datasets=dict(obj=self.cmd_datasets, description="Manage the datasets"),
             connections=dict(obj=self.cmd_connections, description="Manage the connections. A dataset should be selected first."),
             models=dict(obj=self.cmd_models, description="Manage the models. A dataset should be selected first."),
-            database=dict(obj=self.cmd_models, description="Manage the models. A dataset should be selected first."),
+            database=dict(obj=self.cmd_database, description="Manage the database."),
             notes=dict(obj=self.cmd_notes, description="Manage the notes."),
             exit=dict(obj=self.cmd_exit, description="Exit"),
         )
@@ -110,7 +110,6 @@ class Commands(object):
         # Subcomand to list the notes
         if args.listnotes:
             __notes__.list_notes()
-            __database__.root._p_changed = True
 
         # Subcomand to delte a note
         elif args.deletenote:
@@ -122,7 +121,7 @@ class Commands(object):
             __notes__.show_note(args.show)
 
         # Subcomand to edit a note
-        elif args.edit:
+        elif args.edit >= 0:
             __notes__.edit_note(args.edit)
             __database__.root._p_changed = True
 
@@ -184,7 +183,6 @@ class Commands(object):
             except AttributeError:
                 pass
             __groupofgroupofmodels__.list_models_in_group(args.listmodels, filter, int(args.amountoflettersinstate))
-            __database__.root._p_changed = True
 
         # Subcomand to delete a model from a group by id or filter
         elif args.deletemodel:
@@ -460,6 +458,39 @@ class Commands(object):
 
         else:
             parser.print_usage()
+
+
+    ##
+    # DATABASE
+    #
+    def cmd_database(self, *args):
+        parser = argparse.ArgumentParser(prog="database", description="Manage the database", epilog="Manage database")
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument('-i', '--info', action="store_true", help="Info about the database connection")
+        group.add_argument('-r', '--revert', action="store_true", help="Revert the connection of the database to the state before the last pack")
+        group.add_argument('-p', '--pack', action="store_true", help="Pack the database")
+        group.add_argument('-c', '--commit', action="store_true", help="Commit the changes")
+
+        try:
+            args = parser.parse_args(args)
+        except:
+            return
+
+        # Subcomand to get info
+        if args.info:
+            __database__.info()
+
+        # Subcomand to revert the database
+        if args.revert:
+            __database__.revert()
+
+        # Subcomand to pack he database
+        elif args.pack:
+            __database__.pack()
+
+        # Subcomand to commit the changes
+        elif args.commit:
+            __database__.commit()
 
     ##
     # EXIT
