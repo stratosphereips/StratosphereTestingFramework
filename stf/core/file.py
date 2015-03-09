@@ -139,7 +139,7 @@ class File(persistent.Persistent):
             capinfos_path = Popen('bash -i -c "type capinfos"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
 
             if capinfos_path:
-                (capinfos_data,capinfos_error) = Popen('capinfos '+self.get_name(), shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate()
+                (capinfos_data,capinfos_error) = Popen('tcpdump -n -s0 -r ' + self.get_name() + ' -w - | capinfos -r -', shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate()
                 capinfos_info = capinfos_data.strip().split('\n')
 
             # Process the capinfo info

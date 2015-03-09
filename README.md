@@ -425,11 +425,17 @@ You can check that this was successful by inspecting the connections with ```con
 - **stf** also allow you to execute bash commands by using ! as the first letter. Therefore is easy to interact with other tools, such as tcpdump, tshark or the argus clients.
 - The filters can use the following keys. For connections: flowamount and name. For models: name, statelength. The operators in the filters are: <, >, = and !=
 - The listings of models and datasets include a column with the id of the note that is related to that object. You can edit notes directly with ```notes -e id```
+- Since the notes are stored as MarkDown text, it is nice to have some markdown support in your editor. In vi you can have nice colors and shortcuts.
 
 ### TODO
 - Show more info about the model constructor
 - Show table for each model constructor
 - Implement the constructors as external modules
 - Add autotext note when I delete models or connections
+- Relate the notes with the objects they reference. So after a search you can find the object again.
+- Print the duration and size in the model -L command.
+- Filter models by duration and size, so we can delete them better.
+- Filter connectins without notes, so we don't have to see what we already analyzed.
+- Limit the amount of flows to show with connections -F so large connections can be visualized.
 
 [stf]:https://stratosphereips.org/development-of-the-stratosphere-testing-framework.html "The Stratosphere Testing Framework"
