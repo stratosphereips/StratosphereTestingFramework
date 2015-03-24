@@ -150,7 +150,11 @@ class Dataset(persistent.Persistent):
     def generate_binetflow(self):
         """ Generate the binetflow file from the biargus. We know that there is a biargus in the dataset"""
         print_info('Generating the binetflow file.')
-        biargus_file_name = self.get_file_type('biargus').get_name()
+        try:
+            biargus_file_name = self.get_file_type('biargus').get_name()
+        except AttributeError:
+            print_error('Can not generate the biargus file. Maybe we don\'t have permisions in the file or folder?')
+            return False
         biargus_file_name_without_extension = '.'.join(biargus_file_name.split('.')[:-1]) 
         binetflow_file_name = biargus_file_name_without_extension + '.binetflow'
         ra_path = Popen('bash -i -c "type ra"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
