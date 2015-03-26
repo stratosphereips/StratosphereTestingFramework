@@ -526,8 +526,8 @@ class Group_Of_Connections(object):
         for part in filter:
             # Get the key
             try:
-                key = re.split('<|>|=', part)[0]
-                value = re.split('<|>|=', part)[1]
+                key = re.split('<|>|=|\!=', part)[0]
+                value = re.split('<|>|=|\!=', part)[1]
             except IndexError:
                 # No < or > or = in the string. Just stop.
                 break
@@ -541,11 +541,17 @@ class Group_Of_Connections(object):
                 operator = '>'
             except ValueError:
                 pass
+            # We should search for != before =
             try:
-                part.index('=')
-                operator = '='
+                part.index('!=')
+                operator = '!='
             except ValueError:
-                pass
+                # Now we search for =
+                try:
+                    part.index('=')
+                    operator = '='
+                except ValueError:
+                    pass
             self.filter[key] = (operator, value)
 
     def apply_filter(self,connection):
@@ -567,6 +573,11 @@ class Group_Of_Connections(object):
                         responses.append(True)
                     else:
                         responses.append(False)
+                elif operator == '!=':
+                    if value in name:
+                        responses.append(False)
+                    else:
+                        responses.append(True)
 
             elif filter_key == 'flowamount':
                 value = int(value)
