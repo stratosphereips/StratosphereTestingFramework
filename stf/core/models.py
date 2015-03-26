@@ -501,7 +501,11 @@ class Group_of_Group_of_Models(persistent.Persistent):
     def edit_note(self, group_of_models_id, model_id):
         """ Get a model id and edit its note """
         if __datasets__.current:
-            group_of_models = self.group_of_models[group_of_models_id]
+            try:
+                group_of_models = self.group_of_models[group_of_models_id]
+            except KeyError:
+                print_error('There is no model group with that id')
+                return False
             try:
                 group_of_models.edit_note_in_model(model_id)
             except KeyError:
