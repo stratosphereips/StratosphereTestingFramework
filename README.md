@@ -35,12 +35,12 @@ Or you can install them by hand
 - transaction: ```apt-get install python-transaction```
 - zodb: ```apt-get install python-zodb```
 
-You also need to have [argus](http://http://qosient.com/argus/) (and argus clients tools) installed. This is for generating the netflows from the traffic.
+You also need to have [argus](http://http://qosient.com/argus/) (and argus clients tools) installed. This is for generating the netflows from the traffic. These tools need to be installed from its latest version (and not the ones available in the debian/ubuntu repository until April 2015). The programs can be downloaded from:
 
 - argus ```http://qosient.com/argus/dev/argus-latest.tar.gz```
 - argus-clients ```http://qosient.com/argus/dev/argus-clients-latest.tar.gz```
 
-Optionally, if you want to also use the histogram commands (which give you awesome ascii-art histogram of the data) you need to install manually the program https://github.com/philovivero/distribution.
+There are two optional tools that you can install to improve the usefulness of stf. The first one is the capinfo tool, that is available in the wireshark-common debian/ubuntu package. The second one is the tool called _distribution_, which give you awesome ascii-art histogram of the data. the distribution tool needs to be installed manually from program https://github.com/philovivero/distribution.
 
 Then you are ready to use stf.py!
 
