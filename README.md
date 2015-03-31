@@ -40,7 +40,9 @@ You also need to have [argus](http://http://qosient.com/argus/) (and argus clien
 - argus ```http://qosient.com/argus/dev/argus-latest.tar.gz```
 - argus-clients ```http://qosient.com/argus/dev/argus-clients-latest.tar.gz```
 
-There are two optional tools that you can install to improve the usefulness of stf. The first one is the capinfo tool, that is available in the wireshark-common debian/ubuntu package. The second one is the tool called _distribution_, which give you awesome ascii-art histogram of the data. the distribution tool needs to be installed manually from program https://github.com/philovivero/distribution.
+There are two optional tools that you can install to improve the usefulness of stf. The first one is the capinfo tool, that is available in the wireshark-common debian/ubuntu package. This tool can be installed in debian/ubuntu with `apt-get install wireshark-common`.
+
+The second one is the tool called _distribution_, which give you awesome ascii-art histogram of the data. the distribution tool needs to be installed manually from program https://github.com/philovivero/distribution.
 
 Then you are ready to use stf.py!
 
