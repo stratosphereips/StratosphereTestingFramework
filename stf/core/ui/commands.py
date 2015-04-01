@@ -129,7 +129,6 @@ class Commands(object):
         elif args.search:
             __notes__.search_text(args.search)
 
-
     ##
     # MODELS
     #
@@ -148,7 +147,7 @@ class Commands(object):
         parser.add_argument('-H', '--histogram', metavar="group_model_id", help="Plot a histogram of the lengths of models states in the given id of group of models.")
         parser.add_argument('-N', '--delnote', metavar='group_model_id', help="Delete completely the note related with this model id. Use -i to give the model id to add the note to (4-tuple).")
         parser.add_argument('-n', '--editnote', metavar='group_model_id', help="Edit the note related with this model id. Use -i to give the model id to add the note to (4-tuple).")
-        parser.add_argument('-o', '--listnotes', default=0,  metavar='group_model_id', help="List the notes related with this model id.f")
+        parser.add_argument('-o', '--listnotes', default=0,  metavar='group_model_id', help="List the notes related with this model id.")
         parser.add_argument('-a', '--amountoflettersinstate', default=0, metavar='amount_of_letters', help="When used with -L, limit the maximum amount of letters in the state to show per line. Helps avoiding dangerously long lines.")
 
 
