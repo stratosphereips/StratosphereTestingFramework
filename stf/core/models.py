@@ -526,11 +526,11 @@ class Group_of_Group_of_Models(persistent.Persistent):
         else:
             print_error('There is no dataset selected.')
 
-    def list_notes(self, group_of_models_id):
+    def list_notes(self, group_of_models_id, filter=""):
         """ List the notes in a group_of_models """
         if __datasets__.current:
             group_of_models = self.group_of_models[group_of_models_id]
-            group_of_models.list_notes()
+            group_of_models.list_notes(filter)
         else:
             print_error('There is no dataset selected.')
 
