@@ -431,6 +431,7 @@ You can check that this was successful by inspecting the connections with ```con
 - You can limit the amount of flows to show with the command _connections -F_ so large connections can be visualized better.
 
 ### TODO
+- List the notes for only the current capture
 - When the stf is used from several locations, it can happend that some dataset commands do not work because the pcap file is not there. Capture these issues.
 - Show more info about the model constructor
 - Show table for each model constructor
