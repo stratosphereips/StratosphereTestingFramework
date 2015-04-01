@@ -307,14 +307,16 @@ class Group_of_Models(persistent.Persistent):
 
     def list_notes(self, filter_string=''):
         """ List the notes in all the models """
-        all_text='| Model Id | Note(...) |\n'
+        all_text='| Note Id | Model Id | Note(...) |\n'
         # construct the filter
         self.construct_filter(filter_string)
         amount = 0
         for model in self.get_models():
             if self.apply_filter(model) and model.get_short_note():
-                all_text += '{:40} | {}\n'.format(model.get_id(), model.get_short_note())
-                amount += 1
+                note_id = model.get_note_id()
+                if note_id:
+                    all_text += '{} | {:40} | {}\n'.format(note_id, model.get_id(), model.get_short_note())
+                    amount += 1
         all_text += 'Amount of models listed: {}'.format(amount)
         f = tempfile.NamedTemporaryFile()
         f.write(all_text)
