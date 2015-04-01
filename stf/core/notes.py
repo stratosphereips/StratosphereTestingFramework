@@ -49,8 +49,12 @@ class Note(persistent.Persistent):
 
     def get_short_note(self):
         """ Return text of the note until the first enter"""
-        enter = self.text.index('\n')
-        return self.text[:enter]
+        try:
+            enter = self.text.index('\n')
+            return self.text[:enter]
+        except ValueError:
+            # There is no enter
+            return self.text[0:80]
 
     def __repr__(self):
         return self.text
