@@ -360,6 +360,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
         self.group_of_models = BTrees.OOBTree.BTree()
 
     def get_group(self, group_id):
+        """ Given the id of a group of models, return its object """
         return self.group_of_models[group_id]
 
     def get_groups(self):
