@@ -18,6 +18,7 @@ from stf.core.connections import __group_of_group_of_connections__
 from stf.core.models_constructors import __modelsconstructors__
 from stf.core.models import __groupofgroupofmodels__
 from stf.core.notes import __notes__
+from stf.core.labels import __group_of_labels__ 
 
 class Commands(object):
 
@@ -33,6 +34,7 @@ class Commands(object):
             models=dict(obj=self.cmd_models, description="Manage the models. A dataset should be selected first."),
             database=dict(obj=self.cmd_database, description="Manage the database."),
             notes=dict(obj=self.cmd_notes, description="Manage the notes."),
+            labels=dict(obj=self.cmd_labels, description="Manage the labels."),
             exit=dict(obj=self.cmd_exit, description="Exit"),
         )
 
@@ -480,7 +482,7 @@ class Commands(object):
             __database__.info()
 
         # Subcomand to revert the database
-        if args.revert:
+        elif args.revert:
             __database__.revert()
 
         # Subcomand to pack he database
@@ -490,6 +492,50 @@ class Commands(object):
         # Subcomand to commit the changes
         elif args.commit:
             __database__.commit()
+
+
+    ##
+    # LABELS
+    #
+    # This command works with labels
+    def cmd_labels(self, *args):
+        parser = argparse.ArgumentParser(prog="labels", description="Manage labels", epilog="Manage labels")
+        parser.add_argument('-l', '--list', action="store_true", help="List all existing labels.")
+        parser.add_argument('-a', '--add', metavar="connection_id", help="Add a label to the given connection id in the current dataset.")
+        parser.add_argument('-d', '--delete', metavar="label_id", help="Delete a label given the label id.")
+        parser.add_argument('-s', '--search', metavar="text", help="Search for a text in all the labels names.")
+        parser.add_argument('-S', '--searchconnection', metavar="text", help="Search for a connection in all the labels.")
+        parser.add_argument('-m', '--showmodels', metavar="text", help="Show the behavioral models of all the connections in the given label.")
+
+        try:
+            args = parser.parse_args(args)
+        except:
+            return
+
+        # Subcomand to list labels
+        if args.list:
+            __group_of_labels__.list_labels()
+
+        # Subcomand to add a label
+        elif args.add:
+            __group_of_labels__.add_label(args.add)
+
+        # Subcomand to delete a label
+        elif args.delete:
+            __group_of_labels__.del_label(args.delete)
+
+        # Subcomand to search label names
+        elif args.search:
+            __group_of_labels__.search_label_name(args.search, verbose=True)
+
+        # Subcomand to search a connection in the label
+        elif args.searchconnection:
+            __group_of_labels__.search_connection_in_label(args.searchconnection)
+
+        # Subcomand to show the models for all the connections in the label
+        elif args.showmodels:
+            __group_of_labels__.show_models_in_label(args.showmodels)
+
 
     ##
     # EXIT
