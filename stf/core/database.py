@@ -11,6 +11,7 @@ from stf.core.dataset import __datasets__
 from stf.core.connections import  __group_of_group_of_connections__
 from stf.core.models import __groupofgroupofmodels__
 from stf.core.notes import __notes__
+from stf.core.labels import __group_of_labels__ 
 
 class Database:
     def __init__(self):
@@ -57,6 +58,12 @@ class Database:
         except KeyError:
             self.root['notes'] = __notes__.notes
 
+        # Labels
+        try:
+            __group_of_labels__.labels = self.root['labels']
+        except KeyError:
+            self.root['labels'] = __group_of_labels__.labels
+
         # Comparisons
 
     def list(self):
@@ -65,6 +72,7 @@ class Database:
         print_info('Amount of groups of connections in the DB so far: {}'.format(len(self.root['connections'])))
         print_info('Amount of groups of models in the DB so far: {}'.format(len(self.root['models'])))
         print_info('Amount of notes in the DB so far: {}'.format(len(self.root['notes'])))
+        print_info('Amount of labels in the DB so far: {}'.format(len(self.root['labels'])))
 
     def close(self):
         """ Close the db """
