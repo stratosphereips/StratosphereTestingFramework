@@ -13,6 +13,7 @@ from stf.common.out import *
 def logo():
     print("""
     Stratosphere Testing Framework
+    https://stratosphereips.org
              _    __ 
             | |  / _|
          ___| |_| |_ 
