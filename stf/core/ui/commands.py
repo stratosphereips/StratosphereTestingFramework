@@ -504,8 +504,10 @@ class Commands(object):
         parser.add_argument('-a', '--add', metavar="connection_id", help="Add a label to the given connection id in the current dataset.")
         parser.add_argument('-d', '--delete', metavar="label_id", help="Delete a label given the label id.")
         parser.add_argument('-s', '--search', metavar="text", help="Search for a text in all the labels names.")
-        parser.add_argument('-S', '--searchconnection', metavar="text", help="Search for a connection in all the labels.")
-        parser.add_argument('-m', '--showmodels', metavar="text", help="Show the behavioral models of all the connections in the given label.")
+        parser.add_argument('-S', '--searchconnection', metavar="connection_id", help="Search for a connection in all the labels.")
+        parser.add_argument('-m', '--showmodels', metavar="label_name", help="Show the behavioral models of all the connections in the given label.")
+        parser.add_argument('-D', '--deleteconnection', metavar="connection_id", help="Give a connection id to delete (4-tuple). You must give the dataset id with -i.")
+        parser.add_argument('-i', '--datasetid', metavar="dataset_id", help="Dataset id. Used with -D")
 
         try:
             args = parser.parse_args(args)
@@ -535,6 +537,13 @@ class Commands(object):
         # Subcomand to show the models for all the connections in the label
         elif args.showmodels:
             __group_of_labels__.show_models_in_label(args.showmodels)
+
+        # Subcomand to delete a specific connection
+        elif args.deleteconnection:
+            if args.datasetid:
+                __group_of_labels__.delete_connection(int(args.datasetid), args.deleteconnection)
+            else:
+                print_error('You should give a dataset id with -i.')
 
 
     ##
