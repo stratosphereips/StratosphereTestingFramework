@@ -317,6 +317,9 @@ class Group_Of_Labels(persistent.Persistent):
             if label.has_connection(dataset_id, connection_id):
                 label.delete_connection(dataset_id, connection_id)
                 # We should return because is unique the key... there won't be any more
+                # If the label does not have any more connections, we should delete the label
+                if len(label.get_connections()) == 0:
+                    self.labels.pop(label.get_id())
                 return True
 
 
