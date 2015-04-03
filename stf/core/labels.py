@@ -170,7 +170,7 @@ class Group_Of_Labels(persistent.Persistent):
                     rows.append([label.get_id(), label.get_name(), __datasets__.current.get_id(), label.get_connections()])
             else:
                 for dataset in label.get_datasets():
-                    rows.append([label.get_id(), label.get_name(), dataset, label.get_connections()])
+                    rows.append([label.get_id(), label.get_name(), dataset, label.get_connections_for_dataset(dataset)])
         print table(header=['Id', 'Label Name', 'Dataset', 'Connection'], rows=rows)
 
     def check_label_existance(self, dataset_id, connection_id):
