@@ -86,11 +86,20 @@ class Label(object):
     def show_models(self):
         """ Show the models in the label"""
         rows = []
-        for dataset_id in self.get_datasets():
+        # Get all the unique datasets for this label
+        for dataset_id in set(self.get_datasets()):
+            # Get all the connections_id on each dataset
             for connection_id in self.get_connections_for_dataset(dataset_id):
-                #dataset = __datasets__.get_dataset(dataset_id)
-                #__groupofgroupofmodels__.get_model(
-                rows.append([dataset_id, connection_id, 'state'])
+                dataset = __datasets__.get_dataset(dataset_id)
+                group_of_models = dataset.get_group_of_models()
+                # Usually there is only one group of models.. .but just in case there are more
+                for group_id in group_of_models:
+                    group = __groupofgroupofmodels__.get_group(group_id)
+                    for conn in self.connections[dataset_id]:
+                        if group.has_model(conn):
+                            model = group.get_model(conn)
+                            state = model.get_state()
+                rows.append([dataset_id, connection_id, state])
         print table(header=['Dataset', 'Connection', 'State Model'], rows=rows)
                
 
@@ -165,12 +174,12 @@ class Group_Of_Labels(persistent.Persistent):
         """ Add a label """
         if __datasets__.current:
             dataset_id = __datasets__.current.get_id()
-            print_info('Trying to add a label to dataset {} and connection {}'.format(dataset_id, connection_id))
             has_label = self.check_label_existance(dataset_id, connection_id)
             if has_label:
-                print_warning('This connection from this dataset was already assigned the label id {}'.format(has_label))
+                print_error('This connection from this dataset was already assigned the label id {}'.format(has_label))
             else:
-                print_info('This connection does not have a prior label, assigning a new one')
+                print_warning('Remember that a label should represent a unique behavioral model!')
+                #print_info('This connection does not have a prior label, assigning a new one')
                 try:
                     label_id = self.labels[list(self.labels.keys())[-1]].get_id() + 1
                 except (KeyError, IndexError):
@@ -186,6 +195,8 @@ class Group_Of_Labels(persistent.Persistent):
                         label.set_name(name)
                         label.add_connection(dataset_id, connection_id)
                         self.labels[label_id] = label
+                    # Add the auto label to the connection
+                    #note.add_auto_text_to_note(note_id, text_to_add)
                 else:
                     print_error('Aborting the assignment of the label.')
                     return False
