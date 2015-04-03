@@ -115,6 +115,9 @@ class Label(persistent.Persistent):
         print table(header=['Dataset', 'Connection', 'State Model'], rows=rows)
                
 
+
+
+
 ##################
 ##################
 ##################
@@ -160,16 +163,15 @@ class Group_Of_Labels(persistent.Persistent):
 
     def list_labels(self):
         """ List all the labels """
+        rows = []
         for label in self.get_labels():
-            rows = []
             if __datasets__.current:
                 if label.has_dataset(__datasets__.current.get_id()):
                     rows.append([label.get_id(), label.get_name(), __datasets__.current.get_id(), label.get_connections()])
-                    print table(header=['Id', 'Label Name', 'Dataset', 'Connection'], rows=rows)
             else:
                 for dataset in label.get_datasets():
                     rows.append([label.get_id(), label.get_name(), dataset, label.get_connections()])
-                    print table(header=['Id', 'Label Name', 'Dataset', 'Connection'], rows=rows)
+        print table(header=['Id', 'Label Name', 'Dataset', 'Connection'], rows=rows)
 
     def check_label_existance(self, dataset_id, connection_id):
         """ Get a dataset id and connection id and check if we already have a label for them """
@@ -271,9 +273,9 @@ class Group_Of_Labels(persistent.Persistent):
             print_error('Only those options are available. If you need more, please submit a request')
             return False
         # Details
-        print ("Please provide optional details for this connection. Up to 20 chars (No - or spaces allowed). Example: 'Encrypted', 'PlainText', 'CustomEncryption', 'soundcound.com', 'microsoft.com', 'netbios': ")
+        print ("Please provide optional details for this connection. Up to 30 chars (No - or spaces allowed). Example: 'Encrypted', 'PlainText', 'CustomEncryption', 'soundcound.com', 'microsoft.com', 'netbios': ")
         text = raw_input().strip()
-        if len(text) <= 20 and '-' not in text and ' ' not in text:
+        if len(text) <= 30 and '-' not in text and ' ' not in text:
             details = text
         else:
             print_error('Only those options are available. If you need more, please submit a request')
