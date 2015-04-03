@@ -45,6 +45,18 @@ class Label(object):
             self.connections[dataset_id] = []
             self.connections[dataset_id].append(connection_id)
         
+    def delete_connection(self, dataset_id, connection_id):
+        """ Delete this connection in this label """
+        try:
+            for conn in self.connections[dataset_id]:
+                if conn == connection_id:
+                    self.connections[dataset_id].remove(connection_id)
+                    return True
+            # We have the dataset_id but not the connection_id
+            return False
+        except KeyError:
+            # We dont have that dataset_id
+            return False
 
     def has_connection(self, dataset_id, connection_id):
         """ Check if we have this connection in this label """
@@ -299,6 +311,14 @@ class Group_Of_Labels(persistent.Persistent):
         else:
             name = name_so_far + '-1'
         return name
+
+    def delete_connection(self, dataset_id, connection_id):
+        """ Get a dataset_id, connection id, find and delete it from the label """
+        for label in self.get_labels():
+            if label.has_connection(dataset_id, connection_id):
+                label.delete_connection(dataset_id, connection_id)
+                # We should return because is unique the key... there won't be any more
+                return True
 
 
 __group_of_labels__ = Group_Of_Labels()
