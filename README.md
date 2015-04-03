@@ -436,6 +436,7 @@ You can check that this was successful by inspecting the connections with ```con
 
 
 ### TODO
+- Search why the dga dns in the secondary
 - Show which connections have a label while listing models
 - Add auto note when putting a label
 - When the stf is used from several locations, it can happend that some dataset commands do not work because the pcap file is not there. Capture these issues.
