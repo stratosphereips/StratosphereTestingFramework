@@ -15,7 +15,7 @@ from stf.core.models import __groupofgroupofmodels__
 ########################
 ########################
 ########################
-class Label(object):
+class Label(persistent.Persistent):
     """ A class to manage a single label"""
     def __init__(self,id):
         self.id = id
@@ -160,17 +160,16 @@ class Group_Of_Labels(persistent.Persistent):
 
     def list_labels(self):
         """ List all the labels """
-        rows = []
         for label in self.get_labels():
+            rows = []
             if __datasets__.current:
                 if label.has_dataset(__datasets__.current.get_id()):
-                    rows.append([label.get_id(),
-                     label.get_name(),
-                     label.get_datasets(),
-                     label.get_connections()])
+                    rows.append([label.get_id(), label.get_name(), __datasets__.current.get_id(), label.get_connections()])
+                    print table(header=['Id', 'Label Name', 'Dataset', 'Connection'], rows=rows)
             else:
-                rows.append([label.get_id(), label.get_name(), label.get_datasets(), label.get_connections()])
-        print table(header=['Id', 'Label Name', 'Datasets', 'Connections'], rows=rows)
+                for dataset in label.get_datasets():
+                    rows.append([label.get_id(), label.get_name(), dataset, label.get_connections()])
+                    print table(header=['Id', 'Label Name', 'Dataset', 'Connection'], rows=rows)
 
     def check_label_existance(self, dataset_id, connection_id):
         """ Get a dataset id and connection id and check if we already have a label for them """
