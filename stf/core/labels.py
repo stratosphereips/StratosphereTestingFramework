@@ -185,7 +185,7 @@ class Group_Of_Labels(persistent.Persistent):
                         label = Label(label_id)
                         label.set_name(name)
                         label.add_connection(dataset_id, connection_id)
-                    self.labels[label_id] = label
+                        self.labels[label_id] = label
                 else:
                     print_error('Aborting the assignment of the label.')
                     return False
