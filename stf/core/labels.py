@@ -284,9 +284,9 @@ class Group_Of_Labels(persistent.Persistent):
             print_error('The protocol of the connection could not be detected.')
             return False
         # Main 4 layer proto
-        print ("Please provide the main proto in layer 4. 'HTTP', 'HTTPS', 'FTP', 'SSH', 'DNS', 'SMTP', 'P2P', 'Unknown' or 'None': ")
+        print ("Please provide the main proto in layer 4. 'HTTP', 'HTTPS', 'FTP', 'SSH', 'DNS', 'SMTP', 'P2P', 'Multicast', 'Unknown' or 'None': ")
         text = raw_input().strip()
-        if 'HTTP' in text or 'HTTPS' in text or 'FTP' in text or 'SSH' in text or 'DNS' in text or 'SMTP' in text or 'P2P' in text or 'Unknown' in text or 'None' in text:
+        if 'HTTP' in text or 'HTTPS' in text or 'FTP' in text or 'SSH' in text or 'DNS' in text or 'SMTP' in text or 'P2P' in text or 'Multicast' in text or 'Unknown' in text or 'None' in text:
             proto4 = text
         else:
             print_error('Only those options are available. If you need more, please submit a request')
