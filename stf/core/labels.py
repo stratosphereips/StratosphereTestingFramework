@@ -306,7 +306,7 @@ class Group_Of_Labels(persistent.Persistent):
         # Search for labels with this 'name' so far
         matches = self.search_label_name(name_so_far, verbose=True)
         if matches:
-            print_info("There are other labels with the same name. You can input 'NEW' to create a new label with this name and a new id, or you can input the id numer to add this connection to that label. Any other input will stop the creation of the label to let you inspect the content of the labels.")
+            print_info("There are other labels with the same name. You can input 'NEW' to create a new label with this name and a new id. Or you can input the number at the end of the label name to add this connection to that label. Any other input will stop the creation of the label to let you inspect the content of the labels.")
             text = raw_input().strip()
             # Is it an int?
             try:

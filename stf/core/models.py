@@ -95,7 +95,7 @@ class Model(persistent.Persistent):
         try:
             return self.label_name
         except:
-            return False
+            return ''
 
 
 
@@ -227,6 +227,18 @@ class Group_of_Models(persistent.Persistent):
                         responses.append(False)
                 elif operator == '!=':
                     if value not in name:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            elif key == 'labelname':
+                labelname = model.get_label_name()
+                if operator == '=':
+                    if value in labelname:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if value not in labelname:
                         responses.append(True)
                     else:
                         responses.append(False)
