@@ -91,6 +91,7 @@ class Label(persistent.Persistent):
 
     def get_connections_for_dataset(self, dataset_id):
         conns = []
+        print self.connections[dataset_id]
         for con in self.connections[dataset_id]:
             conns.append(con)
         return conns
@@ -167,7 +168,9 @@ class Group_Of_Labels(persistent.Persistent):
         for label in self.get_labels():
             if __datasets__.current:
                 if label.has_dataset(__datasets__.current.get_id()):
-                    rows.append([label.get_id(), label.get_name(), __datasets__.current.get_id(), label.get_connections()])
+                    # Only the connections in this dataset
+                    #rows.append([label.get_id(), label.get_name(), __datasets__.current.get_id(), label.get_connections()])
+                    rows.append([label.get_id(), label.get_name(), __datasets__.current.get_id(), label.get_connections_for_dataset(__datasets__.current.get_id())])
             else:
                 for dataset in label.get_datasets():
                     rows.append([label.get_id(), label.get_name(), dataset, label.get_connections_for_dataset(dataset)])
