@@ -431,14 +431,14 @@ You can check that this was successful by inspecting the connections with ```con
 - You can limit the amount of flows to show with the command _connections -F_ so large connections can be visualized better.
 - You can list the notes for only the current capture, using filters.
 - It assigns an auto note when putting a label.
+- Show which connections have a label while listing models.
+- You can filter by labelname in the models.
 
 ### Bugs
 - For bug reports please fill an issue on the [github page](https://github.com/stratosphereips/StratosphereTestingFramework/issues)
 
 
 ### TODO
-- Search why the dga dns in the secondary
-- Show which connections have a label while listing models
 - When the stf is used from several locations, it can happend that some dataset commands do not work because the pcap file is not there. Capture these issues.
 - Show more info about the model constructor
 - Show table for each model constructor
