@@ -10,6 +10,7 @@ import sys
 from stf.common.out import *
 from stf.core.dataset import __datasets__
 from stf.core.models import __groupofgroupofmodels__
+from stf.core.notes import   __notes__
 
 
 ########################
@@ -195,7 +196,6 @@ class Group_Of_Labels(persistent.Persistent):
                 print_error('This connection from this dataset was already assigned the label id {}'.format(has_label))
             else:
                 print_warning('Remember that a label should represent a unique behavioral model!')
-                #print_info('This connection does not have a prior label, assigning a new one')
                 try:
                     label_id = self.labels[list(self.labels.keys())[-1]].get_id() + 1
                 except (KeyError, IndexError):
@@ -211,13 +211,37 @@ class Group_Of_Labels(persistent.Persistent):
                         label.set_name(name)
                         label.add_connection(dataset_id, connection_id)
                         self.labels[label_id] = label
-                    # Add the auto label to the connection
-                    #note.add_auto_text_to_note(note_id, text_to_add)
+                    # add auto label
+                    self.add_auto_label_for_connection(connection_id, name)
                 else:
                     print_error('Aborting the assignment of the label.')
                     return False
         else:
             print_error('There is no dataset selected.')
+
+    def add_auto_label_for_connection(self,connection_id, name):
+        """ Given a connection id, label name and a current dataset, add an auto note"""
+        if __datasets__.current:
+            # Add the auto label to the connection
+            text_to_add = "Added label {}".format(name)
+            # Get the note id, group_id and group
+            dataset = __datasets__.get_dataset(__datasets__.current.get_id())
+            group_of_models = dataset.get_group_of_models()
+            for group_id in group_of_models: # Usually is only one group...
+                group = __groupofgroupofmodels__.get_group(group_id)
+                if group.has_model(connection_id):
+                    model = group.get_model(connection_id)
+                    break
+            note_id = model.get_note_id()
+            if not note_id:
+                # There was not originaly a note, so we should now store the new created not in the model.
+                note_id =__notes__.new_note()
+                model.set_note_id(note_id)
+            __notes__.add_auto_text_to_note(note_id, text_to_add)
+            print_info('Connection has note id {}'.format(note_id))
+        else:
+            print_error('There is no dataset selected.')
+
 
     def del_label(self, lab_id):
         """ Delete a label """
