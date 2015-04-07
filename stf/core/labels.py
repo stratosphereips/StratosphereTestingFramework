@@ -97,26 +97,6 @@ class Label(persistent.Persistent):
             conns.append(con)
         return conns
 
-    def show_models(self):
-        """ Show the models in the label"""
-        rows = []
-        # Get all the unique datasets for this label
-        for dataset_id in set(self.get_datasets()):
-            # Get all the connections_id on each dataset
-            for connection_id in self.get_connections_for_dataset(dataset_id):
-                dataset = __datasets__.get_dataset(dataset_id)
-                group_of_models = dataset.get_group_of_models()
-                # Usually there is only one group of models.. .but just in case there are more
-                for group_id in group_of_models:
-                    group = __groupofgroupofmodels__.get_group(group_id)
-                    for conn in self.connections[dataset_id]:
-                        if group.has_model(conn):
-                            model = group.get_model(conn)
-                            state = model.get_state()
-                rows.append([dataset_id, connection_id, state])
-        print table(header=['Dataset', 'Connection', 'State Model'], rows=rows)
-               
-
 
 
 
@@ -261,7 +241,6 @@ class Group_Of_Labels(persistent.Persistent):
         __notes__.add_auto_text_to_note(note_id, text_to_add)
         print_info('Connection has note id {}'.format(note_id))
 
-
     def del_label(self, lab_id):
         """ Delete a label """
         try:
@@ -270,12 +249,6 @@ class Group_Of_Labels(persistent.Persistent):
             self.labels.pop(label_id)
         except KeyError:
             print_error('Label id does not exists.')
-
-    def show_models_in_label(self,label_id):
-        """ Show the behavioral models for all the connections in the label"""
-        label = self.get_label(label_id)
-        if label:
-            label.show_models()
 
     def decide_a_label_name(self, dataset_id, connection_id):
         # Direction
