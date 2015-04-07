@@ -133,6 +133,15 @@ class Group_Of_Labels(persistent.Persistent):
     def get_labels(self):
         return self.labels.values()
 
+    def get_label_by_id(self, label_id):
+        """ Return the label object by its id"""
+        return self.labels[label_id]
+
+    def get_label_name_by_id(self, label_id):
+        """ Get the name of the label by its id"""
+        label = self.get_label_by_id(label_id)
+        return label.get_name()
+
     def get_label(self, name):
         """" Given a name, return the label object """
         for label in self.get_labels():
@@ -211,7 +220,9 @@ class Group_Of_Labels(persistent.Persistent):
                         label.set_name(name)
                         label.add_connection(dataset_id, connection_id)
                         self.labels[label_id] = label
-                    # add auto label
+                    # Add label id to the model
+                    self.add_label_to_model(connection_id, name)
+                    # add auto note with the label to the model
                     self.add_auto_label_for_connection(connection_id, name)
                 else:
                     print_error('Aborting the assignment of the label.')
@@ -219,11 +230,9 @@ class Group_Of_Labels(persistent.Persistent):
         else:
             print_error('There is no dataset selected.')
 
-    def add_auto_label_for_connection(self,connection_id, name):
-        """ Given a connection id, label name and a current dataset, add an auto note"""
+    def get_the_model_of_a_connection(self, connection_id):
+        """ Given a connection_id and current dataset, get the model """
         if __datasets__.current:
-            # Add the auto label to the connection
-            text_to_add = "Added label {}".format(name)
             # Get the note id, group_id and group
             dataset = __datasets__.get_dataset(__datasets__.current.get_id())
             group_of_models = dataset.get_group_of_models()
@@ -231,16 +240,26 @@ class Group_Of_Labels(persistent.Persistent):
                 group = __groupofgroupofmodels__.get_group(group_id)
                 if group.has_model(connection_id):
                     model = group.get_model(connection_id)
-                    break
-            note_id = model.get_note_id()
-            if not note_id:
-                # There was not originaly a note, so we should now store the new created not in the model.
-                note_id =__notes__.new_note()
-                model.set_note_id(note_id)
-            __notes__.add_auto_text_to_note(note_id, text_to_add)
-            print_info('Connection has note id {}'.format(note_id))
+                    return model
         else:
             print_error('There is no dataset selected.')
+
+    def add_label_to_model(self, connection_id, name):
+        """ Given a connection id, label id and a current dataset, add the label id to the model"""
+        model = self.get_the_model_of_a_connection(connection_id)
+        model.set_label_name(name)
+
+    def add_auto_label_for_connection(self,connection_id, name):
+        """ Given a connection id, label name and a current dataset, add an auto note"""
+        text_to_add = "Added label {}".format(name)
+        model = self.get_the_model_of_a_connection(connection_id)
+        note_id = model.get_note_id()
+        if not note_id:
+            # There was not originaly a note, so we should now store the new created not in the model.
+            note_id =__notes__.new_note()
+            model.set_note_id(note_id)
+        __notes__.add_auto_text_to_note(note_id, text_to_add)
+        print_info('Connection has note id {}'.format(note_id))
 
 
     def del_label(self, lab_id):

@@ -79,6 +79,24 @@ class Model(persistent.Persistent):
         except AttributeError:
             return ''
 
+    def set_label_id(self, label_id):
+        """ Set the label id"""
+        self.label_id = label_id
+
+    def get_label_id(self):
+        return self.label_id
+
+    def set_label_name(self, name):
+        """ Set the label name. We know that this is not ok and we should only store the label id, but we can not cross import modules, so this is the best way I know how to solve it"""
+        self.label_name = name
+
+    def get_label_name(self):
+        """ Return the label name for this model"""
+        try:
+            return self.label_name
+        except:
+            return False
+
 
 
 ###############################
@@ -221,17 +239,16 @@ class Group_of_Models(persistent.Persistent):
         return True
 
     def list_models(self, filter, max_letters=0):
-        all_text=' Note | Model Id | State |\n'
+        all_text=' Note | Label | Model Id | State |\n'
         # construct the filter
         self.construct_filter(filter)
         amount = 0
         for model in self.models.values():
             if self.apply_filter(model):
                 if max_letters:
-                    all_text += '[{:3}] | {:50} | {}\n'.format(model.get_note_id() if model.get_note_id() else '', cyan(model.get_id()), model.get_state()[:max_letters])
+                    all_text += '[{:3}] | {:61} | {:50} | {}\n'.format(model.get_note_id() if model.get_note_id() else '', model.get_label_name() if model.get_label_name() else '', cyan(model.get_id()), model.get_state()[:max_letters])
                 else:
-                    all_text += '[{:3}] | {:50} | {}\n'.format(model.get_note_id() if model.get_note_id() else '', cyan(model.get_id()), model.get_state())
-                #all_text += model.get_id() + ' | ' + '\n'
+                    all_text += '[{:3}] | {:61} | {:50} | {}\n'.format(model.get_note_id() if model.get_note_id() else '', model.get_label_name() if model.get_label_name() else '', cyan(model.get_id()), model.get_state())
                 amount += 1
         all_text += 'Amount of models printed: {}'.format(amount)
         f = tempfile.NamedTemporaryFile()
