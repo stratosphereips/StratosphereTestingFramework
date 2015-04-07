@@ -430,6 +430,7 @@ You can check that this was successful by inspecting the connections with ```con
 - Since the notes are stored as MarkDown text, it is nice to have some markdown support in your editor. In vi you can have nice colors and shortcuts.
 - You can limit the amount of flows to show with the command _connections -F_ so large connections can be visualized better.
 - You can list the notes for only the current capture, using filters.
+- It assigns an auto note when putting a label.
 
 ### Bugs
 - For bug reports please fill an issue on the [github page](https://github.com/stratosphereips/StratosphereTestingFramework/issues)
@@ -438,7 +439,6 @@ You can check that this was successful by inspecting the connections with ```con
 ### TODO
 - Search why the dga dns in the secondary
 - Show which connections have a label while listing models
-- Add auto note when putting a label
 - When the stf is used from several locations, it can happend that some dataset commands do not work because the pcap file is not there. Capture these issues.
 - Show more info about the model constructor
 - Show table for each model constructor
