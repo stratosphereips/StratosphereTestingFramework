@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # This file is part of the Stratosphere Testing Framework 
 # See the file 'LICENSE' for copying permission.
-# Version 0.1.1alpha
 
 import argparse
 import os
