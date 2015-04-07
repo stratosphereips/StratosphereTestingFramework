@@ -10,15 +10,20 @@ import traceback
 
 from stf.common.out import *
 
+
+version = "0.1.2alpha"
+
 def logo():
     print("""
     Stratosphere Testing Framework
+    https://stratosphereips.org
              _    __ 
             | |  / _|
          ___| |_| |_ 
         / __| __|  _|
         \__ \ |_| |  
     ... |___/\__|_|  ...
+    """+version+"""
 
     """)
 

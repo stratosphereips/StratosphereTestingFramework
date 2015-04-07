@@ -18,6 +18,7 @@ from stf.core.connections import __group_of_group_of_connections__
 from stf.core.models_constructors import __modelsconstructors__
 from stf.core.models import __groupofgroupofmodels__
 from stf.core.notes import __notes__
+from stf.core.labels import __group_of_labels__ 
 
 class Commands(object):
 
@@ -33,6 +34,7 @@ class Commands(object):
             models=dict(obj=self.cmd_models, description="Manage the models. A dataset should be selected first."),
             database=dict(obj=self.cmd_database, description="Manage the database."),
             notes=dict(obj=self.cmd_notes, description="Manage the notes."),
+            labels=dict(obj=self.cmd_labels, description="Manage the labels."),
             exit=dict(obj=self.cmd_exit, description="Exit"),
         )
 
@@ -141,9 +143,9 @@ class Commands(object):
         parser.add_argument('-d', '--deletegroup', metavar="group_model_id", help="Delete a group of models.")
         parser.add_argument('-D', '--deletemodel', metavar="group_model_id", help="Delete a model from the group. This is the id of the group. Use -i to give the model id to delete (4-tuple) or -f to use a filter.")
         parser.add_argument('-i', '--modelid', metavar="model_id", help="Use this model id (4-tuple). Commonly used with -D.")
-        parser.add_argument('-L', '--listmodels', metavar="group_model_id", help="List the models inside a group.")
+        parser.add_argument('-L', '--listmodels', metavar="group_model_id", help="List the models inside a group. You can use filters.")
         parser.add_argument('-C', '--countmodels', metavar="group_model_id", help="Count the models inside a group.")
-        parser.add_argument('-f', '--filter', metavar="filter", nargs = '+', help="Use this filter to work with models. You can use multiple filter separated by a space. Format: \"variable[=<>]value\". You can use the variables: statelen, name. For example: -f statelen>100 name=tcp.")
+        parser.add_argument('-f', '--filter', metavar="filter", nargs = '+', help="Use this filter to work with models. You can use multiple filter separated by a space. Format: \"variable[=<>]value\". You can use the variables: statelength, name and labelname. For example: -f statelength>100 name=tcp. Another example: -f name=-tcp- labelname=Botnet")
         parser.add_argument('-H', '--histogram', metavar="group_model_id", help="Plot a histogram of the lengths of models states in the given id of group of models.")
         parser.add_argument('-N', '--delnote', metavar='group_model_id', help="Delete completely the note related with this model id. Use -i to give the model id to add the note to (4-tuple).")
         parser.add_argument('-n', '--editnote', metavar='group_model_id', help="Edit the note related with this model id. Use -i to give the model id to add the note to (4-tuple).")
@@ -480,7 +482,7 @@ class Commands(object):
             __database__.info()
 
         # Subcomand to revert the database
-        if args.revert:
+        elif args.revert:
             __database__.revert()
 
         # Subcomand to pack he database
@@ -490,6 +492,54 @@ class Commands(object):
         # Subcomand to commit the changes
         elif args.commit:
             __database__.commit()
+
+
+    ##
+    # LABELS
+    #
+    # This command works with labels
+    def cmd_labels(self, *args):
+        parser = argparse.ArgumentParser(prog="labels", description="Manage labels", epilog="Manage labels")
+        parser.add_argument('-l', '--list', action="store_true", help="List all existing labels.")
+        parser.add_argument('-a', '--add', metavar="connection_id", help="Add a label to the given connection id in the current dataset.")
+        parser.add_argument('-d', '--delete', metavar="label_id", help="Delete a label given the label id.")
+        parser.add_argument('-s', '--search', metavar="text", help="Search for a text in all the labels names.")
+        parser.add_argument('-S', '--searchconnection', metavar="connection_id", help="Search for a connection in all the labels.")
+        parser.add_argument('-D', '--deleteconnection', metavar="connection_id", help="Give a connection id to delete (4-tuple). You must give the dataset id with -i.")
+        parser.add_argument('-i', '--datasetid', metavar="dataset_id", help="Dataset id. Used with -D")
+
+        try:
+            args = parser.parse_args(args)
+        except:
+            return
+
+        # Subcomand to list labels
+        if args.list:
+            __group_of_labels__.list_labels()
+
+        # Subcomand to add a label
+        elif args.add:
+            __group_of_labels__.add_label(args.add)
+
+        # Subcomand to delete a label
+        elif args.delete:
+            __group_of_labels__.del_label(args.delete)
+
+        # Subcomand to search label names
+        elif args.search:
+            __group_of_labels__.search_label_name(args.search, verbose=True)
+
+        # Subcomand to search a connection in the label
+        elif args.searchconnection:
+            __group_of_labels__.search_connection_in_label(args.searchconnection)
+
+        # Subcomand to delete a specific connection
+        elif args.deleteconnection:
+            if args.datasetid:
+                __group_of_labels__.delete_connection(int(args.datasetid), args.deleteconnection)
+            else:
+                print_error('You should give a dataset id with -i.')
+
 
     ##
     # EXIT

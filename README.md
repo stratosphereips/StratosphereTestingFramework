@@ -430,6 +430,9 @@ You can check that this was successful by inspecting the connections with ```con
 - Since the notes are stored as MarkDown text, it is nice to have some markdown support in your editor. In vi you can have nice colors and shortcuts.
 - You can limit the amount of flows to show with the command _connections -F_ so large connections can be visualized better.
 - You can list the notes for only the current capture, using filters.
+- It assigns an auto note when putting a label.
+- Show which connections have a label while listing models.
+- You can filter by labelname in the models.
 
 ### Bugs
 - For bug reports please fill an issue on the [github page](https://github.com/stratosphereips/StratosphereTestingFramework/issues)
