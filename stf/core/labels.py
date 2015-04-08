@@ -267,8 +267,6 @@ class Group_Of_Labels(persistent.Persistent):
             print_error('Only those options are available. If you need more, please submit a request')
             return False
         # Main 3 layer proto
-        #print ("Please provide the main proto up to layer 3. 'TCP', 'UDP', 'ICMP', 'IGMP', 'ARP': ")
-        #text = raw_input().strip()
         if 'TCP' in connection_id.upper():
             proto3 = 'TCP'
         elif 'UDP' in connection_id.upper():
