@@ -92,7 +92,6 @@ class Label(persistent.Persistent):
 
     def get_connections_for_dataset(self, dataset_id):
         conns = []
-        print self.connections[dataset_id]
         for con in self.connections[dataset_id]:
             conns.append(con)
         return conns
