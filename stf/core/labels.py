@@ -259,9 +259,9 @@ class Group_Of_Labels(persistent.Persistent):
             print_error('Only those options are available. If you need more, please submit a request')
             return False
         # Main decision
-        print ("Please provide the main decision. 'Botnet', 'Normal', 'Attack', or 'Background': ")
+        print ("Please provide the main decision. 'Botnet', 'Malware', 'Normal', 'Attack', or 'Background': ")
         text = raw_input().strip()
-        if 'Botnet' in text or 'Normal' in text or 'Attack' in text or 'Background' in text:
+        if 'Botnet' in text or 'Malware' in text or 'Normal' in text or 'Attack' in text or 'Background' in text:
             decision = text
         else:
             print_error('Only those options are available. If you need more, please submit a request')
