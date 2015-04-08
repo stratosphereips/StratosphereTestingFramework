@@ -397,8 +397,7 @@ Please provide optional details for this connection. Up to 30 chars (No - or spa
 iflscience.com
 [*] Connection has note id 59
 ```
-- Looking at the labels (For more information about the labelling process see [labels](doc/labels.md))
-```
+- Looking at the labels (For more information about the labelling process see [labels](doc/labels.md)) ```
 stf > labels -l
 +----+---------------------------------------+---------+----------------------------------------+
 | Id | Label Name                            | Dataset | Connection                             |
