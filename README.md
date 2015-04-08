@@ -397,7 +397,7 @@ Please provide optional details for this connection. Up to 30 chars (No - or spa
 iflscience.com
 [*] Connection has note id 59
 ```
-- Looking at the labels
+- Looking at the labels (For more information about the labelling process see [labels](docs/labels.md)
 ```
 stf > labels -l
 +----+---------------------------------------+---------+----------------------------------------+
@@ -410,8 +410,6 @@ stf > labels -l
 | 5  | From-Normal-TCP-HTTP-iflscience.com-1 | 15      | ['192.168.1.128-54.208.18.216-80-tcp'] |
 +----+---------------------------------------+---------+----------------------------------------+
 ```
-
-
 - All the commands show a help menu with the parameter -h.
 
 ## Changing the Configuration
