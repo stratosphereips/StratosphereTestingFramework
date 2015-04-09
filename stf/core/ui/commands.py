@@ -61,16 +61,16 @@ class Commands(object):
         rows = sorted(rows, key=lambda entry: entry[0])
 
         print(table(['Command', 'Description'], rows))
-        #print("")
-        #print(bold("Modules:"))
+        print("")
+        print(bold("Modules:"))
 
-        #rows = []
-        #for module_name, module_item in __modules__.items():
-            #rows.append([module_name, module_item['description']])
+        rows = []
+        for module_name, module_item in __modules__.items():
+            rows.append([module_name, module_item['description']])
 
-        #rows = sorted(rows, key=lambda entry: entry[0])
+        rows = sorted(rows, key=lambda entry: entry[0])
 
-        #print(table(['Command', 'Description'], rows))
+        print(table(['Command', 'Description'], rows))
 
 
 
