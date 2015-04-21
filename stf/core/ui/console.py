@@ -9,6 +9,7 @@ import readline
 import traceback
 
 from stf.common.out import *
+from stf.core.plugins import __modules__
 
 
 version = "0.1.2alpha"
@@ -35,13 +36,14 @@ class Console(object):
         # Create the nessesary folders first
         self.create_folders()
 
-        # This will keep the main loop active as long as it's set to True.
+        # I have to move the import here.
         from stf.core.ui.commands import Commands
 
         # From some reason we should initialize the db from a method, we can not do it in the constructor
         from stf.core.database import __database__
         __database__.start()
 
+        # This will keep the main loop active as long as it's set to True.
         self.active = True
         self.cmd = Commands()
         # Open the connection to the db. We need to make this here.
@@ -141,15 +143,16 @@ class Console(object):
 
         # Setup shell auto-complete.
         def complete(text, state):
+            # Try to autocomplete modules.
+            mods = [i for i in __modules__ if i.startswith(text)]
+            if state < len(mods):
+                return mods[state]
+
             # Try to autocomplete commands.
             cmds = [i for i in self.cmd.commands if i.startswith(text)]
             if state < len(cmds):
                 return cmds[state]
 
-            # Try to autocomplete modules.
-            #mods = [i for i in __modules__ if i.startswith(text)]
-            #if state < len(mods):
-                #return mods[state]
 
             # Then autocomplete paths.
             if text.startswith("~"):
@@ -196,6 +199,12 @@ class Console(object):
                 # Skip if the input is empty.
                 if not data:
                     continue
+
+                # Check for output redirection
+                # If there is a > in the string, we assume the user wants to output to file.
+                filename = False
+                if '>' in data:
+                    data, filename = data.split('>')
                 
                 # If the input starts with an exclamation mark, we treat the
                 # input as a bash command and execute it.
@@ -205,10 +214,6 @@ class Console(object):
 
                 # Try to split commands by ; so that you can sequence multiple
                 # commands at once.
-                # For example:
-                # viper > find name *.pdf; open --last 1; pdf id
-                # This will automatically search for all PDF files, open the first entry
-                # and run the pdf module against it.
                 split_commands = data.split(';')
                 for split_command in split_commands:
                     split_command = split_command.strip()
@@ -232,13 +237,13 @@ class Console(object):
                             
                         # If the root command is part of loaded modules, we initialize
                         # the module and execute it.
-                        #elif root in __modules__:
-                        #    module = __modules__[root]['obj']()
-                        #    module.set_commandline(args)
-                        #    module.run()
+                        elif root in __modules__:
+                            module = __modules__[root]['obj']()
+                            module.set_commandline(args)
+                            module.run()
 
-                        #    self.print_output(module.output, filename)
-                        #    del(module.output[:])
+                            self.print_output(module.output, filename)
+                            del(module.output[:])
                         else:
                             print("Command not recognized.")
                     except KeyboardInterrupt:
