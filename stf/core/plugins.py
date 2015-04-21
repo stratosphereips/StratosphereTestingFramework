@@ -4,11 +4,12 @@
 import pkgutil
 import inspect
 
-from viper.common.out import print_warning
-from viper.common.abstracts import Module
+from stf.common.out import print_warning
+from stf.common.abstracts import Module
 
 def load_modules():
     # Import modules package.
+    # This loads the modules in the modules folder. Is very relative to the starting position of the stf
     import modules
 
     plugins = dict()
