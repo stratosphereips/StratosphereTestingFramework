@@ -3,6 +3,27 @@
 
 import argparse
 
+class ArgumentErrorCallback(Exception):
+    def __init__(self, message, level=''):
+        self.message = message.strip() + '\n'
+        self.level = level.strip()
+    def __str__(self):
+        return '{}: {}'.format(self.level, self.message)
+    def get(self):
+        return self.level, self.message
+
+
+class ArgumentParser(argparse.ArgumentParser):
+    def print_usage(self):
+        raise ArgumentErrorCallback(self.format_usage())
+    def print_help(self):
+        raise ArgumentErrorCallback(self.format_help())
+    def error(self, message):
+        raise ArgumentErrorCallback(message, 'error')
+    def exit(self, status, message=None):
+        if message is not None:
+            raise ArgumentErrorCallback(message)
+
 
 class Module(object):
     cmd = ''
