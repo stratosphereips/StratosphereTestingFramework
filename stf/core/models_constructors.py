@@ -349,6 +349,10 @@ class Models_Constructors(persistent.Persistent):
         second_model_constructor.set_description('Uses the symbols between flows to store the time. Better thresholds.')
         self.models_constructors[second_model_constructor.get_id()] = second_model_constructor
 
+    def get_constructors_ids(self):
+        """ Return the constructors ids"""
+        return self.models_constructors.keys()
+
     def get_default_constructor(self):
         """ Since we return an object, all the models share the same constructor """
         return self.models_constructors[self.default_model_constructor]
