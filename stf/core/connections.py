@@ -713,6 +713,10 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
         # The index of the group_of_connections is the dataset id
         self.group_of_connections = BTrees.IOBTree.BTree()
 
+    def get_groups_ids(self):
+        """ Return the ids of the groups of connections """
+        return self.group_of_connections.keys()
+
     def get_group(self,id):
         try:
             return self.group_of_connections[id]
