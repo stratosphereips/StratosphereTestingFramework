@@ -461,15 +461,18 @@ You can check that this was successful by inspecting the connections with ```con
 - Show which connections have a label while listing models.
 - You can filter by labelname in the models.
 
+## Modules
+Now stf can import external modules that implement new functionality.
+
 ### Bugs
 - For bug reports please fill an issue on the [github page](https://github.com/stratosphereips/StratosphereTestingFramework/issues)
 
 
 ### TODO
+- When deleting a dataset, also delete all the connections in the labels that has that dataset.
 - When the stf is used from several locations, it can happend that some dataset commands do not work because the pcap file is not there. Capture these issues.
 - Show more info about the model constructor
 - Show table for each model constructor
-- Implement the constructors as external modules
 - Add autotext note when I delete models or connections
 - Relate the notes with the objects they reference. So after a search you can find the object again.
 - Print the duration and size in the model -L command.
