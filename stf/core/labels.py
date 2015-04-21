@@ -3,7 +3,6 @@
 
 import persistent
 import BTrees.IOBTree
-import transaction
 import os
 import sys
 
@@ -36,49 +35,58 @@ class Label(persistent.Persistent):
     def set_name(self, name):
         self.name = name
 
-    def add_connection(self, dataset_id, connection_id):
-        """ Receive a dataset_id and a connection_id and store them in this label"""
+    def change_dataset_id_to_group_of_models_id(self, dataset_id, group_of_models_id):
+        """ Exactly what the name says"""
+        prev_values = self.connections[dataset_id]
+        self.connections.pop(dataset_id)
+        self.connections[group_of_models_id] = prev_values
+        self._p_changed = 1
+
+    def add_connection(self, group_of_model_id, connection_id):
+        """ Receive a group_of_model_id and a connection_id and store them in this label"""
         try:
-            d_id = self.connections[dataset_id]
-            self.connections[dataset_id].append(connection_id)
+            d_id = self.connections[group_of_model_id]
+            self.connections[group_of_model_id].append(connection_id)
         except KeyError:
             # First time we see this dataset id
-            self.connections[dataset_id] = []
-            self.connections[dataset_id].append(connection_id)
+            self.connections[group_of_model_id] = []
+            self.connections[group_of_model_id].append(connection_id)
         
-    def delete_connection(self, dataset_id, connection_id):
+    def delete_connection(self, group_of_model_id, connection_id):
         """ Delete this connection in this label """
         try:
-            for conn in self.connections[dataset_id]:
+            for conn in self.connections[group_of_model_id]:
                 if conn == connection_id:
-                    self.connections[dataset_id].remove(connection_id)
+                    self.connections[group_of_model_id].remove(connection_id)
+                    # For some strange reason this is needed when we change a label
+                    self._p_changed = 1
                     return True
-            # We have the dataset_id but not the connection_id
+            # We have the group_of_model_id but not the connection_id
             return False
         except KeyError:
-            # We dont have that dataset_id
+            # We dont have that group_of_model_id
             return False
 
-    def has_connection(self, dataset_id, connection_id):
+    def has_connection(self, group_of_model_id, connection_id):
         """ Check if we have this connection in this label """
         try:
-            for conn in self.connections[dataset_id]:
+            for conn in self.connections[group_of_model_id]:
                 if conn == connection_id:
                     return True
-            # We have the dataset_id but not the connection_id
+            # We have the group_of_model_id but not the connection_id
             return False
         except KeyError:
-            # We dont have that dataset_id
+            # We dont have that group_of_model_id
             return False
 
     def has_dataset(self, dataset_id):
-        """ Check if this label has any connection with this dataset_id"""
-        try:
-            a = self.connections[dataset_id]
-            return True
-        except KeyError:
-            # We dont have that dataset_id
-            return False
+        """ Check if this label has any connection with this group_of_model_id"""
+        # To TEST
+        # Check if some of our connections come from this dataset id
+        for connection in self.connections:
+            if connection.split('-')[0] == dataset_id:
+                return True
+        return False
 
     def get_datasets(self):
         return self.connections.keys()
@@ -94,9 +102,9 @@ class Label(persistent.Persistent):
                 conns.append(con)
         return conns
 
-    def get_connections_for_dataset(self, dataset_id):
+    def get_connections_for_dataset(self, group_of_model_id):
         conns = []
-        for con in self.connections[dataset_id]:
+        for con in self.connections[group_of_model_id]:
             conns.append(con)
         return conns
 
@@ -122,7 +130,10 @@ class Group_Of_Labels(persistent.Persistent):
 
     def get_label_by_id(self, label_id):
         """ Return the label object by its id"""
-        return self.labels[label_id]
+        try:
+            return self.labels[label_id]
+        except TypeError:
+            print_error('The label id should be integer.')
 
     def get_label_name_by_id(self, label_id):
         """ Get the name of the label by its id"""
@@ -156,7 +167,7 @@ class Group_Of_Labels(persistent.Persistent):
 
         if matches and verbose:
             print_info('Labels matching the search criteria')
-            print table(header=['Id', 'Label Name', 'Datasets', 'Connections'], rows=rows)
+            print table(header=['Id', 'Label Name', 'Group of Models', 'Connections'], rows=rows)
         return matches
 
     def list_labels(self):
@@ -171,23 +182,27 @@ class Group_Of_Labels(persistent.Persistent):
             else:
                 for dataset in label.get_datasets():
                     rows.append([label.get_id(), label.get_name(), dataset, label.get_connections_for_dataset(dataset)])
-        print table(header=['Id', 'Label Name', 'Dataset', 'Connection'], rows=rows)
+        print table(header=['Id', 'Label Name', 'Group of Model', 'Connection'], rows=rows)
 
-    def check_label_existance(self, dataset_id, connection_id):
+    def check_label_existance(self, group_of_model_id, connection_id):
         """ Get a dataset id and connection id and check if we already have a label for them """
         try:
             for label in self.get_labels():
-                if label.has_connection(dataset_id, connection_id):
+                if label.has_connection(group_of_model_id, connection_id):
                     return label.get_id()
             return False
         except AttributeError:
             return False
 
-    def add_label(self, connection_id):
+    def add_label(self, group_of_model_id, connection_id):
         """ Add a label """
         if __datasets__.current:
-            dataset_id = __datasets__.current.get_id()
-            has_label = self.check_label_existance(dataset_id, connection_id)
+            dataset_id_standing = __datasets__.current.get_id()
+            dataset_id = group_of_model_id.split('-')[0]
+            if dataset_id_standing != dataset_id:
+                print_error('You should select the dataset you are going to work in. Not another')
+                return False
+            has_label = self.check_label_existance(group_of_model_id, connection_id)
             if has_label:
                 print_error('This connection from this dataset was already assigned the label id {}'.format(has_label))
             else:
@@ -196,50 +211,50 @@ class Group_Of_Labels(persistent.Persistent):
                     label_id = self.labels[list(self.labels.keys())[-1]].get_id() + 1
                 except (KeyError, IndexError):
                     label_id = 1
-                name = self.decide_a_label_name(dataset_id, connection_id)
+                name = self.decide_a_label_name(connection_id)
                 if name:
                     previous_label = self.search_label_name(name, verbose=False)
                     if previous_label:
                         label = self.get_label(name)
-                        label.add_connection(dataset_id, connection_id)
+                        label.add_connection(group_of_model_id, connection_id)
                     else:
                         label = Label(label_id)
                         label.set_name(name)
-                        label.add_connection(dataset_id, connection_id)
+                        label.add_connection(group_of_model_id, connection_id)
                         self.labels[label_id] = label
                     # Add label id to the model
-                    self.add_label_to_model(connection_id, name)
+                    self.add_label_to_model(group_of_model_id, connection_id, name)
                     # add auto note with the label to the model
-                    self.add_auto_label_for_connection(connection_id, name)
+                    self.add_auto_label_for_connection(group_of_model_id, connection_id, name)
                 else:
+                    # This is not necesary, but is a precaution
                     print_error('Aborting the assignment of the label.')
                     return False
         else:
             print_error('There is no dataset selected.')
 
-    def get_the_model_of_a_connection(self, connection_id):
-        """ Given a connection_id and current dataset, get the model """
-        if __datasets__.current:
-            # Get the note id, group_id and group
-            dataset = __datasets__.get_dataset(__datasets__.current.get_id())
-            group_of_models = dataset.get_group_of_models()
-            for group_id in group_of_models: # Usually is only one group...
-                group = __groupofgroupofmodels__.get_group(group_id)
-                if group.has_model(connection_id):
-                    model = group.get_model(connection_id)
-                    return model
-        else:
-            print_error('There is no dataset selected.')
+    def get_the_model_of_a_connection(self, group_of_model_id, connection_id):
+        """ Given a connection_id and group of model id, get the model """
+        # Not TESTED
+        # Get the note id, group_id and group
+        dataset_id = group_of_model_id.split('-')[0]
+        dataset = __datasets__.get_dataset(dataset_id)
+        group = __groupofgroupofmodels__.get_group(group_of_model_id)
+        if group.has_model(connection_id):
+            model = group.get_model(connection_id)
+            return model
 
-    def add_label_to_model(self, connection_id, name):
+    def add_label_to_model(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label id and a current dataset, add the label id to the model"""
-        model = self.get_the_model_of_a_connection(connection_id)
+        # NOT TESTED
+        model = self.get_the_model_of_a_connection(group_of_model_id, connection_id)
         model.set_label_name(name)
 
-    def add_auto_label_for_connection(self,connection_id, name):
+    def add_auto_label_for_connection(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label name and a current dataset, add an auto note"""
+        # Not TESTED
         text_to_add = "Added label {}".format(name)
-        model = self.get_the_model_of_a_connection(connection_id)
+        model = self.get_the_model_of_a_connection( group_of_model_id, connection_id)
         note_id = model.get_note_id()
         if not note_id:
             # There was not originaly a note, so we should now store the new created not in the model.
@@ -257,7 +272,7 @@ class Group_Of_Labels(persistent.Persistent):
         except KeyError:
             print_error('Label id does not exists.')
 
-    def decide_a_label_name(self, dataset_id, connection_id):
+    def decide_a_label_name(self, connection_id):
         # Direction
         print ("Please provide a direction. It means 'From' or 'To' the most important IP in the connection: ")
         text = raw_input().strip()
@@ -337,16 +352,32 @@ class Group_Of_Labels(persistent.Persistent):
             name = name_so_far + '-1'
         return name
 
-    def delete_connection(self, dataset_id, connection_id):
-        """ Get a dataset_id, connection id, find and delete it from the label """
+    def delete_connection(self, group_of_model_id, connection_id):
+        """ Get a group_of_model_id, connection id, find and delete it from the label """
         for label in self.get_labels():
-            if label.has_connection(dataset_id, connection_id):
-                label.delete_connection(dataset_id, connection_id)
+            if label.has_connection(group_of_model_id, connection_id):
+                label.delete_connection(group_of_model_id, connection_id)
                 # We should return because is unique the key... there won't be any more
                 # If the label does not have any more connections, we should delete the label
                 if len(label.get_connections()) == 0:
                     self.labels.pop(label.get_id())
                 return True
+
+    def migrate_old_labels(self):
+        """ Because of an issue in the label database of version < 0.1.2alpha, we need to migrate the labels
+        The issue is that the old labels used the dataset_id as part of the id, and now we use the group_of_models_id. 
+        So this migration changes the dataset_id in the db for the group_of_models_id
+        """
+        for label_id in self.get_labels_ids():
+            label = self.get_label_by_id(label_id)
+            name = label.get_name()
+            for dataset_id in label.get_datasets():
+                if '-' not in str(dataset_id): 
+                    print_info('The label {} with id {}, has a dataset id {}. It needs to be migrated'.format(name, label_id, dataset_id))
+                    # If we are migrating we expect that there is still only one type of models. so 1
+                    group_of_model_id = str(dataset_id) + '-1' 
+                    label.change_dataset_id_to_group_of_models_id(dataset_id, group_of_model_id)
+                    print_info('\tMigrated')
 
 
 __group_of_labels__ = Group_Of_Labels()
