@@ -90,7 +90,6 @@ class Label(persistent.Persistent):
     def get_group_of_model_id(self, datasetid=False):
         ids = []
         for id in self.connections:
-            print id
             if datasetid:
                 if id.split('-')[0] == str(datasetid):
                     ids.append(id)
@@ -102,25 +101,18 @@ class Label(persistent.Persistent):
         """ Return the connections object complete, with dataset id also"""
         return self.connections
 
-    #def get_connections(self):
-        #conns = []
-        #for dataset in self.connections:
-            #for con in self.connections[dataset]:
-                #conns.append(con)
-        #return conns
-
     def get_connections(self, groupofmodelid=False, dataset_id=False):
         conns = []
-        for con in self.connections:
-            temp_dataset_id = con.split('-')[0]
+        for id in self.connections:
+            temp_dataset_id = id.split('-')[0]
             if dataset_id:
-                if temp_dataset_id == dataset_id:
-                    conns.append(self.connections[con])
-            if groupofmodelid:
-                if con == groupofmodelid:
-                    conns.append(self.connections[con])
+                if temp_dataset_id == str(dataset_id):
+                    conns.append(self.connections[id])
+            elif groupofmodelid:
+                if id == groupofmodelid:
+                    conns.append(self.connections[id])
             else:
-                conns.append(self.connections[con])
+                conns.append(self.connections[id])
         return conns
 
 
@@ -172,7 +164,6 @@ class Group_Of_Labels(persistent.Persistent):
 
     def search_label_name(self, name, verbose = True):
         """ Given a name, return the labels that match"""
-        # NOT TESTED
         matches = []
         rows = []
         for label in self.get_labels():
@@ -212,10 +203,13 @@ class Group_Of_Labels(persistent.Persistent):
 
     def add_label(self, group_of_model_id, connection_id):
         """ Add a label """
+        ISSUE
+        # For some reason the labels are stored like this now: [['192.168.0.150-151.151.26.152-25-tcp', '192.168.0.150-162.130.196.144-25-tcp']]
+        # with a double [[]]
         if __datasets__.current:
             dataset_id_standing = __datasets__.current.get_id()
             dataset_id = group_of_model_id.split('-')[0]
-            if dataset_id_standing != dataset_id:
+            if str(dataset_id_standing) != dataset_id:
                 print_error('You should select the dataset you are going to work in. Not another')
                 return False
             has_label = self.check_label_existance(group_of_model_id, connection_id)
@@ -251,9 +245,8 @@ class Group_Of_Labels(persistent.Persistent):
 
     def get_the_model_of_a_connection(self, group_of_model_id, connection_id):
         """ Given a connection_id and group of model id, get the model """
-        # Not TESTED
         # Get the note id, group_id and group
-        dataset_id = group_of_model_id.split('-')[0]
+        dataset_id = int(group_of_model_id.split('-')[0])
         dataset = __datasets__.get_dataset(dataset_id)
         group = __groupofgroupofmodels__.get_group(group_of_model_id)
         if group.has_model(connection_id):
@@ -262,13 +255,11 @@ class Group_Of_Labels(persistent.Persistent):
 
     def add_label_to_model(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label id and a current dataset, add the label id to the model"""
-        # NOT TESTED
         model = self.get_the_model_of_a_connection(group_of_model_id, connection_id)
         model.set_label_name(name)
 
     def add_auto_label_for_connection(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label name and a current dataset, add an auto note"""
-        # Not TESTED
         text_to_add = "Added label {}".format(name)
         model = self.get_the_model_of_a_connection( group_of_model_id, connection_id)
         note_id = model.get_note_id()
@@ -282,7 +273,11 @@ class Group_Of_Labels(persistent.Persistent):
     def del_label(self, lab_id):
         """ Delete a label """
         try:
-            label_id = int(lab_id)
+            try:
+                label_id = int(lab_id)
+            except ValueError:
+                print_error('Invalid label id')
+                return False
             label = self.labels[label_id]
             self.labels.pop(label_id)
         except KeyError:
@@ -373,10 +368,11 @@ class Group_Of_Labels(persistent.Persistent):
         for label in self.get_labels():
             if label.has_connection(group_of_model_id, connection_id):
                 label.delete_connection(group_of_model_id, connection_id)
-                # We should return because is unique the key... there won't be any more
                 # If the label does not have any more connections, we should delete the label
                 if len(label.get_connections()) == 0:
+                    print '0'
                     self.labels.pop(label.get_id())
+                print_info('Connection {} in group of models id {} deleted.'.format(connection_id, group_of_model_id))
                 return True
 
     def migrate_old_labels(self):
