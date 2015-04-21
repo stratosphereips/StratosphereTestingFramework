@@ -83,6 +83,10 @@ class Label(persistent.Persistent):
     def get_datasets(self):
         return self.connections.keys()
 
+    def get_connections_complete(self):
+        """ Return the connections object complete, with dataset id also"""
+        return self.connections
+
     def get_connections(self):
         conns = []
         for dataset in self.connections:
