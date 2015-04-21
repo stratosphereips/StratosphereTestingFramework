@@ -81,33 +81,47 @@ class Label(persistent.Persistent):
 
     def has_dataset(self, dataset_id):
         """ Check if this label has any connection with this group_of_model_id"""
-        # To TEST
         # Check if some of our connections come from this dataset id
-        for connection in self.connections:
-            if connection.split('-')[0] == dataset_id:
+        for group_of_model_id in self.connections:
+            if group_of_model_id.split('-')[0] == str(dataset_id):
                 return True
         return False
 
-    def get_datasets(self):
-        return self.connections.keys()
+    def get_group_of_model_id(self, datasetid=False):
+        ids = []
+        for id in self.connections:
+            print id
+            if datasetid:
+                if id.split('-')[0] == str(datasetid):
+                    ids.append(id)
+            else:
+                ids.append(id)
+        return ids
 
     def get_connections_complete(self):
         """ Return the connections object complete, with dataset id also"""
         return self.connections
 
-    def get_connections(self):
-        conns = []
-        for dataset in self.connections:
-            for con in self.connections[dataset]:
-                conns.append(con)
-        return conns
+    #def get_connections(self):
+        #conns = []
+        #for dataset in self.connections:
+            #for con in self.connections[dataset]:
+                #conns.append(con)
+        #return conns
 
-    def get_connections_for_dataset(self, group_of_model_id):
+    def get_connections(self, groupofmodelid=False, dataset_id=False):
         conns = []
-        for con in self.connections[group_of_model_id]:
-            conns.append(con)
+        for con in self.connections:
+            temp_dataset_id = con.split('-')[0]
+            if dataset_id:
+                if temp_dataset_id == dataset_id:
+                    conns.append(self.connections[con])
+            if groupofmodelid:
+                if con == groupofmodelid:
+                    conns.append(self.connections[con])
+            else:
+                conns.append(self.connections[con])
         return conns
-
 
 
 
@@ -150,7 +164,7 @@ class Group_Of_Labels(persistent.Persistent):
     def search_connection_in_label(self, connection_id):
         """ Given a connection id, print the label """
         for label in self.get_labels():
-            datasets = label.get_datasets()
+            datasets = label.get_group_of_model_id()
             for dataset in datasets:
                 if label.has_connection(dataset, connection_id):
                     print_info('Found in label: {}'.format(label.get_name()))
@@ -158,12 +172,13 @@ class Group_Of_Labels(persistent.Persistent):
 
     def search_label_name(self, name, verbose = True):
         """ Given a name, return the labels that match"""
+        # NOT TESTED
         matches = []
         rows = []
         for label in self.get_labels():
             if str(name) in label.get_name():
                 matches.append(label.get_name())
-                rows.append([label.get_id(), label.get_name(), label.get_datasets(), label.get_connections()])
+                rows.append([label.get_id(), label.get_name(), label.get_group_of_model_id(), label.get_connections()])
 
         if matches and verbose:
             print_info('Labels matching the search criteria')
@@ -176,12 +191,13 @@ class Group_Of_Labels(persistent.Persistent):
         for label in self.get_labels():
             if __datasets__.current:
                 if label.has_dataset(__datasets__.current.get_id()):
-                    # Only the connections in this dataset
-                    #rows.append([label.get_id(), label.get_name(), __datasets__.current.get_id(), label.get_connections()])
-                    rows.append([label.get_id(), label.get_name(), __datasets__.current.get_id(), label.get_connections_for_dataset(__datasets__.current.get_id())])
+                    group_of_model_ids = label.get_group_of_model_id(datasetid = __datasets__.current.get_id())
+                    for g_of_m_id in group_of_model_ids:
+                        # Only the connections that were geenrated from this dataset
+                        rows.append([label.get_id(), label.get_name(), g_of_m_id, label.get_connections(dataset_id=__datasets__.current.get_id())])
             else:
-                for dataset in label.get_datasets():
-                    rows.append([label.get_id(), label.get_name(), dataset, label.get_connections_for_dataset(dataset)])
+                for group_of_model_id in label.get_group_of_model_id():
+                    rows.append([label.get_id(), label.get_name(), group_of_model_id, label.get_connections(groupofmodelid=group_of_model_id)])
         print table(header=['Id', 'Label Name', 'Group of Model', 'Connection'], rows=rows)
 
     def check_label_existance(self, group_of_model_id, connection_id):
@@ -371,7 +387,7 @@ class Group_Of_Labels(persistent.Persistent):
         for label_id in self.get_labels_ids():
             label = self.get_label_by_id(label_id)
             name = label.get_name()
-            for dataset_id in label.get_datasets():
+            for dataset_id in label.get_group_of_model_id():
                 if '-' not in str(dataset_id): 
                     print_info('The label {} with id {}, has a dataset id {}. It needs to be migrated'.format(name, label_id, dataset_id))
                     # If we are migrating we expect that there is still only one type of models. so 1
