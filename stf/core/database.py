@@ -74,7 +74,7 @@ class Database:
         return False
 
     def register_new_structure(self, structure):
-        """ This method takes an object from a new structure (typically from a module) and keeps record of it in the database"""
+        """ This method takes an object from a new structure (typically from a module) and keeps record of it in the database. A strcture is the main object from the module that we want to store in the db. Actually we store its main dict."""
         try:
             name = structure.get_name()
         except AttributeError:
@@ -89,7 +89,6 @@ class Database:
             except AttributeError:
                 print_error('The structure does not implement get_main_dict()')
             self.root[name] = structure.get_main_dict()
-
 
     def list(self):
         for structure in self.root:
