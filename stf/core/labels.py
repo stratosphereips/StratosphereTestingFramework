@@ -109,6 +109,10 @@ class Group_Of_Labels(persistent.Persistent):
     def __init__(self):
         self.labels = BTrees.IOBTree.BTree()
 
+    def get_labels_ids(self):
+        """ Return the ids of the labels"""
+        return self.labels.keys()
+
     def get_labels(self):
         return self.labels.values()
 
