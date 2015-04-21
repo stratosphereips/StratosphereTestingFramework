@@ -66,13 +66,34 @@ class Database:
 
         # Comparisons
 
+    def has_structure(self, structure_name):
+        """ This method searches for a structure in the db"""
+        for structure in self.root:
+            if structure == structure_name:
+                return True
+        return False
+
+    def register_new_structure(self, structure):
+        """ This method takes an object from a new structure (typically from a module) and keeps record of it in the database"""
+        try:
+            name = structure.get_name()
+        except AttributeError:
+            print_error('The new registered structure does not implement get_name()')
+        print_info('Registering structure with name: {}'.format(name))
+        try:
+            temp = self.root[name]
+            print_warning('This structure was already loaded in the database')
+        except KeyError:
+            try:
+                temp = structure.get_main_dict()
+            except AttributeError:
+                print_error('The structure does not implement get_main_dict()')
+            self.root[name] = structure.get_main_dict()
+
+
     def list(self):
-        print_info('Amount of experiments in the DB so far: {}'.format(len(self.root['experiments'])))
-        print_info('Amount of datasets in the DB so far: {}'.format(len(self.root['datasets'])))
-        print_info('Amount of groups of connections in the DB so far: {}'.format(len(self.root['connections'])))
-        print_info('Amount of groups of models in the DB so far: {}'.format(len(self.root['models'])))
-        print_info('Amount of notes in the DB so far: {}'.format(len(self.root['notes'])))
-        print_info('Amount of labels in the DB so far: {}'.format(len(self.root['labels'])))
+        for structure in self.root:
+            print_info('Amount of {} in the DB so far: {}'.format(structure, len(self.root['experiments'])))
 
     def close(self):
         """ Close the db """
