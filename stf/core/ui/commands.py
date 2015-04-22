@@ -523,7 +523,7 @@ class Commands(object):
             if args.modelgroupid:
                 __group_of_labels__.add_label(args.modelgroupid, args.add)
             else:
-                print_error('Please specify the id of the group of models where this connection belongs.')
+                print_error('Please specify the id of the group of models where this connection belongs with -g.')
 
         # Subcomand to delete a label
         elif args.delete:
