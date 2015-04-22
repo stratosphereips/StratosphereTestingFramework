@@ -92,7 +92,7 @@ class Database:
 
     def list(self):
         for structure in self.root:
-            print_info('Amount of {} in the DB so far: {}'.format(structure, len(self.root['experiments'])))
+            print_info('Amount of {} in the DB so far: {}'.format(structure, len(self.root[structure])))
 
     def close(self):
         """ Close the db """
