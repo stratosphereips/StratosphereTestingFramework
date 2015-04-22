@@ -73,6 +73,7 @@ And you should see something like
         / __| __|  _|
         \__ \ |_| |  
     ... |___/\__|_|  ...
+    0.1.2alpha
 
     
 [*] Amount of experiments in the DB so far: 0
@@ -385,7 +386,7 @@ captura-i78zR: stf >
 ```
 - Adding a label
 ```
-test: stf > labels -a 192.168.1.128-54.208.18.216-80-tcp
+test: stf > labels -a 192.168.1.128-54.208.18.216-80-tcp -g 15-1
 [!] Remember that a label should represent a unique behavioral model!
 Please provide a direction. It means 'From' or 'To' the most important IP in the connection: 
 From
@@ -399,15 +400,15 @@ iflscience.com
 ```
 - Looking at the labels (For more information about the labelling process see [labels](doc/labels.md)) ```
 stf > labels -l
-+----+---------------------------------------+---------+----------------------------------------+
-| Id | Label Name                            | Dataset | Connection                             |
-+----+---------------------------------------+---------+----------------------------------------+
-| 1  | From-Normal-UDP-Multicast-WPAD-1      | 13      | ['10.0.2.15-224.0.0.252-5355-udp']     |
-| 2  | From-Normal-UDP-DNS--1                | 13      | ['10.0.2.15-10.0.2.3-53-udp']          |
-| 3  | From-Botnet-UDP-DNS-DGA-1             | 9       | ['10.0.2.105-8.8.8.8-53-udp']          |
-| 4  | From-Botnet-UDP-DNS-DGA-2             | 9       | ['10.0.2.105-8.8.4.4-53-udp']          |
-| 5  | From-Normal-TCP-HTTP-iflscience.com-1 | 15      | ['192.168.1.128-54.208.18.216-80-tcp'] |
-+----+---------------------------------------+---------+----------------------------------------+
++----+---------------------------------------+----------------+----------------------------------------+
+| Id | Label Name                            | Group of Model | Connection                             |
++----+---------------------------------------+----------------+----------------------------------------+
+| 1  | From-Normal-UDP-Multicast-WPAD-1      | 13-1           | ['10.0.2.15-224.0.0.252-5355-udp']     |
+| 2  | From-Normal-UDP-DNS--1                | 13-1           | ['10.0.2.15-10.0.2.3-53-udp']          |
+| 3  | From-Botnet-UDP-DNS-DGA-1             | 9-1            | ['10.0.2.105-8.8.8.8-53-udp']          |
+| 4  | From-Botnet-UDP-DNS-DGA-2             | 9-1            | ['10.0.2.105-8.8.4.4-53-udp']          |
+| 5  | From-Normal-TCP-HTTP-iflscience.com-1 | 15-1           | ['192.168.1.128-54.208.18.216-80-tcp'] |
++----+---------------------------------------+----------------+----------------------------------------+
 ```
 - All the commands show a help menu with the parameter -h.
 
