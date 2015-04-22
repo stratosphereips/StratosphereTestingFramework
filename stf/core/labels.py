@@ -57,6 +57,8 @@ class Label(persistent.Persistent):
         try:
             for conn in self.connections[group_of_model_id]:
                 if conn == connection_id:
+                    # Before removing the connection from the label we should remove the label from its model
+
                     self.connections[group_of_model_id].remove(connection_id)
                     # For some strange reason this is needed when we change a label
                     self._p_changed = 1
@@ -255,6 +257,11 @@ class Group_Of_Labels(persistent.Persistent):
         model = self.get_the_model_of_a_connection(group_of_model_id, connection_id)
         model.set_label_name(name)
 
+    def del_label_in_model(self, group_of_model_id, connection_id, name):
+        """ Given a connection id, label id and a current dataset, del the label id in the model"""
+        model = self.get_the_model_of_a_connection(group_of_model_id, connection_id)
+        model.del_label_name(name)
+
     def add_auto_label_for_connection(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label name and a current dataset, add an auto note"""
         text_to_add = "Added label {}".format(name)
@@ -275,7 +282,12 @@ class Group_Of_Labels(persistent.Persistent):
             except ValueError:
                 print_error('Invalid label id')
                 return False
-            label = self.labels[label_id]
+            label = self.labels[int(lab_id)]
+            # First delete the label from the model
+            for group_id in label.get_group_of_model_id():
+                for conn_id in label.get_connections(groupofmodelid=group_id):
+                    self.del_label_in_model(group_id, conn_id, label.get_name())
+            # Now delete the label itself
             self.labels.pop(label_id)
         except KeyError:
             print_error('Label id does not exists.')
@@ -364,10 +376,13 @@ class Group_Of_Labels(persistent.Persistent):
         """ Get a group_of_model_id, connection id, find and delete it from the label """
         for label in self.get_labels():
             if label.has_connection(group_of_model_id, connection_id):
+                ################??????
+                # Delete the label from the model
+                self.del_label_in_model(group_of_model_id, connection_id, label.get_name())
+                # Delete the connection
                 label.delete_connection(group_of_model_id, connection_id)
-                # If the label does not have any more connections, we should delete the label
+                # If the label does not have any more connections, we should also delete the label
                 if len(label.get_connections()) == 0:
-                    print '0'
                     self.labels.pop(label.get_id())
                 print_info('Connection {} in group of models id {} deleted.'.format(connection_id, group_of_model_id))
                 return True
