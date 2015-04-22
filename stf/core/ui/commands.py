@@ -542,7 +542,7 @@ class Commands(object):
             if args.modelgroupid:
                 __group_of_labels__.delete_connection(args.modelgroupid, args.deleteconnection)
             else:
-                print_error('You should give a dataset id with -i.')
+                print_error('You should give a group of models id with -g.')
 
         # Subcomand to migrate old labels
         elif args.migrate:
