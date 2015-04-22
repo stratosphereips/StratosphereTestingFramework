@@ -244,6 +244,10 @@ class Datasets(persistent.Persistent):
         # The main dictionary of datasets objects using its id as index
         self.datasets = BTrees.IOBTree.BTree()
 
+    def get_datasets_ids(self):
+        """ Return the ids of the datasets """
+        return self.datasets.keys()
+
     def get_dataset(self, id):
         """ Return a dataset objet given the id """
         try:

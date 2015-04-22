@@ -61,16 +61,16 @@ class Commands(object):
         rows = sorted(rows, key=lambda entry: entry[0])
 
         print(table(['Command', 'Description'], rows))
-        #print("")
-        #print(bold("Modules:"))
+        print("")
+        print(bold("Modules:"))
 
-        #rows = []
-        #for module_name, module_item in __modules__.items():
-            #rows.append([module_name, module_item['description']])
+        rows = []
+        for module_name, module_item in __modules__.items():
+            rows.append([module_name, module_item['description']])
 
-        #rows = sorted(rows, key=lambda entry: entry[0])
+        rows = sorted(rows, key=lambda entry: entry[0])
 
-        #print(table(['Command', 'Description'], rows))
+        print(table(['Command', 'Description'], rows))
 
 
 
@@ -501,12 +501,13 @@ class Commands(object):
     def cmd_labels(self, *args):
         parser = argparse.ArgumentParser(prog="labels", description="Manage labels", epilog="Manage labels")
         parser.add_argument('-l', '--list', action="store_true", help="List all existing labels.")
-        parser.add_argument('-a', '--add', metavar="connection_id", help="Add a label to the given connection id in the current dataset.")
+        parser.add_argument('-a', '--add', metavar="connection_id", help="Add a label to the given connection id. You should use -g to specify the id of the group of models.")
         parser.add_argument('-d', '--delete', metavar="label_id", help="Delete a label given the label id.")
         parser.add_argument('-s', '--search', metavar="text", help="Search for a text in all the labels names.")
         parser.add_argument('-S', '--searchconnection', metavar="connection_id", help="Search for a connection in all the labels.")
-        parser.add_argument('-D', '--deleteconnection', metavar="connection_id", help="Give a connection id to delete (4-tuple). You must give the dataset id with -i.")
-        parser.add_argument('-i', '--datasetid', metavar="dataset_id", help="Dataset id. Used with -D")
+        parser.add_argument('-D', '--deleteconnection', metavar="connection_id", help="Give a connection id to delete (4-tuple). You must give the group of model id with -g.")
+        parser.add_argument('-g', '--modelgroupid', metavar="modelgroupid", help="Id of the group of models. Used with -a.")
+        parser.add_argument('-m', '--migrate', action="store_true", help="Migrate <= 0.1.2alpha labels to the new database.")
 
         try:
             args = parser.parse_args(args)
@@ -519,7 +520,10 @@ class Commands(object):
 
         # Subcomand to add a label
         elif args.add:
-            __group_of_labels__.add_label(args.add)
+            if args.modelgroupid:
+                __group_of_labels__.add_label(args.modelgroupid, args.add)
+            else:
+                print_error('Please specify the id of the group of models where this connection belongs.')
 
         # Subcomand to delete a label
         elif args.delete:
@@ -535,10 +539,14 @@ class Commands(object):
 
         # Subcomand to delete a specific connection
         elif args.deleteconnection:
-            if args.datasetid:
-                __group_of_labels__.delete_connection(int(args.datasetid), args.deleteconnection)
+            if args.modelgroupid:
+                __group_of_labels__.delete_connection(args.modelgroupid, args.deleteconnection)
             else:
-                print_error('You should give a dataset id with -i.')
+                print_error('You should give a group of models id with -g.')
+
+        # Subcomand to migrate old labels
+        elif args.migrate:
+            __group_of_labels__.migrate_old_labels()
 
 
     ##

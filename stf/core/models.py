@@ -395,6 +395,9 @@ class Group_of_Group_of_Models(persistent.Persistent):
     def get_groups(self):
         return self.group_of_models.values()
 
+    def get_groups_ids(self):
+        return self.group_of_models.keys()
+
     def list_groups(self):
         print_info('Groups of Models')
         # If we selected a dataset, just print the one belonging to the dataset

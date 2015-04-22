@@ -96,6 +96,10 @@ class Group_of_Notes(persistent.Persistent):
         except KeyError:
             return False
 
+    def get_notes_ids(self):
+        """ Return all the notes ids"""
+        return self.notes.keys()
+
     def get_notes(self):
         """ Return all the notes """
         return self.notes.values()

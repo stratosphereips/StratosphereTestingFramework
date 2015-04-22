@@ -73,6 +73,7 @@ And you should see something like
         / __| __|  _|
         \__ \ |_| |  
     ... |___/\__|_|  ...
+    0.1.2alpha
 
     
 [*] Amount of experiments in the DB so far: 0
@@ -100,6 +101,7 @@ Commands:
 | experiments | List or switch to existing experiments                      |
 | help        | Show this help message                                      |
 | info        | Show information on the opened experiment                   |
+| labels      | Manage the labels.                                          |
 | models      | Manage the models. A dataset should be selected first.      |
 | notes       | Manage the notes.                                           |
 +-------------+-------------------------------------------------------------+
@@ -262,12 +264,12 @@ test: stf >
 - Listing the models with a filter (less -R will be used to show the models). This is a very important command, since it show the behavioral model that are the core of the **stf** program.
 ```
 test: stf > models -L 0-1 -f name=6-80-tcp
- Note | Model Id | State |
-[   ] | 192.168.0.10-200.123.195.16-80-tcp        | 99+Z.Z.Z.
-[   ] | 192.168.0.10-200.123.195.26-80-tcp        | 99.Z+Z.Z+Z.Z.I.I.Z.Z+
-[   ] | 192.168.0.10-204.9.163.166-80-tcp         | 55,v,v.W+E+v+V,V+v+
-[   ] | 192.168.0.10-65.54.85.156-80-tcp          | 8
-[   ] | 192.168.0.10-65.54.85.206-80-tcp          | 88+
+ Note | Label | Model Id | State |
+[   ] |         | 192.168.0.10-200.123.195.16-80-tcp        | 99+Z.Z.Z.
+[   ] |         | 192.168.0.10-200.123.195.26-80-tcp        | 99.Z+Z.Z+Z.Z.I.I.Z.Z+
+[   ] |         | 192.168.0.10-204.9.163.166-80-tcp         | 55,v,v.W+E+v+V,V+v+
+[   ] |         | 192.168.0.10-65.54.85.156-80-tcp          | 8
+[   ] |         | 192.168.0.10-65.54.85.206-80-tcp          | 88+
 Amount of models printed: 5
 test: stf >
 ```
@@ -382,6 +384,32 @@ captura-i78zR: stf >
 captura-i78zR: stf > notes -e 1
 captura-i78zR: stf >
 ```
+- Adding a label
+```
+test: stf > labels -a 192.168.1.128-54.208.18.216-80-tcp -g 15-1
+[!] Remember that a label should represent a unique behavioral model!
+Please provide a direction. It means 'From' or 'To' the most important IP in the connection: 
+From
+Please provide the main decision. 'Botnet', 'Normal', 'Attack', or 'Background': 
+Normal
+Please provide the main proto in layer 4. 'HTTP', 'HTTPS', 'FTP', 'SSH', 'DNS', 'SMTP', 'P2P', 'Multicast', 'Unknown' or 'None': 
+HTTP
+Please provide optional details for this connection. Up to 30 chars (No - or spaces allowed). Example: 'Encrypted', 'PlainText', 'CustomEncryption', 'soundcound.com', 'microsoft.com', 'netbios': 
+iflscience.com
+[*] Connection has note id 59
+```
+- Looking at the labels (For more information about the labelling process see [labels](doc/labels.md)) ```
+stf > labels -l
++----+---------------------------------------+----------------+----------------------------------------+
+| Id | Label Name                            | Group of Model | Connection                             |
++----+---------------------------------------+----------------+----------------------------------------+
+| 1  | From-Normal-UDP-Multicast-WPAD-1      | 13-1           | ['10.0.2.15-224.0.0.252-5355-udp']     |
+| 2  | From-Normal-UDP-DNS--1                | 13-1           | ['10.0.2.15-10.0.2.3-53-udp']          |
+| 3  | From-Botnet-UDP-DNS-DGA-1             | 9-1            | ['10.0.2.105-8.8.8.8-53-udp']          |
+| 4  | From-Botnet-UDP-DNS-DGA-2             | 9-1            | ['10.0.2.105-8.8.4.4-53-udp']          |
+| 5  | From-Normal-TCP-HTTP-iflscience.com-1 | 15-1           | ['192.168.1.128-54.208.18.216-80-tcp'] |
++----+---------------------------------------+----------------+----------------------------------------+
+```
 - All the commands show a help menu with the parameter -h.
 
 ## Changing the Configuration
@@ -434,15 +462,18 @@ You can check that this was successful by inspecting the connections with ```con
 - Show which connections have a label while listing models.
 - You can filter by labelname in the models.
 
+## Modules
+Now stf can import external modules that implement new functionality.
+
 ### Bugs
 - For bug reports please fill an issue on the [github page](https://github.com/stratosphereips/StratosphereTestingFramework/issues)
 
 
 ### TODO
+- When deleting a dataset, also delete all the connections in the labels that has that dataset.
 - When the stf is used from several locations, it can happend that some dataset commands do not work because the pcap file is not there. Capture these issues.
 - Show more info about the model constructor
 - Show table for each model constructor
-- Implement the constructors as external modules
 - Add autotext note when I delete models or connections
 - Relate the notes with the objects they reference. So after a search you can find the object again.
 - Print the duration and size in the model -L command.
