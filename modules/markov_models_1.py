@@ -20,13 +20,42 @@ from stf.core.database import __database__
 
 class Markov_Model(persistent.Persistent):
     """ This class is the actual markov model of first order to each label"""
-    def __init__(self):
-        pass
+    def __init__(self, id):
+        self.mm_id = id
+        self.state = ""
+        self.label_id = -1
+        self.connections = {}
+
+    def get_id(self):
+        return self.mm_id
+
+    def set_id(self, id):
+        self.mm_id = id
+
+    def get_state(self):
+        return self.state
+
+    def set_state(self, state):
+        self.state = state
+
+    def get_label_id(self):
+        return self.label_id
+
+    def set_label_id(self, label_id):
+        self.label_id = label_id
+
+    def get_connections(self):
+        return self.connections
+    
+    def set_connections(self, connections):
+        self.connections = connections
 
 
 
 
-
+######################
+######################
+######################
 class Group_of_Markov_Models_1(Module, persistent.Persistent):
     cmd = 'markov_models_1'
     description = 'This module implements markov chains of first order over the letters in the chains of states in a LABEL.'
@@ -39,7 +68,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         # Call to our super init
         super(Group_of_Markov_Models_1, self).__init__()
         self.parser.add_argument('-l', '--list', action='store_true', help='List the markov models already applied')
-        self.parser.add_argument('-g', '--generate', metavar='generate', help='Generate the markov chain for this label. Give label id (4-tuple).')
+        self.parser.add_argument('-g', '--generate', metavar='generate', help='Generate the markov chain for this label. Give label name.')
 
     # Mandatory Method!
     def get_name(self):
@@ -54,15 +83,48 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
     def list_markov_models(self):
         print_info('Markov Models')
 
-    def generate_markov_chain(self, label_name):
-        """ Given a label name generate its markov chain"""
+    def create_new_model(self, label_name):
+        """ Given a label name create a new markov chain object"""
+        # Get the label object
         label_to_model = __group_of_labels__.get_label(label_name)
-        connections = label_to_model.get_connections_complete()
-        for dict in connections:
-            print 'Dict: {}'.format(dict)
-            for conn in connections[dict]:
-                print '\tConn: {}'.format(conn)
-                __groupofgroupofmodels__.get_group(dict)
+        if label_to_model:
+            # Create a new markov chain object
+            ## Get the new id
+            try:
+                mm_id = self.markov_models[list(self.markov_models.keys())[-1]].get_id() + 1
+            except (KeyError, IndexError):
+                mm_id = 1
+            markov_model = Markov_Model(mm_id)
+            # Store the label id
+            markov_model.set_label_id(label_to_model.get_id())
+            state = ""
+            # Get all the connections in the label
+            connections = label_to_model.get_connections_complete()
+            # Get all the group of models and connections names
+            for group_of_model_id in connections:
+                # Get all the connections
+                for conn in connections[group_of_model_id]:
+                    # Get the model group
+                    group = __groupofgroupofmodels__.get_group(group_of_model_id)
+                    # Get the model
+                    model = group.get_model(conn)
+                    # Get each state
+                    state += model.get_state() + '#'
+            # Store the state
+            markov_model.set_state(state)
+            # Store the connections
+            markov_model.set_connections(connections)
+            print markov_model.get_id()
+            print markov_model.get_state()
+            print len(markov_model.get_state())
+            print markov_model.get_connections()
+
+
+
+
+
+        else:
+            print_error('No label with that name')
 
 
 
@@ -84,7 +146,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         if self.args.list:
             self.list_markov_models()
         elif self.args.generate:
-            self.generate_markov_chain(self.args.generate)
+            self.create_new_model(self.args.generate)
         else:
             print_error('At least one of the parameter is required in this module')
             self.usage()
