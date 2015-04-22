@@ -113,7 +113,7 @@ class Label(persistent.Persistent):
                     conns.append(self.connections[id])
             else:
                 conns.append(self.connections[id])
-        return conns
+        return conns[0]
 
 
 
@@ -203,9 +203,6 @@ class Group_Of_Labels(persistent.Persistent):
 
     def add_label(self, group_of_model_id, connection_id):
         """ Add a label """
-        ISSUE
-        # For some reason the labels are stored like this now: [['192.168.0.150-151.151.26.152-25-tcp', '192.168.0.150-162.130.196.144-25-tcp']]
-        # with a double [[]]
         if __datasets__.current:
             dataset_id_standing = __datasets__.current.get_id()
             dataset_id = group_of_model_id.split('-')[0]
