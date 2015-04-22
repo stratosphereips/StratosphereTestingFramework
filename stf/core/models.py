@@ -79,6 +79,22 @@ class Model(persistent.Persistent):
         except AttributeError:
             return ''
 
+    def del_label_id(self, label_id):
+        """ Del the label id"""
+        if self.label_id == label_id:
+            self.label_id = False
+            self.label_name = ""
+
+    def del_label_name(self, label_name):
+        """ Del the label name"""
+        try:
+            if self.label_name == label_name:
+                self.label_name = ""
+                self.label_id = False
+        except AttributeError:
+            # No label name? ok.. carry on
+            pass
+
     def set_label_id(self, label_id):
         """ Set the label id"""
         self.label_id = label_id
