@@ -5,6 +5,7 @@
 # This module implements markov chains of first order over the letters in the chain of states of the behavioral models.
 import persistent
 import pykov
+import BTrees.OOBTree
 
 from stf.common.out import *
 from stf.common.abstracts import Module
@@ -88,7 +89,7 @@ class Markov_Model(persistent.Persistent):
         self.mm_id = id
         self.state = ""
         self.label_id = -1
-        self.connections = {}
+        self.connections = BTrees.OOBTree.BTree()
 
     def get_id(self):
         return self.mm_id
@@ -172,7 +173,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
     description = 'This module implements markov chains of first order over the letters in the chains of states in a LABEL.'
     authors = ['Sebastian Garcia']
     # Markov Models main dictionary
-    markov_models = {}
+    markov_models = BTrees.OOBTree.BTree()
 
     # Mandatory Method!
     def __init__(self):
@@ -191,14 +192,12 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
     # Mandatory Method!
     def get_main_dict(self):
         """ Return the main dict where we store the info. Is going to the database"""
-        print 'a'
         return self.markov_models
 
     # Mandatory Method!
     def set_main_dict(self, dict):
         """ Set the main dict where we store the info. From the database"""
         self.markov_models = dict
-        print 'b'
 
     def get_markov_model(self, id):
         return self.markov_models[id]
@@ -267,12 +266,15 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             print_error('No such markov model id')
 
 
+    # The run method runs every time that this command is used
     def run(self):
-        # Register the structure in the database, so it is stored and use in the future
+        # Register the structure in the database, so it is stored and use in the future. 
         if not __database__.has_structure(Group_of_Markov_Models_1().get_name()):
-            __database__.register_new_structure(Group_of_Markov_Models_1())
+            print_info('The structure is not registered.')
+            __database__.set_new_structure(Group_of_Markov_Models_1())
         else:
-            __database__.get_structure(Group_of_Markov_Models_1())
+            main_dict = __database__.get_new_structure(Group_of_Markov_Models_1())
+            self.set_main_dict(main_dict)
 
         # List general help
         def help():
