@@ -115,6 +115,7 @@ class Markov_Model(persistent.Persistent):
         return self.connections
     
     def set_connections(self, connections):
+        # Use deepcopy so we store a copy of the connections and not the connections themselves. This is needed because more connections can be added to the label, however the state in this markov chain will miss them
         self.connections = copy.deepcopy(connections)
 
     def count_connections(self):
@@ -145,6 +146,7 @@ class Markov_Model(persistent.Persistent):
         self.init_vector, self.matrix = pykov.maximum_likelihood_probabilities(separated_letters, lag_time=1, separator='#')
 
     def print_matrix(self):
+        print_info('Matrix of the Markov Model {}'.format(self.get_id()))
         for first in self.matrix:
             print first, self.matrix[first]
 
@@ -158,8 +160,6 @@ class Markov_Model(persistent.Persistent):
         chain += ''.join(self.matrix.walk(amount))
         print chain
         return True
-
-
 
 
 
@@ -184,6 +184,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         self.parser.add_argument('-s', '--simulate', metavar='simulate', help='Use this markov chain to generate a new simulated chain of states. Give the markov chain id. The length is now fixed in 100 states.')
         self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete this markov chain. Give the markov chain id.')
         self.parser.add_argument('-p', '--printstate', metavar='printstate', help='Print the chain of states of all the models included in this markov chain. Give the markov chain id.')
+        self.parser.add_argument('-r', '--regenerate', metavar='regenerate', help='Regenerate the markov chain. Usually because more connections were added to the label. Give the markov chain id.')
 
     # Mandatory Method!
     def get_name(self):
@@ -217,12 +218,18 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         rows = []
         for markov_model in self.get_markov_models():
             try:
-                label_name = __group_of_labels__.get_label_name_by_id(markov_model.get_label_id())
+                label = __group_of_labels__.get_label_by_id(markov_model.get_label_id())
+                label_name = label.get_name()
             except KeyError:
                 print_error('The label used in the markov model {} does not exist anymore. You should delete the markov chain (It will not appear in the list).'.format(markov_model.get_id()))
                 continue
-            rows.append([ markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name ])
-        print(table(header=['Id', 'State Len', '# Connections', 'Label'], rows=rows))
+            current_connections = label.get_connections_complete()
+            needs_regenerate = True
+            # Do we need to regenerate this mc?
+            if current_connections == markov_model.get_connections():
+                needs_regenerate = False
+            rows.append([ markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate ])
+        print(table(header=['Id', 'State Len', '# Connections', 'Label', 'Needs Regenerate'], rows=rows))
 
 
     def create_new_model(self, label_name):
@@ -311,6 +318,38 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         else:
             print_error('For ploting the histogram we use the tool https://github.com/philovivero/distribution. Please install it in the system to enable this command.')
 
+    def regenerate(self, markov_model_id):
+        """ Regenerate the markvov chain """
+        try:
+            markov_model = self.get_markov_model(int(markov_model_id))
+        except KeyError:
+            print_error('No such markov model id')
+            return False
+        label = __group_of_labels__.get_label_by_id(markov_model.get_label_id())
+        connections = label.get_connections_complete()
+        # Get all the group of models and connections names
+        state = ""
+        for group_of_model_id in connections:
+            # Get all the connections
+            for conn in connections[group_of_model_id]:
+                # Get the model group
+                group = __groupofgroupofmodels__.get_group(group_of_model_id)
+                # Get the model
+                model = group.get_model(conn)
+                # Get each state
+                state += model.get_state() + '#'
+        # Delete the last #
+        state = state[:-1]
+        # Store the state
+        markov_model.set_state(state)
+        # Store the connections
+        markov_model.set_connections(connections)
+        # Create the MM itself
+        markov_model.create()
+        print_info('Markov model {} regenerated.'.format(markov_model_id))
+
+
+
 
     # The run method runs every time that this command is used
     def run(self):
@@ -344,6 +383,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             self.delete(self.args.delete)
         elif self.args.printstate:
             self.printstate(self.args.printstate)
+        elif self.args.regenerate:
+            self.regenerate(self.args.regenerate)
         else:
             print_error('At least one of the parameter is required in this module')
             self.usage()
