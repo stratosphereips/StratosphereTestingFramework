@@ -320,6 +320,7 @@ class Group_of_Models(persistent.Persistent):
             print_info('Amount of modules deleted: {}'.format(amount))
         except:
             print_error('An error ocurred while deleting models by filter.')
+            print_error('Filter used: '.format(filter))
 
     def count_models(self, filter=''):
         # set the filter
