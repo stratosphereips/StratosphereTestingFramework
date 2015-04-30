@@ -407,7 +407,10 @@ class Group_of_Group_of_Models(persistent.Persistent):
 
     def get_group(self, group_id):
         """ Given the id of a group of models, return its object """
-        return self.group_of_models[group_id]
+        try:
+            return self.group_of_models[group_id]
+        except KeyError:
+            return False
 
     def get_groups(self):
         return self.group_of_models.values()
