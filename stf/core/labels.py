@@ -184,15 +184,8 @@ class Group_Of_Labels(persistent.Persistent):
         """ List all the labels """
         rows = []
         for label in self.get_labels():
-            if __datasets__.current:
-                if label.has_dataset(__datasets__.current.get_id()):
-                    group_of_model_ids = label.get_group_of_model_id(datasetid = __datasets__.current.get_id())
-                    for g_of_m_id in group_of_model_ids:
-                        # Only the connections that were geenrated from this dataset
-                        rows.append([label.get_id(), label.get_name(), g_of_m_id, label.get_connections(dataset_id=__datasets__.current.get_id())])
-            else:
-                for group_of_model_id in label.get_group_of_model_id():
-                    rows.append([label.get_id(), label.get_name(), group_of_model_id, label.get_connections(groupofmodelid=group_of_model_id)])
+            for group_of_model_id in label.get_group_of_model_id():
+                rows.append([label.get_id(), label.get_name(), group_of_model_id, label.get_connections(groupofmodelid=group_of_model_id)])
         print table(header=['Id', 'Label Name', 'Group of Model', 'Connection'], rows=rows)
 
     def check_label_existance(self, group_of_model_id, connection_id):
