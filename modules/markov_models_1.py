@@ -6,6 +6,7 @@
 import persistent
 import pykov
 import BTrees.OOBTree
+from subprocess import Popen, PIPE
 
 from stf.common.out import *
 from stf.common.abstracts import Module
@@ -97,9 +98,6 @@ class Markov_Model(persistent.Persistent):
     def set_id(self, id):
         self.mm_id = id
 
-    def print_state(self):
-        print self.state
-
     def get_state(self):
         return self.state
 
@@ -134,15 +132,11 @@ class Markov_Model(persistent.Persistent):
 
     def create(self):
         """ Create the Markov chain itself """
-        # Separete the letters considering the letter and the simbol as a unique state:
+        # Separete the letters considering the letter and the symbol as a unique state:
         # So from "88,a,b," we get: '8' '8,' 'a,' 'b,'
         try:
-            separated_letters=[]
-            separated_letters.append(self.state[0])
-            i = 1
-            while i <= len(self.state):
-                separated_letters.append(self.state[i:i+2])
-                i+=2
+            # This is a first order markov model. Each individual object (letter, number, etc.) is a state
+            separated_letters = list(self.state)
         except AttributeError:
             print_error('There is no state yet')
             return False
@@ -218,7 +212,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             print_error('That markov model id does not exists.')
 
     def list_markov_models(self):
-        print_info('Markov Models')
+        print_info('First Order Markov Models')
         rows = []
         for markov_model in self.get_markov_models():
             try:
@@ -228,6 +222,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 continue
             rows.append([ markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name ])
         print(table(header=['Id', 'State Len', '# Connections', 'Label'], rows=rows))
+
 
     def create_new_model(self, label_name):
         """ Given a label name create a new markov chain object"""
@@ -285,12 +280,35 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             print_error('No such markov model id')
 
     def printstate(self, markov_model_id):
-        """ Print the markvov chain state"""
+        """ Print all the info about the markov chain """
         try:
             markov_model = self.get_markov_model(int(markov_model_id))
-            markov_model.print_state()
         except KeyError:
             print_error('No such markov model id')
+        print_info('Markov Chain {}'.format(markov_model_id))
+        print_info('Label')
+        label_name = __group_of_labels__.get_label_name_by_id(markov_model.get_label_id())
+        print '\t', 
+        print_info(label_name)
+        state = markov_model.get_state()
+        print_info('State')
+        state = markov_model.get_state()
+        print '\t', 
+        print_info(state)
+        print_info('Connections in the Markov Chain')
+        connections = markov_model.get_connections()
+        print '\t', 
+        print_info(connections)
+        # Plot the histogram of letters
+        print_info('Histogram')
+        dist_path,error = Popen('bash -i -c "type distribution"', shell=True, stderr=PIPE, stdin=PIPE, stdout=PIPE).communicate()
+        if not error:
+            distribution_path = dist_path.split()[0]
+            list_of_letters = ''.join([i+'\n' for i in list(state)])
+            print 'Key=Amount of letters'
+            Popen('echo \"' + list_of_letters + '\" |distribution --height=50 | sort -nk1', shell=True).communicate()
+        else:
+            print_error('For ploting the histogram we use the tool https://github.com/philovivero/distribution. Please install it in the system to enable this command.')
 
 
     # The run method runs every time that this command is used
