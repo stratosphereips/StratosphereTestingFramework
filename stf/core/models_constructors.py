@@ -29,9 +29,9 @@ class Model_Constructor(object):
     def del_model(self, model_id):
         """ Delete this model from the list of models used by this constructor. This allow us to regenerate the state of a model without problems """
         try:
-            self.models.pop(model_id)
+            self.models.pop(int(model_id))
         except KeyError:
-            print_error('There is no such model in the constructor to delete.')
+            print_error('There is no such model {} in the constructor to delete.'.format(model_id))
 
 
     def set_name(self,name):
