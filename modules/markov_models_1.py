@@ -97,6 +97,9 @@ class Markov_Model(persistent.Persistent):
     def set_id(self, id):
         self.mm_id = id
 
+    def print_state(self):
+        print self.state
+
     def get_state(self):
         return self.state
 
@@ -151,6 +154,7 @@ class Markov_Model(persistent.Persistent):
             print first, self.matrix[first]
 
     def simulate(self, amount):
+        print type(self.matrix.walk(5))
         """ Generate a simulated chain using this markov chain """
         chain = ''
         chain += self.state[0]
@@ -183,6 +187,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         self.parser.add_argument('-g', '--generate', metavar='generate', help='Generate the markov chain for this label. Give label name.')
         self.parser.add_argument('-m', '--printmatrix', metavar='printmatrix', help='Print the markov chains matrix of the given markov model id.')
         self.parser.add_argument('-s', '--simulate', metavar='simulate', help='Use this markov chain to generate a new simulated chain of states. Give the markov chain id. The length is now fixed in 100 states.')
+        self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete this markov chain. Give the markov chain id.')
+        self.parser.add_argument('-p', '--printstate', metavar='printstate', help='Print the chain of states of all the models included in this markov chain. Give the markov chain id.')
 
     # Mandatory Method!
     def get_name(self):
@@ -215,7 +221,11 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         print_info('Markov Models')
         rows = []
         for markov_model in self.get_markov_models():
-            label_name = __group_of_labels__.get_label_name_by_id(markov_model.get_label_id())
+            try:
+                label_name = __group_of_labels__.get_label_name_by_id(markov_model.get_label_id())
+            except KeyError:
+                print_error('The label used in the markov model {} does not exist anymore. You should delete the markov chain (It will not appear in the list).'.format(markov_model.get_id()))
+                continue
             rows.append([ markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name ])
         print(table(header=['Id', 'State Len', '# Connections', 'Label'], rows=rows))
 
@@ -246,6 +256,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                     model = group.get_model(conn)
                     # Get each state
                     state += model.get_state() + '#'
+            # Delete the last #
+            state = state[:-1]
             # Store the state
             markov_model.set_state(state)
             # Store the connections
@@ -265,6 +277,21 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         except KeyError:
             print_error('No such markov model id')
 
+    def delete(self, markov_model_id):
+        """ Delete the markvov chain """
+        try:
+            self.markov_models.pop(int(markov_model_id))
+        except KeyError:
+            print_error('No such markov model id')
+
+    def printstate(self, markov_model_id):
+        """ Print the markvov chain state"""
+        try:
+            markov_model = self.get_markov_model(int(markov_model_id))
+            markov_model.print_state()
+        except KeyError:
+            print_error('No such markov model id')
+
 
     # The run method runs every time that this command is used
     def run(self):
@@ -276,9 +303,9 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             main_dict = __database__.get_new_structure(Group_of_Markov_Models_1())
             self.set_main_dict(main_dict)
 
-        # List general help
+        # List general help. Don't modify.
         def help():
-            self.log('info', "Markov Models of first order")
+            self.log('info', self.description)
 
         # Run
         super(Group_of_Markov_Models_1, self).run()
@@ -294,6 +321,10 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             self.print_matrix(self.args.printmatrix)
         elif self.args.simulate:
             self.simulate(self.args.simulate)
+        elif self.args.delete:
+            self.delete(self.args.delete)
+        elif self.args.printstate:
+            self.printstate(self.args.printstate)
         else:
             print_error('At least one of the parameter is required in this module')
             self.usage()
