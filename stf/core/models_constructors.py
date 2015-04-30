@@ -246,7 +246,6 @@ class Model_Constructor(object):
                 state += '*'
 
         # We store permanently the T1, T2 and TD values on each flow, so we can later analyze it
-        #FOR SOME REASON IF WE REGENERATE THE MODELS THE FIRST LETTERS ARE NOT NUMBERS
         flow.set_t1(model['T1'])
         flow.set_t2(model['T2'])
         flow.set_td(TD)
