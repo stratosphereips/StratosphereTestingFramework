@@ -7,6 +7,7 @@ import persistent
 import pykov
 import BTrees.OOBTree
 from subprocess import Popen, PIPE
+import copy
 
 from stf.common.out import *
 from stf.common.abstracts import Module
@@ -114,7 +115,7 @@ class Markov_Model(persistent.Persistent):
         return self.connections
     
     def set_connections(self, connections):
-        self.connections = connections
+        self.connections = copy.deepcopy(connections)
 
     def count_connections(self):
         """ Return the amount of connections in the markov model """
