@@ -211,6 +211,9 @@ class Group_Of_Labels(persistent.Persistent):
             if str(dataset_id_standing) != dataset_id:
                 print_error('You should select the dataset you are going to work in. Not another')
                 return False
+            if not __groupofgroupofmodels__.get_group(group_of_model_id):
+                print_error('That group of models does not exist.')
+                return False
             has_label = self.check_label_existance(group_of_model_id, connection_id)
             if has_label:
                 print_error('This connection from this dataset was already assigned the label id {}'.format(has_label))
