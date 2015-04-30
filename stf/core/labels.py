@@ -47,10 +47,12 @@ class Label(persistent.Persistent):
         try:
             d_id = self.connections[group_of_model_id]
             self.connections[group_of_model_id].append(connection_id)
+            self._p_changed = 1
         except KeyError:
             # First time we see this dataset id
             self.connections[group_of_model_id] = []
             self.connections[group_of_model_id].append(connection_id)
+            self._p_changed = 1
         
     def delete_connection(self, group_of_model_id, connection_id):
         """ Delete this connection in this label """
