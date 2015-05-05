@@ -293,16 +293,16 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             markov_model = self.get_markov_model(int(markov_model_id))
         except KeyError:
             print_error('No such markov model id')
+            return False
         print_info('Markov Chain {}'.format(markov_model_id))
         print_info('Label')
         label_name = __group_of_labels__.get_label_name_by_id(markov_model.get_label_id())
         print '\t', 
         print_info(label_name)
         state = markov_model.get_state()
-        print_info('State')
-        state = markov_model.get_state()
+        print_info('State. Len: {}. Max chars printed: 2000'.format(len(state)))
         print '\t', 
-        print_info(state)
+        print_info(state[0:2000])
         print_info('Connections in the Markov Chain')
         connections = markov_model.get_connections()
         print '\t', 
