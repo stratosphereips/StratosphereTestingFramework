@@ -133,8 +133,9 @@ class Markov_Model(persistent.Persistent):
             except IndexError:             
                 # We are out of letters        
                 break
-        if ignored:
-            print_warning('Ignored transitions: {}'.format(ignored))
+        #if ignored:
+            #print_warning('Ignored transitions: {}'.format(ignored))
+            #ignored = 0
         return probability       
 
     def __repr__(self):
@@ -144,7 +145,7 @@ class Markov_Model(persistent.Persistent):
         except KeyError:
             label_name = 'Deleted'
         current_connections = label.get_connections_complete()
-        response = "Id:"+str(self.get_id())+", Label:"+label_name+", Len State:"+str(len(self.get_state()))+", #Conns:"+str(self.count_connections())
+        response = "Id:"+str(self.get_id())+", Label: "+label_name+", State Len:"+str(len(self.get_state()))+", #Conns:"+str(self.count_connections())+", First 50 states: "+self.get_state()[0:50]
         return(response)
 
 
