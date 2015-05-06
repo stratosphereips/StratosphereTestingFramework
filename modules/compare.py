@@ -17,6 +17,7 @@ from stf.core.connections import  __group_of_group_of_connections__
 from stf.core.models_constructors import __modelsconstructors__ 
 from stf.core.labels import __group_of_labels__
 from stf.core.database import __database__
+from stf.common import ap
 
 #__group_of_markov_models__ = Group_of_Markov_Models_1()
 
@@ -31,7 +32,11 @@ from stf.core.database import __database__
 class Detection(persistent.Persistent):
     def __init__(self, id):
         self.id = id
-        #self.dict_of_stuff = BTrees.OOBTree.BTree()
+        self.training_states = ""
+        self.testing_states = ""
+        self.training_original_prob = -1
+        self.testing_final_prob = -1
+        self.dict_of_distances = []
 
     def get_id(self):
         return self.id
@@ -40,14 +45,73 @@ class Detection(persistent.Persistent):
         self.id = id
 
     def detect(self, model_training, model_testing):
-        """ Perform the detection """
+        """ Perform the detection between the testing model and the training model"""
         print_info('Detecting testing model {} with {}'.format(model_training.get_id(), model_testing.get_id()))
         # Get the states 
-        training_states = model_training.get_state()
-        testing_states = model_testing.get_state()
-        print training_states
-        print testing_states
+        self.training_states = model_training.get_state()[0:1000]
+        self.testing_states = model_testing.get_state()[0:1000]
+        # Get the original probability of detecting the training state in the training module
+        self.training_original_prob = model_training.compute_probability(self.training_states)
+        print_info('Original probability for detecting the training: {}'.format(self.training_original_prob))
+        sequence = ""
+        # Get the prob of detecting the complete testing state
+        self.testing_final_prob = model_training.compute_probability(self.testing_states)
+        print_info('Final probability of detecting the testing: {}'.format(self.testing_final_prob))
 
+        # Compute distance
+        if self.training_original_prob < self.testing_final_prob:
+            try:
+                self.prob_distance = self.training_original_prob / self.testing_final_prob
+            except ZeroDivisionError:
+                self.prob_distance = -1
+        else:
+            try:
+                self.prob_distance = self.testing_final_prob / self.training_original_prob
+            except ZeroDivisionError:
+                self.prob_distance = -1
+        print_info('Final Distance: {}'.format(self.prob_distance))
+
+
+        # Get the probs letter by letter
+        print
+        for letter in self.testing_states:
+            sequence += letter
+            temp_prob = model_training.compute_probability(sequence)
+            #print_info('Seq: {} -> Prob: {}'.format(sequence, temp_prob))
+            if self.training_original_prob < temp_prob:
+                try:
+                    self.prob_distance = self.training_original_prob / temp_prob
+                except ZeroDivisionError:
+                    self.prob_distance = -1
+            else:
+                try:
+                    self.prob_distance = temp_prob / self.training_original_prob
+                except ZeroDivisionError:
+                    self.prob_distance = -1
+            self.dict_of_distances.append(self.prob_distance)
+            #print_info('Distance: {}'.format(self.prob_distance))
+
+        
+        p = ap.AFigure()
+        x = range(len(self.dict_of_distances))
+        y = self.dict_of_distances
+        # Lower all the distances more than 5
+        i = 0
+        while i < len(y):
+            if y[i] > 5:
+                y[i] = -1
+            i += 1
+        #print p.plot(x, y, marker='_.')
+        print p.plot(x, y, marker='_of')
+
+        #print x[0:100]
+        #print y[0:100]
+
+        #print 'Training'
+        #for letter in training_states:
+        #    sequence += letter
+        #    temp_prob = model_training.compute_probability(sequence)
+        #    print_info('Seq: {} -> Prob: {}'.format(sequence, temp_prob))
 
 
 
@@ -112,6 +176,8 @@ class Group_of_Detections(Module, persistent.Persistent):
         """ Delete a detection """
         if self.has_detection_id(int(detection_id)):
             self.main_dict.pop(int(detection_id))
+        else:
+            print_error('No such detection available.')
 
     def create_new_detection(self):
         """ Create a new detection. We must select the trained model and the unknown model """
@@ -179,6 +245,7 @@ class Group_of_Detections(Module, persistent.Persistent):
             return False
         # Store on DB the new detection
         self.main_dict[new_id] = new_detection
+        print_info('New detection created with id {}'.format(new_id))
         # Run the detection rutine
         new_detection.detect(model_training, model_testing)
 
