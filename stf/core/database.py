@@ -64,7 +64,6 @@ class Database:
         except KeyError:
             self.root['labels'] = __group_of_labels__.labels
 
-        # Comparisons
 
     def has_structure(self, structure_name):
         """ This method searches for a structure in the db"""
@@ -78,6 +77,9 @@ class Database:
         name = str(structure.get_name())
         return self.root[name] 
 
+    def get_structures(self):
+        """ get all the structures """
+        return self.root
 
     def set_new_structure(self, structure):
         """ 
