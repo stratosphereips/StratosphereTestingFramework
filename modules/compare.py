@@ -46,7 +46,7 @@ class Detection(persistent.Persistent):
 
     def detect(self, model_training, model_testing):
         """ Perform the detection between the testing model and the training model"""
-        print_info('Detecting testing model {} with {}'.format(model_training.get_id(), model_testing.get_id()))
+        print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
         # Get the states 
         self.training_states = model_training.get_state()[0:1000]
         self.testing_states = model_testing.get_state()[0:1000]
