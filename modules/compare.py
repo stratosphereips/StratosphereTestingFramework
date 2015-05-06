@@ -74,10 +74,16 @@ class Detection(persistent.Persistent):
 
         # Get the probs letter by letter
         print
-        for letter in self.testing_states:
-            sequence += letter
-            temp_prob = model_training.compute_probability(sequence)
-            #print_info('Seq: {} -> Prob: {}'.format(sequence, temp_prob))
+        index = 0
+        while index < len(self.testing_states):
+            test_sequence = self.testing_states[0:index+1]
+            train_sequence = self.training_states[0:index+1]
+            # First re-create the matrix only for this sequence
+            model_training.create(test_sequence)
+            # Get the new original prob so far...
+            self.training_original_prob = model_training.compute_probability(train_sequence)
+            # Now obtain the probability for testing
+            temp_prob = model_training.compute_probability(test_sequence)
             if self.training_original_prob < temp_prob:
                 try:
                     self.prob_distance = self.training_original_prob / temp_prob
@@ -89,7 +95,11 @@ class Detection(persistent.Persistent):
                 except ZeroDivisionError:
                     self.prob_distance = -1
             self.dict_of_distances.append(self.prob_distance)
-            #print_info('Distance: {}'.format(self.prob_distance))
+            #print_info('Seq: {} -> OProb: {}, TProb: {}, Dist: {}'.format(test_sequence, training_original_prob_so_far, temp_prob, self.prob_distance))
+            index += 1
+        # Leave the original matrix and values in the model
+        model_training.create(model_training.get_state())
+        self.training_original_prob = model_training.compute_probability(self.training_states)
 
         
         p = ap.AFigure()
@@ -97,10 +107,10 @@ class Detection(persistent.Persistent):
         y = self.dict_of_distances
         # Lower all the distances more than 5
         i = 0
-        while i < len(y):
-            if y[i] > 5:
-                y[i] = -1
-            i += 1
+        #while i < len(y):
+        #    if y[i] > 5:
+        #        y[i] = -1
+        #    i += 1
         #print p.plot(x, y, marker='_.')
         print p.plot(x, y, marker='_of')
 
