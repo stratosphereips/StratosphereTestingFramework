@@ -2,7 +2,7 @@
 # The rest is from the Stratosphere Testing Framework
 # See the file 'LICENSE' for copying permission.
 
-# This is a template module showing how to create a module that has persistence in the database.
+# This is a template module showing how to create a module that has persistence in the database. To create your own command just copy this file and start modifying it.
 
 import persistent
 import BTrees.OOBTree
