@@ -2,7 +2,8 @@
 # The rest is from the Stratosphere Testing Framework
 # See the file 'LICENSE' for copying permission.
 
-# This is a template module
+# This is a template module showing how to create a module that has persistence in the database.
+
 import persistent
 import BTrees.OOBTree
 
@@ -26,7 +27,7 @@ from stf.core.database import __database__
 #################
 #################
 class Template_Object(persistent.Persistent):
-    """ This class is a template of a classic object"""
+    """ This class is a template of a classic object. This is usually the place you want to do something. The new 'Object' that you want to store"""
     def __init__(self, id):
         self.id = id
         # This is an example dictionary of stuff that we want to store in the DB and make persistent.
@@ -50,16 +51,16 @@ class Template_Object(persistent.Persistent):
 ######################
 ######################
 class Group_of_Template_Objects(Module, persistent.Persistent):
-    # Mandatory cmd variable
+    """ The group of 'Objects' is only a structure to hold them together. Usefull to add them, delete them and general management """
+    ### Mandatory variables ###
     cmd = 'template_example_module'
-    # Mandatory description variable
     description = 'This module is a template to use for future modules. It stores permanently in the database the group of objects.'
-    # Mandatory authors variable
     authors = ['Sebastian Garcia']
-    # Main dict of objects. The name of the attribute should be "main_dict"
+    # Main dict of objects. The name of the attribute should be "main_dict" in this example
     main_dict = BTrees.OOBTree.BTree()
+    ### End of Mandatory variables ###
 
-    # Mandatory Method!
+    ### Mandatory Methods Don't change ###
     def __init__(self):
         # Call to our super init
         super(Group_of_Template_Objects, self).__init__()
@@ -69,7 +70,6 @@ class Group_of_Template_Objects(Module, persistent.Persistent):
         self.parser.add_argument('-p', '--printstate', metavar='printstate', help='Print some info about a specific object. Give the object id.')
         self.parser.add_argument('-g', '--generate', metavar='generate', help='Create a new object with a name. Give name.')
 
-    ############ Mandatory Methods! Don't change. ##################
     def get_name(self):
         """ Return the name of the module"""
         return self.cmd
@@ -105,9 +105,11 @@ class Group_of_Template_Objects(Module, persistent.Persistent):
             new_id = self.main_dict[list(self.main_dict.keys())[-1]].get_id() + 1
         except (KeyError, IndexError):
             new_id = 1
+        # Create the new object
         new_object = Template_Object(new_id)
+        # Do something with it
         new_object.set_name(name)
-        # Store
+        # Store on DB
         self.main_dict[new_id] = new_object
 
 
@@ -134,7 +136,7 @@ class Group_of_Template_Objects(Module, persistent.Persistent):
         ######### End Mandatory part! ########################
         
 
-        # Process the command line and call the methods
+        # Process the command line and call the methods. Here add your own parameters
         if self.args.list:
             self.list_objects()
         elif self.args.generate:
