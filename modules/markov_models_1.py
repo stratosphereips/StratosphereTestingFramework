@@ -76,13 +76,13 @@ class Markov_Model(persistent.Persistent):
     def get_matrix(self):
         return self.matrix
 
-    def create(self):
-        """ Create the Markov chain itself """
+    def create(self, state):
+        """ Create the Markov chain itself. We use the parameter instead of the attribute so we can compute the matrix for different states """
         # Separete the letters considering the letter and the symbol as a unique state:
         # So from "88,a,b," we get: '8' '8,' 'a,' 'b,'
         try:
             # This is a first order markov model. Each individual object (letter, number, etc.) is a state
-            separated_letters = list(self.state)
+            separated_letters = list(state)
         except AttributeError:
             print_error('There is no state yet')
             return False
@@ -98,9 +98,9 @@ class Markov_Model(persistent.Persistent):
         print type(self.matrix.walk(5))
         """ Generate a simulated chain using this markov chain """
         chain = ''
-        chain += self.state[0]
-        chain += self.state[1]
-        chain += self.state[2]
+        chain += state[0]
+        chain += state[1]
+        chain += state[2]
         chain += ''.join(self.matrix.walk(amount))
         print chain
         return True
@@ -115,7 +115,6 @@ class Markov_Model(persistent.Persistent):
         # We should have more than 2 states at least
         while i < len(state) and len(state) > 1:
             try:
-                #vector = [state[i], state[i+1]]
                 vector = state[i] + state[i+1]
                 growing_v = state[0:i+2]
                 # The transitions that include the # char will be automatically excluded
@@ -252,7 +251,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             # Store the connections
             markov_model.set_connections(connections)
             # Create the MM itself
-            markov_model.create()
+            markov_model.create(markov_model.get_state())
             # Store
             self.markov_models[mm_id] = markov_model
         else:
@@ -334,7 +333,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         # Store the connections
         markov_model.set_connections(connections)
         # Create the MM itself
-        markov_model.create()
+        markov_model.create(markov_model.get_state())
         print_info('Markov model {} regenerated.'.format(markov_model_id))
 
 
