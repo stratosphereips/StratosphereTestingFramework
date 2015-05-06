@@ -137,7 +137,15 @@ class Markov_Model(persistent.Persistent):
             print_warning('Ignored transitions: {}'.format(ignored))
         return probability       
 
-
+    def __repr__(self):
+        try:
+            label = __group_of_labels__.get_label_by_id(self.get_label_id())
+            label_name = label.get_name()
+        except KeyError:
+            label_name = 'Deleted'
+        current_connections = label.get_connections_complete()
+        response = "Id:"+str(self.get_id())+", Label:"+label_name+", Len State:"+str(len(self.get_state()))+", #Conns:"+str(self.count_connections())
+        return(response)
 
 
 
