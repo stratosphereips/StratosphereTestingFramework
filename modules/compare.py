@@ -39,15 +39,14 @@ class Detection(persistent.Persistent):
     def set_id(self, id):
         self.id = id
 
-    def set_training_module(self, model1):
-        self.training_module_id = model1
-
-    def set_unknown_module(self, model2):
-        self.unknown_module_id = model2
-
-    def detect(self):
+    def detect(self, model_training, model_testing):
         """ Perform the detection """
-        print_info('Detecting...')
+        print_info('Detecting testing model {} with {}'.format(model_training.get_id(), model_testing.get_id()))
+        # Get the states 
+        training_states = model_training.get_state()
+        testing_states = model_testing.get_state()
+        print training_states
+        print testing_states
 
 
 
@@ -57,7 +56,7 @@ class Detection(persistent.Persistent):
 ######################
 ######################
 class Group_of_Detections(Module, persistent.Persistent):
-    ### Mandatory variables ###
+   ### Mandatory variables ###
     cmd = 'detections'
     description = 'Use some behavioral models to detect other models.'
     authors = ['Sebastian Garcia']
@@ -72,8 +71,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         # Example of a parameter without arguments
         self.parser.add_argument('-l', '--list', action='store_true', help='List the detections.')
         # Example of a parameter with arguments
-        self.parser.add_argument('-n', '--new', metavar='new', help='Create a new detection. Give the id of the trained model here and use -m to give the \'unknown\' model.')
-        self.parser.add_argument('-m', '--model', metavar='model', help='Id of the \'unknown\' model to analyze agains the model given with -n.')
+        self.parser.add_argument('-n', '--new', action='store_true', help='Create a new detection. You will be prompted to select the trained model and the \'unknown\' model.')
         self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete the detection id.')
 
     def get_name(self):
@@ -115,7 +113,8 @@ class Group_of_Detections(Module, persistent.Persistent):
         if self.has_detection_id(int(detection_id)):
             self.main_dict.pop(int(detection_id))
 
-    def create_new_detection(self, model1, model2):
+    def create_new_detection(self):
+        """ Create a new detection. We must select the trained model and the unknown model """
         # Generate the new id for this detection
         try:
             new_id = self.main_dict[list(self.main_dict.keys())[-1]].get_id() + 1
@@ -129,7 +128,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         structures = __database__.get_structures()
         print_info('From which structure you want to pick up the trained model?:')
         for structure in structures:
-            print_info(structure)
+            print_info('\t'+structure)
         selection = raw_input('Name:')
         selection = selection.strip()
         # 2- Verify is there
@@ -139,17 +138,49 @@ class Group_of_Detections(Module, persistent.Persistent):
             print_error('No such structure available.')
             return False
         # 3- Get the main dict and list the 'objects'
-        main_dict = selected_structure
-        for object in  main_dict:
-            print object
+        print_info('Select the training module to use:')
+        for object in selected_structure:
+            print '\t',
+            print_info(selected_structure[object])
+        model_training_id = raw_input('Id:')
+        # 4- Verify is there
+        try:
+            model_training = selected_structure[int(model_training_id)]
+        except (KeyError, ValueError):
+            print_error('No such id available.')
+            return False
 
-        
-        new_detection.set_training_module(model1)
-        new_detection.set_unknown_module(model2)
-        # Store on DB
+        print
+        # Get the testing module
+        # 1- List all the structures in the db, so we can pick our type of module
+        structures = __database__.get_structures()
+        print_info('From which structure you want to pick up the testing model?:')
+        for structure in structures:
+            print_info('\t'+structure)
+        selection = raw_input('Name:')
+        selection = selection.strip()
+        # 2- Verify is there
+        try:
+            selected_structure = structures[selection]
+        except KeyError:
+            print_error('No such structure available.')
+            return False
+        # 3- Get the main dict and list the 'objects'
+        print_info('Select the testing module to use:')
+        for object in selected_structure:
+            print '\t',
+            print_info(selected_structure[object])
+        model_testing_id = raw_input('Id:')
+        # 4- Verify is there
+        try:
+            model_testing = selected_structure[int(model_testing_id)]
+        except (KeyError, ValueError):
+            print_error('No such id available.')
+            return False
+        # Store on DB the new detection
         self.main_dict[new_id] = new_detection
         # Run the detection rutine
-        new_detection.detect()
+        new_detection.detect(model_training, model_testing)
 
 
 
@@ -179,10 +210,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         if self.args.list:
             self.list_detections()
         elif self.args.new:
-            if not self.args.model:
-                print_error('You should give the \'unknown\' model with -m.')
-                return False
-            self.create_new_detection(self.args.new, self.args.model)
+            self.create_new_detection()
         elif self.args.delete:
             self.delete_detection(self.args.delete)
         else:
