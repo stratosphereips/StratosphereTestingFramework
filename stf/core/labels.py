@@ -144,6 +144,7 @@ class Group_Of_Labels(persistent.Persistent):
             return self.labels[label_id]
         except TypeError:
             print_error('The label id should be integer.')
+            return False
 
     def get_label_name_by_id(self, label_id):
         """ Get the name of the label by its id"""
@@ -291,6 +292,16 @@ class Group_Of_Labels(persistent.Persistent):
             print_error('Label id does not exists.')
 
     def decide_a_label_name(self, connection_id):
+        # First choose amount the current labels
+        print_info('Current Labels')
+        self.list_labels()
+        selection = raw_input('Select a label id or Enter to create a new one:')
+        try:
+            label = self.get_label_by_id(int(selection))
+            return label.get_name()
+        except ValueError:
+            pass
+
         # Direction
         print ("Please provide a direction. It means 'From' or 'To' the most important IP in the connection: ")
         text = raw_input().strip()
@@ -344,18 +355,14 @@ class Group_Of_Labels(persistent.Persistent):
         # Search for labels with this 'name' so far
         matches = self.search_label_name(name_so_far, verbose=True)
         if matches:
-            print_info("There are other labels with the same name. You can input 'NEW' to create a new label with this name and a new id. Or you can input the number at the end of the label name to add this connection to that label. Any other input will stop the creation of the label to let you inspect the content of the labels.")
+            print_info("There are other labels with a similar name. You can enter 'NEW' to create a new label with this name and a new id. Or you can input the label ID to add this connection to that label. Any other input will stop the creation of the label to let you inspect the content of the labels.")
             text = raw_input().strip()
             # Is it an int?
             try:
                 inttext = int(text)
-                # Do we have that id?
-                for match in matches:
-                    # If the id of this match is the inputed id
-                    if int(match.split('-')[-1]) == inttext:
-                        id = match.split('-')[-1]
-                        name = name_so_far + '-' + id
-                        return name
+                label = self.get_label_by_id(inttext)
+                if label:
+                    return label.get_name()
                 print_error('No previous label with that id.')
                 return False
             except ValueError:
