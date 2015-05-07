@@ -37,6 +37,10 @@ class Detection(persistent.Persistent):
         self.testing_final_prob = -1
         self.dict_of_distances = []
         self.distance = -1
+        self.struture_training = -1
+        self.struture_testing = -1
+        self.training_structure_name = ""
+        self.testing_structure_name = ""
 
     def get_id(self):
         return self.id
@@ -56,29 +60,39 @@ class Detection(persistent.Persistent):
     def get_training_id(self):
         return self.model_training_id
 
+    def get_training_structure_name(self):
+        return self.training_structure_name
+
+    def get_testing_structure_name(self):
+        return self.testing_structure_name
+
     def get_testing_id(self):
         return self.model_testing_id
 
     def get_distance(self):
         return self.distance
 
-    def detect(self, structure_training, model_training_id, structure_testing, model_testing_id):
+    def detect(self, training_structure_name,  structure_training, model_training_id, testing_structure_name, structure_testing, model_testing_id):
         """ Perform the detection between the testing model and the training model"""
         self.model_training_id = model_training_id
+        self.structure_training = structure_training
         self.model_testing_id = model_testing_id
+        self.structure_testing = structure_testing
+        self.training_structure_name = training_structure_name
+        self.testing_structure_name = testing_structure_name
         # Get the models. But don't store them... they are 'heavy'
-        model_training = self.get_model_from_id(structure_training, model_training_id)
-        model_testing = self.get_model_from_id(structure_testing, model_testing_id)
+        model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
+        model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
         print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
         # Get the states 
         self.training_states = model_training.get_state()
         self.testing_states = model_testing.get_state()
         # Get the original probability of detecting the training state in the training module
         self.training_original_prob = model_training.compute_probability(self.training_states)
-        print_info('Original probability for detecting the training: {}'.format(self.training_original_prob))
+        print_info('Probability of detecting the training model with the training model: {}'.format(self.training_original_prob))
         # Get the prob of detecting the complete testing state
         self.testing_final_prob = model_training.compute_probability(self.testing_states)
-        print_info('Final probability of detecting the testing: {}'.format(self.testing_final_prob))
+        print_info('Probability of detecting the testing model with the training model: {}'.format(self.testing_final_prob))
         # Compute distance
         if self.training_original_prob < self.testing_final_prob:
             try:
@@ -92,43 +106,55 @@ class Detection(persistent.Persistent):
                 self.distance = -1
         print_info('Final Distance: {}'.format(self.distance))
 
-    def detect_letter_by_letter(self):
+    def detect_letter_by_letter(self, amount):
         """ 
         Try to detect letter-by-letter 
         In this model we re-create the prob matrix in the training for each letter. So the comparison is made to a matrix created with the same amount of lines that the testing sequence.
         Also the probability of detecting the training is created for the same length that the testing. We don't compare a 4 letter long testing against the prob of generating a 2000 letter long training.
         """
-        # Get the probs letter by letter
-        index = 0
-        while index < len(self.testing_states):
-            test_sequence = self.testing_states[0:index+1]
-            train_sequence = self.training_states[0:index+1]
-            # First re-create the matrix only for this sequence
-            model_training.create(test_sequence)
-            # Get the new original prob so far...
-            self.training_original_prob = model_training.compute_probability(train_sequence)
-            # Now obtain the probability for testing
-            temp_prob = model_training.compute_probability(test_sequence)
-            if self.training_original_prob < temp_prob:
-                try:
-                    self.prob_distance = self.training_original_prob / temp_prob
-                except ZeroDivisionError:
-                    self.prob_distance = -1
-            else:
-                try:
-                    self.prob_distance = temp_prob / self.training_original_prob
-                except ZeroDivisionError:
-                    self.prob_distance = -1
-            self.dict_of_distances.append(self.prob_distance)
-            #print_info('Seq: {} -> OProb: {}, TProb: {}, Dist: {}'.format(test_sequence, training_original_prob_so_far, temp_prob, self.prob_distance))
-            index += 1
-        # Leave the original matrix and values in the model
-        model_training.create(model_training.get_state())
-        self.training_original_prob = model_training.compute_probability(self.training_states)
+        # Get the models. But don't store them... they are 'heavy'
+        model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
+        model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
+        # Dont repeat the computation if we already have the data
+        if amount != -1 and amount > len(self.dict_of_distances):
+            # Check the amount
+            if amount == -1:
+                amount = len(self.testing_states)
+            # Only generate what we dont have, not all of it
+            index = len(self.dict_of_distances)
+            while index < len(self.testing_states) and index < amount:
+                test_sequence = self.testing_states[0:index+1]
+                train_sequence = self.training_states[0:index+1]
+                # First re-create the matrix only for this sequence
+                model_training.create(test_sequence)
+                # Get the new original prob so far...
+                self.training_original_prob = model_training.compute_probability(train_sequence)
+                # Now obtain the probability for testing
+                temp_prob = model_training.compute_probability(test_sequence)
+                if self.training_original_prob < temp_prob:
+                    try:
+                        self.prob_distance = self.training_original_prob / temp_prob
+                    except ZeroDivisionError:
+                        self.prob_distance = -1
+                else:
+                    try:
+                        self.prob_distance = temp_prob / self.training_original_prob
+                    except ZeroDivisionError:
+                        self.prob_distance = -1
+                self.dict_of_distances.insert(index, self.prob_distance)
+                #print_info('Seq: {} -> OProb: {}, TProb: {}, Dist: {}'.format(test_sequence, self.training_original_prob, temp_prob, self.prob_distance))
+                index += 1
+            final_position = index
+            # Leave the original matrix and values in the model
+            model_training.create(model_training.get_state())
+            self.training_original_prob = model_training.compute_probability(self.training_states)
+        else:
+            final_position = amount
+        print_info('Distance up to {} letters: {}'.format(final_position, self.dict_of_distances[final_position-1]))
         # Ascii plot
         p = ap.AFigure()
-        x = range(len(self.dict_of_distances))
-        y = self.dict_of_distances
+        x = range(len(self.dict_of_distances[0:final_position]))
+        y = self.dict_of_distances[0:final_position]
         # Lower all the distances more than 5
         #i = 0
         #while i < len(y):
@@ -138,7 +164,25 @@ class Detection(persistent.Persistent):
         #print p.plot(x, y, marker='_.')
         print p.plot(x, y, marker='_of')
 
+    def check_need_for_regeneration(self):
+        """ Check if the training or testing of this detection changed since we use them """
+        structures = __database__.get_structures()
+        current_training_model_len = len(structures[self.training_structure_name][int(self.model_training_id)].get_state())
+        current_testing_model_len = len(structures[self.testing_structure_name][int(self.model_testing_id)].get_state())
+        if len(self.training_states) != current_training_model_len or len(self.testing_states) != current_testing_model_len:
+            return True
+        else:
+            return False
 
+    def regenerate(self):
+        """ Regenerate """
+        print_info('Regenerating detection {}'.format(self.get_id()))
+        structures = __database__.get_structures()
+        structure_training = structures[self.training_structure_name]
+        structure_testing = structures[self.testing_structure_name]
+        self.detect(self.training_structure_name, structure_training, self.model_training_id, self.testing_structure_name, structure_testing, self.model_testing_id)
+        # Empty the dict of distances
+        self.dict_of_distances = []
 
 
 
@@ -163,7 +207,9 @@ class Group_of_Detections(Module, persistent.Persistent):
         # Example of a parameter with arguments
         self.parser.add_argument('-n', '--new', action='store_true', help='Create a new detection. You will be prompted to select the trained model and the \'unknown\' model.')
         self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete the detection id.')
-        self.parser.add_argument('-L', '--letter', metavar='letter', help='Compare the distances between the models letter-by-letter. Give the detection id.')
+        self.parser.add_argument('-L', '--letter', type=int, metavar='letter', help='Compare the distances between the models letter-by-letter. Give the detection id. Optionally you can use -a to analize a fixed amount of letters. An ascii plot is generated.')
+        self.parser.add_argument('-a', '--amount', type=int, default=-1, metavar='amount', help='Amount of letters to compare in the letter-by-letter comparison.')
+        self.parser.add_argument('-r', '--regenerate', metavar='regenerate', type=int, help='Regenerate the detection. Used when the original training or testing models changed. Give the detection id.')
 
     def get_name(self):
         """ Return the name of the module"""
@@ -196,8 +242,9 @@ class Group_of_Detections(Module, persistent.Persistent):
         print_info('List of Detections')
         rows = []
         for detection in self.get_detections():
-            rows.append([ detection.get_id(), detection.get_training_id(), detection.get_testing_id(), detection.get_distance()])
-        print(table(header=['Id', 'Training ID', 'Testing ID', 'Distance'], rows=rows))
+            regenerate = detection.check_need_for_regeneration()
+            rows.append([ detection.get_id(), detection.get_training_structure_name()+':'+str(detection.get_training_id()), detection.get_testing_structure_name()+':'+str(detection.get_testing_id()), detection.get_distance(), regenerate])
+        print(table(header=['Id', 'Training ID', 'Testing ID', 'Distance', 'Needs Regenerate'], rows=rows))
 
     def delete_detection(self, detection_id):
         """ Delete a detection """
@@ -215,18 +262,20 @@ class Group_of_Detections(Module, persistent.Persistent):
             new_id = 1
         # Create the new object
         new_detection = Detection(new_id)
-
+        # Structures to ignore
+        exceptions = ['models', 'database', 'datasets', 'notes', 'connections', 'experiments', 'template_example_module', 'labels']
         # Get the training module
         # 1- List all the structures in the db, so we can pick our type of module
         structures = __database__.get_structures()
         print_info('From which structure you want to pick up the trained model?:')
         for structure in structures:
-            print_info('\t'+structure)
-        selection = raw_input('Name:')
-        selection = selection.strip()
+            if structure not in exceptions:
+                print_info('\t'+structure)
+        training_structure_name = raw_input('Name:')
+        training_structure_name = training_structure_name.strip()
         # 2- Verify is there
         try:
-            selected_training_structure = structures[selection]
+            selected_training_structure = structures[training_structure_name]
         except KeyError:
             print_error('No such structure available.')
             return False
@@ -243,12 +292,13 @@ class Group_of_Detections(Module, persistent.Persistent):
         structures = __database__.get_structures()
         print_info('From which structure you want to pick up the testing model?:')
         for structure in structures:
-            print_info('\t'+structure)
-        selection = raw_input('Name:')
-        selection = selection.strip()
+            if structure not in exceptions:
+                print_info('\t'+structure)
+        testing_structure_name = raw_input('Name:')
+        testing_structure_name = testing_structure_name.strip()
         # 2- Verify is there
         try:
-            selected_testing_structure = structures[selection]
+            selected_testing_structure = structures[testing_structure_name]
         except KeyError:
             print_error('No such structure available.')
             return False
@@ -262,12 +312,20 @@ class Group_of_Detections(Module, persistent.Persistent):
         self.main_dict[new_id] = new_detection
         print_info('New detection created with id {}'.format(new_id))
         # Run the detection rutine
-        new_detection.detect(selected_training_structure, model_training_id, selected_testing_structure, model_testing_id)
+        new_detection.detect(training_structure_name, selected_training_structure, model_training_id, training_structure_name, selected_testing_structure, model_testing_id)
 
-    def dectect_letter_by_letter(self, detection_id):
+    def detect_letter_by_letter(self, detection_id, amount):
         try:
             detection = self.main_dict[detection_id]
-            detection.detect_letter_by_letter()
+            detection.detect_letter_by_letter(amount)
+        except KeyError:
+            print_error('No such detection id exists.')
+
+    def regenerate(self, detection_id):
+        """ Regenerate """
+        try:
+            detection = self.main_dict[detection_id]
+            detection.regenerate()
         except KeyError:
             print_error('No such detection id exists.')
 
@@ -303,7 +361,9 @@ class Group_of_Detections(Module, persistent.Persistent):
         elif self.args.delete:
             self.delete_detection(self.args.delete)
         elif self.args.letter:
-            self.detect_letter_by_letter(self.args.letter)
+            self.detect_letter_by_letter(self.args.letter, self.args.amount)
+        elif self.args.regenerate:
+            self.regenerate(self.args.regenerate)
         else:
             print_error('At least one of the parameter is required in this module')
             self.usage()
