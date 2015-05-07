@@ -31,7 +31,7 @@ class Model_Constructor(object):
         try:
             self.models.pop(model_id)
         except KeyError:
-            print_error('There is no such model in the constructor to delete.')
+            print_error('There is no such model {} in the constructor to delete.'.format(model_id))
 
 
     def set_name(self,name):
@@ -246,7 +246,6 @@ class Model_Constructor(object):
                 state += '*'
 
         # We store permanently the T1, T2 and TD values on each flow, so we can later analyze it
-        #FOR SOME REASON IF WE REGENERATE THE MODELS THE FIRST LETTERS ARE NOT NUMBERS
         flow.set_t1(model['T1'])
         flow.set_t2(model['T2'])
         flow.set_td(TD)

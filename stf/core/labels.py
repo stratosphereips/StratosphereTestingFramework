@@ -47,10 +47,12 @@ class Label(persistent.Persistent):
         try:
             d_id = self.connections[group_of_model_id]
             self.connections[group_of_model_id].append(connection_id)
+            self._p_changed = 1
         except KeyError:
             # First time we see this dataset id
             self.connections[group_of_model_id] = []
             self.connections[group_of_model_id].append(connection_id)
+            self._p_changed = 1
         
     def delete_connection(self, group_of_model_id, connection_id):
         """ Delete this connection in this label """
@@ -142,6 +144,7 @@ class Group_Of_Labels(persistent.Persistent):
             return self.labels[label_id]
         except TypeError:
             print_error('The label id should be integer.')
+            return False
 
     def get_label_name_by_id(self, label_id):
         """ Get the name of the label by its id"""
@@ -182,15 +185,8 @@ class Group_Of_Labels(persistent.Persistent):
         """ List all the labels """
         rows = []
         for label in self.get_labels():
-            if __datasets__.current:
-                if label.has_dataset(__datasets__.current.get_id()):
-                    group_of_model_ids = label.get_group_of_model_id(datasetid = __datasets__.current.get_id())
-                    for g_of_m_id in group_of_model_ids:
-                        # Only the connections that were geenrated from this dataset
-                        rows.append([label.get_id(), label.get_name(), g_of_m_id, label.get_connections(dataset_id=__datasets__.current.get_id())])
-            else:
-                for group_of_model_id in label.get_group_of_model_id():
-                    rows.append([label.get_id(), label.get_name(), group_of_model_id, label.get_connections(groupofmodelid=group_of_model_id)])
+            for group_of_model_id in label.get_group_of_model_id():
+                rows.append([label.get_id(), label.get_name(), group_of_model_id, label.get_connections(groupofmodelid=group_of_model_id)])
         print table(header=['Id', 'Label Name', 'Group of Model', 'Connection'], rows=rows)
 
     def check_label_existance(self, group_of_model_id, connection_id):
@@ -210,6 +206,9 @@ class Group_Of_Labels(persistent.Persistent):
             dataset_id = group_of_model_id.split('-')[0]
             if str(dataset_id_standing) != dataset_id:
                 print_error('You should select the dataset you are going to work in. Not another')
+                return False
+            if not __groupofgroupofmodels__.get_group(group_of_model_id):
+                print_error('That group of models does not exist.')
                 return False
             has_label = self.check_label_existance(group_of_model_id, connection_id)
             if has_label:
@@ -293,6 +292,16 @@ class Group_Of_Labels(persistent.Persistent):
             print_error('Label id does not exists.')
 
     def decide_a_label_name(self, connection_id):
+        # First choose amount the current labels
+        print_info('Current Labels')
+        self.list_labels()
+        selection = raw_input('Select a label id or Enter to create a new one:')
+        try:
+            label = self.get_label_by_id(int(selection))
+            return label.get_name()
+        except ValueError:
+            pass
+
         # Direction
         print ("Please provide a direction. It means 'From' or 'To' the most important IP in the connection: ")
         text = raw_input().strip()
@@ -346,18 +355,14 @@ class Group_Of_Labels(persistent.Persistent):
         # Search for labels with this 'name' so far
         matches = self.search_label_name(name_so_far, verbose=True)
         if matches:
-            print_info("There are other labels with the same name. You can input 'NEW' to create a new label with this name and a new id. Or you can input the number at the end of the label name to add this connection to that label. Any other input will stop the creation of the label to let you inspect the content of the labels.")
+            print_info("There are other labels with a similar name. You can enter 'NEW' to create a new label with this name and a new id. Or you can input the label ID to add this connection to that label. Any other input will stop the creation of the label to let you inspect the content of the labels.")
             text = raw_input().strip()
             # Is it an int?
             try:
                 inttext = int(text)
-                # Do we have that id?
-                for match in matches:
-                    # If the id of this match is the inputed id
-                    if int(match.split('-')[-1]) == inttext:
-                        id = match.split('-')[-1]
-                        name = name_so_far + '-' + id
-                        return name
+                label = self.get_label_by_id(inttext)
+                if label:
+                    return label.get_name()
                 print_error('No previous label with that id.')
                 return False
             except ValueError:

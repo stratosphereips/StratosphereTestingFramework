@@ -2,6 +2,8 @@
 # The rest is from the Stratosphere Testing Framework
 # See the file 'LICENSE' for copying permission.
 
+# Example file of how to create a module without persistence in the database. Useful for obtaining statistics or processing data.
+
 from stf.common.out import *
 from stf.common.abstracts import Module
 from stf.core.models import  __groupofgroupofmodels__ 

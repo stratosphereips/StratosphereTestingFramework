@@ -64,7 +64,6 @@ class Database:
         except KeyError:
             self.root['labels'] = __group_of_labels__.labels
 
-        # Comparisons
 
     def has_structure(self, structure_name):
         """ This method searches for a structure in the db"""
@@ -73,22 +72,33 @@ class Database:
                 return True
         return False
 
-    def register_new_structure(self, structure):
-        """ This method takes an object from a new structure (typically from a module) and keeps record of it in the database. A strcture is the main object from the module that we want to store in the db. Actually we store its main dict."""
+    def get_new_structure(self, structure):
+        """ Given a structure, set the main dict from the db """
+        name = str(structure.get_name())
+        return self.root[name] 
+
+    def get_structures(self):
+        """ get all the structures """
+        return self.root
+
+    def set_new_structure(self, structure):
+        """ 
+        This method takes an object from a new structure (typically from a module) and keeps record of it in the database. 
+        A strcture is the main object from the module that we want to store in the db. Actually we store its main dict.
+        """
         try:
             name = structure.get_name()
         except AttributeError:
             print_error('The new registered structure does not implement get_name()')
-        print_info('Registering structure with name: {}'.format(name))
+            return False
         try:
-            temp = self.root[name]
-            print_warning('This structure was already loaded in the database')
-        except KeyError:
-            try:
-                temp = structure.get_main_dict()
-            except AttributeError:
-                print_error('The structure does not implement get_main_dict()')
-            self.root[name] = structure.get_main_dict()
+            main_dict = structure.get_main_dict()
+            print_info('Registering structure name: {}'.format(name))
+            self.root[name] = main_dict
+            return True
+        except AttributeError:
+            print_error('The structure does not implement get_main_dict()')
+            return False
 
     def list(self):
         for structure in self.root:
