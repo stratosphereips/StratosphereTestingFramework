@@ -117,6 +117,14 @@ class Detection(persistent.Persistent):
         model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
         # Dont repeat the computation if we already have the data
         if amount != -1 and amount > len(self.dict_of_distances):
+            # Store the original matrix and prob for later
+            original_matrix = model_training.get_matrix()
+            original_self_prob = model_training.get_self_probability()
+            if not original_self_prob:
+                # Maybe it was the first time that it is generated
+                training_original_prob = model_training.compute_probability(self.training_states)
+                model_training.set_self_probability(training_original_prob)
+
             # Check the amount
             if amount == -1:
                 amount = len(self.testing_states)
@@ -145,13 +153,12 @@ class Detection(persistent.Persistent):
                     self.prob_distance = 1
 
                 self.dict_of_distances.insert(index, self.prob_distance)
-                print_info('Seq: {} -> O_LogProb: {}, T_LogProb: {}, Dist: {}'.format(test_sequence, self.training_original_prob, temp_prob, self.prob_distance))
+                #print_info('Seq: {} -> O_LogProb: {}, T_LogProb: {}, Dist: {}'.format(test_sequence, self.training_original_prob, temp_prob, self.prob_distance))
                 index += 1
             final_position = index
-            # Leave the original matrix and values in the model
-            # just store the previous one and the put it back!!
-            model_training.create(model_training.get_state())
-            self.training_original_prob = model_training.compute_probability(self.training_states)
+            # Put back the original matrix and values in the model
+            model_training.set_matrix(original_matrix)
+            model_training.set_self_probability(original_self_prob)
         else:
             final_position = amount
         print_info('Distance up to {} letters: {}'.format(final_position, self.dict_of_distances[final_position-1]))
