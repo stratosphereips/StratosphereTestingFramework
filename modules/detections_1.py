@@ -136,16 +136,20 @@ class Detection(persistent.Persistent):
                         self.prob_distance = self.training_original_prob / temp_prob
                     except ZeroDivisionError:
                         self.prob_distance = -1
-                else:
+                elif self.training_original_prob > temp_prob:
                     try:
                         self.prob_distance = temp_prob / self.training_original_prob
                     except ZeroDivisionError:
                         self.prob_distance = -1
+                elif self.training_original_prob == temp_prob:
+                    self.prob_distance = 1
+
                 self.dict_of_distances.insert(index, self.prob_distance)
-                #print_info('Seq: {} -> OProb: {}, TProb: {}, Dist: {}'.format(test_sequence, self.training_original_prob, temp_prob, self.prob_distance))
+                print_info('Seq: {} -> O_LogProb: {}, T_LogProb: {}, Dist: {}'.format(test_sequence, self.training_original_prob, temp_prob, self.prob_distance))
                 index += 1
             final_position = index
             # Leave the original matrix and values in the model
+            # just store the previous one and the put it back!!
             model_training.create(model_training.get_state())
             self.training_original_prob = model_training.compute_probability(self.training_states)
         else:
@@ -180,9 +184,9 @@ class Detection(persistent.Persistent):
         structures = __database__.get_structures()
         structure_training = structures[self.training_structure_name]
         structure_testing = structures[self.testing_structure_name]
+        self.dict_of_distances = []
         self.detect(self.training_structure_name, structure_training, self.model_training_id, self.testing_structure_name, structure_testing, self.model_testing_id)
         # Empty the dict of distances
-        self.dict_of_distances = []
 
 
 
