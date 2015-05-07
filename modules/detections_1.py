@@ -254,7 +254,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         rows = []
         for detection in self.get_detections():
             regenerate = detection.check_need_for_regeneration()
-            rows.append([ detection.get_id(), detection.get_training_structure_name()+':'+str(detection.get_training_id()), detection.get_testing_structure_name()+':'+str(detection.get_testing_id()), detection.get_distance(), regenerate])
+            rows.append([ detection.get_id(), str(detection.get_training_id())+' in '+detection.get_training_structure_name(), str(detection.get_testing_id())+' in '+detection.get_testing_structure_name(), detection.get_distance(), regenerate])
         print(table(header=['Id', 'Training ID', 'Testing ID', 'Distance', 'Needs Regenerate'], rows=rows))
 
     def delete_detection(self, detection_id):
