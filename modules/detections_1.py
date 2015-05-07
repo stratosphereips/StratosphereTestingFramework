@@ -1,0 +1,309 @@
+# Part of this file was taken from Viper - https://github.com/botherder/viper
+# The rest is from the Stratosphere Testing Framework
+# See the file 'LICENSE' for copying permission.
+
+# Compare module. To compare models and obtain a probability of detection
+
+import persistent
+import BTrees.OOBTree
+
+from stf.common.out import *
+from stf.common.abstracts import Module
+
+from stf.core.dataset import __datasets__
+from stf.core.models import  __groupofgroupofmodels__ 
+from stf.core.notes import __notes__
+from stf.core.connections import  __group_of_group_of_connections__
+from stf.core.models_constructors import __modelsconstructors__ 
+from stf.core.labels import __group_of_labels__
+from stf.core.database import __database__
+from stf.common import ap
+
+
+
+
+
+#################
+#################
+#################
+class Detection(persistent.Persistent):
+    def __init__(self, id):
+        self.id = id
+        self.model_training_id = ""
+        self.model_testing_id = ""
+        self.training_states = ""
+        self.testing_states = ""
+        self.training_original_prob = -1
+        self.testing_final_prob = -1
+        self.dict_of_distances = []
+        self.distance = -1
+
+    def get_id(self):
+        return self.id
+
+    def set_id(self, id):
+        self.id = id
+
+    def get_model_from_id(self, structure, model_id):
+        """ From a strucure and id get the model object """
+        try:
+            model = structure[int(model_id)]
+            return model
+        except (KeyError, ValueError):
+            print_error('No such id available.')
+            return False
+
+    def get_training_id(self):
+        return self.model_training_id
+
+    def get_testing_id(self):
+        return self.model_testing_id
+
+    def get_distance(self):
+        return self.distance
+
+    def detect(self, structure_training, model_training_id, structure_testing, model_testing_id):
+        """ Perform the detection between the testing model and the training model"""
+        self.model_training_id = model_training_id
+        self.model_testing_id = model_testing_id
+        # Get the models. But don't store them... they are 'heavy'
+        model_training = self.get_model_from_id(structure_training, model_training_id)
+        model_testing = self.get_model_from_id(structure_testing, model_testing_id)
+        print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
+        # Get the states 
+        self.training_states = model_training.get_state()
+        self.testing_states = model_testing.get_state()
+        # Get the original probability of detecting the training state in the training module
+        self.training_original_prob = model_training.compute_probability(self.training_states)
+        print_info('Original probability for detecting the training: {}'.format(self.training_original_prob))
+        # Get the prob of detecting the complete testing state
+        self.testing_final_prob = model_training.compute_probability(self.testing_states)
+        print_info('Final probability of detecting the testing: {}'.format(self.testing_final_prob))
+        # Compute distance
+        if self.training_original_prob < self.testing_final_prob:
+            try:
+                self.distance = self.training_original_prob / self.testing_final_prob
+            except ZeroDivisionError:
+                self.distance = -1
+        else:
+            try:
+                self.distance = self.testing_final_prob / self.training_original_prob
+            except ZeroDivisionError:
+                self.distance = -1
+        print_info('Final Distance: {}'.format(self.distance))
+
+    def detect_letter_by_letter(self):
+        """ 
+        Try to detect letter-by-letter 
+        In this model we re-create the prob matrix in the training for each letter. So the comparison is made to a matrix created with the same amount of lines that the testing sequence.
+        Also the probability of detecting the training is created for the same length that the testing. We don't compare a 4 letter long testing against the prob of generating a 2000 letter long training.
+        """
+        # Get the probs letter by letter
+        index = 0
+        while index < len(self.testing_states):
+            test_sequence = self.testing_states[0:index+1]
+            train_sequence = self.training_states[0:index+1]
+            # First re-create the matrix only for this sequence
+            model_training.create(test_sequence)
+            # Get the new original prob so far...
+            self.training_original_prob = model_training.compute_probability(train_sequence)
+            # Now obtain the probability for testing
+            temp_prob = model_training.compute_probability(test_sequence)
+            if self.training_original_prob < temp_prob:
+                try:
+                    self.prob_distance = self.training_original_prob / temp_prob
+                except ZeroDivisionError:
+                    self.prob_distance = -1
+            else:
+                try:
+                    self.prob_distance = temp_prob / self.training_original_prob
+                except ZeroDivisionError:
+                    self.prob_distance = -1
+            self.dict_of_distances.append(self.prob_distance)
+            #print_info('Seq: {} -> OProb: {}, TProb: {}, Dist: {}'.format(test_sequence, training_original_prob_so_far, temp_prob, self.prob_distance))
+            index += 1
+        # Leave the original matrix and values in the model
+        model_training.create(model_training.get_state())
+        self.training_original_prob = model_training.compute_probability(self.training_states)
+        # Ascii plot
+        p = ap.AFigure()
+        x = range(len(self.dict_of_distances))
+        y = self.dict_of_distances
+        # Lower all the distances more than 5
+        #i = 0
+        #while i < len(y):
+        #    if y[i] > 5:
+        #        y[i] = -1
+        #    i += 1
+        #print p.plot(x, y, marker='_.')
+        print p.plot(x, y, marker='_of')
+
+
+
+
+
+######################
+######################
+######################
+class Group_of_Detections(Module, persistent.Persistent):
+   ### Mandatory variables ###
+    cmd = 'detections_1'
+    description = 'Detect a testing model using a trainig model. The distance between probabilities is made with division. The Markov Chain matrix is re-built for every letter in the sequence and the original prob of detecting the training is also re-computed for each letter in the sequence.'
+    authors = ['Sebastian Garcia']
+    # Main dict of objects. The name of the attribute should be "main_dict" in this example
+    main_dict = BTrees.OOBTree.BTree()
+    ### End of Mandatory variables ###
+
+    ### Mandatory Methods Don't change ###
+    def __init__(self):
+        # Call to our super init
+        super(Group_of_Detections, self).__init__()
+        # Example of a parameter without arguments
+        self.parser.add_argument('-l', '--list', action='store_true', help='List the detections.')
+        # Example of a parameter with arguments
+        self.parser.add_argument('-n', '--new', action='store_true', help='Create a new detection. You will be prompted to select the trained model and the \'unknown\' model.')
+        self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete the detection id.')
+        self.parser.add_argument('-L', '--letter', metavar='letter', help='Compare the distances between the models letter-by-letter. Give the detection id.')
+
+    def get_name(self):
+        """ Return the name of the module"""
+        return self.cmd
+
+    # Mandatory Method! Don't change.
+    def get_main_dict(self):
+        """ Return the main dict where we store the info. Is going to the database"""
+        return self.main_dict
+
+    # Mandatory Method! Don't change.
+    def set_main_dict(self, dict):
+        """ Set the main dict where we store the info. From the database"""
+        self.main_dict = dict
+    ############ End of Mandatory Methods #########################
+
+    def has_detection_id(self, id):
+        try:
+            return self.main_dict[id]
+        except KeyError:
+            return False
+
+    def get_detection(self, id):
+        return self.main_dict[id]
+
+    def get_detections(self):
+        return self.main_dict.values()
+
+    def list_detections(self):
+        print_info('List of Detections')
+        rows = []
+        for detection in self.get_detections():
+            rows.append([ detection.get_id(), detection.get_training_id(), detection.get_testing_id(), detection.get_distance()])
+        print(table(header=['Id', 'Training ID', 'Testing ID', 'Distance'], rows=rows))
+
+    def delete_detection(self, detection_id):
+        """ Delete a detection """
+        if self.has_detection_id(int(detection_id)):
+            self.main_dict.pop(int(detection_id))
+        else:
+            print_error('No such detection available.')
+
+    def create_new_detection(self):
+        """ Create a new detection. We must select the trained model and the unknown model """
+        # Generate the new id for this detection
+        try:
+            new_id = self.main_dict[list(self.main_dict.keys())[-1]].get_id() + 1
+        except (KeyError, IndexError):
+            new_id = 1
+        # Create the new object
+        new_detection = Detection(new_id)
+
+        # Get the training module
+        # 1- List all the structures in the db, so we can pick our type of module
+        structures = __database__.get_structures()
+        print_info('From which structure you want to pick up the trained model?:')
+        for structure in structures:
+            print_info('\t'+structure)
+        selection = raw_input('Name:')
+        selection = selection.strip()
+        # 2- Verify is there
+        try:
+            selected_training_structure = structures[selection]
+        except KeyError:
+            print_error('No such structure available.')
+            return False
+        # 3- Get the main dict and list the 'objects'
+        print_info('Select the training module to use:')
+        for object in selected_training_structure:
+            print '\t',
+            print_info(selected_training_structure[object])
+        model_training_id = raw_input('Id:')
+
+        print
+        # Get the testing module
+        # 1- List all the structures in the db, so we can pick our type of module
+        structures = __database__.get_structures()
+        print_info('From which structure you want to pick up the testing model?:')
+        for structure in structures:
+            print_info('\t'+structure)
+        selection = raw_input('Name:')
+        selection = selection.strip()
+        # 2- Verify is there
+        try:
+            selected_testing_structure = structures[selection]
+        except KeyError:
+            print_error('No such structure available.')
+            return False
+        # 3- Get the main dict and list the 'objects'
+        print_info('Select the testing module to use:')
+        for object in selected_testing_structure:
+            print '\t',
+            print_info(selected_testing_structure[object])
+        model_testing_id = raw_input('Id:')
+        # Store on DB the new detection
+        self.main_dict[new_id] = new_detection
+        print_info('New detection created with id {}'.format(new_id))
+        # Run the detection rutine
+        new_detection.detect(selected_training_structure, model_training_id, selected_testing_structure, model_testing_id)
+
+    def dectect_letter_by_letter(self, detection_id):
+        try:
+            detection = self.main_dict[detection_id]
+            detection.detect_letter_by_letter()
+        except KeyError:
+            print_error('No such detection id exists.')
+
+
+
+    # The run method runs every time that this command is used. Mandatory
+    def run(self):
+        ######### Mandatory part! don't delete ########################
+        # Register the structure in the database, so it is stored and use in the future. 
+        if not __database__.has_structure(Group_of_Detections().get_name()):
+            print_info('The structure is not registered.')
+            __database__.set_new_structure(Group_of_Detections())
+        else:
+            main_dict = __database__.get_new_structure(Group_of_Detections())
+            self.set_main_dict(main_dict)
+
+        # List general help. Don't modify.
+        def help():
+            self.log('info', self.description)
+
+        # Run
+        super(Group_of_Detections, self).run()
+        if self.args is None:
+            return
+        ######### End Mandatory part! ########################
+        
+
+        # Process the command line and call the methods. Here add your own parameters
+        if self.args.list:
+            self.list_detections()
+        elif self.args.new:
+            self.create_new_detection()
+        elif self.args.delete:
+            self.delete_detection(self.args.delete)
+        elif self.args.letter:
+            self.detect_letter_by_letter(self.args.letter)
+        else:
+            print_error('At least one of the parameter is required in this module')
+            self.usage()
