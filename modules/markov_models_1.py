@@ -12,10 +12,6 @@ import copy
 from stf.common.out import *
 from stf.common.abstracts import Module
 from stf.core.models import  __groupofgroupofmodels__ 
-#from stf.core.dataset import __datasets__
-#from stf.core.notes import __notes__
-#from stf.core.connections import  __group_of_group_of_connections__
-#from stf.core.models_constructors import __modelsconstructors__ 
 from stf.core.labels import __group_of_labels__
 from stf.core.database import __database__
 
@@ -62,6 +58,16 @@ class Markov_Model(persistent.Persistent):
         # Use deepcopy so we store a copy of the connections and not the connections themselves. This is needed because more connections can be added to the label, however the state in this markov chain will miss them
         self.connections = copy.deepcopy(connections)
 
+    def set_self_probability(self, prob):
+        """ Set the probability of detecting itself """
+        self.self_probability = prob
+
+    def get_self_probability(self):
+        try:
+            return self.self_probability
+        except AttributeError:
+            return False
+
     def count_connections(self):
         """ Return the amount of connections in the markov model """
         count = 0
@@ -72,6 +78,9 @@ class Markov_Model(persistent.Persistent):
 
     def get_init_vector(self):
         return self.init_vector
+
+    def set_matrix(self, matrix):
+        self.matrix = matrix
 
     def get_matrix(self):
         return self.matrix
@@ -88,6 +97,11 @@ class Markov_Model(persistent.Persistent):
             return False
         # Generate the MC
         self.init_vector, self.matrix = pykov.maximum_likelihood_probabilities(separated_letters, lag_time=1, separator='#')
+
+
+    def get_matrix(self):
+        """ Return the matrix """
+        return self.matrix
 
     def print_matrix(self):
         print_info('Matrix of the Markov Model {}'.format(self.get_id()))
@@ -213,8 +227,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             # Do we need to regenerate this mc?
             if current_connections == markov_model.get_connections():
                 needs_regenerate = False
-            rows.append([ markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate ])
-        print(table(header=['Id', 'State Len', '# Connections', 'Label', 'Needs Regenerate'], rows=rows))
+            rows.append([ markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate, markov_model.get_state()[0:100]])
+        print(table(header=['Id', 'State Len', '# Connections', 'Label', 'Needs Regenerate', 'First 100 Letters in State'], rows=rows))
 
 
     def create_new_model(self, label_name):
@@ -252,6 +266,9 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             markov_model.set_connections(connections)
             # Create the MM itself
             markov_model.create(markov_model.get_state())
+            # Generate the self probability
+            prob = markov_model.compute_probability(markov_model.get_state())
+            markov_model.set_self_probability(prob)
             # Store
             self.markov_models[mm_id] = markov_model
         else:
