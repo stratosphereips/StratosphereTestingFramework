@@ -165,6 +165,7 @@ class Group_of_Models(persistent.Persistent):
             new_model.set_constructor(__modelsconstructors__.get_default_constructor())
             for flow in connection.get_flows():
                 if not new_model.add_flow(flow):
+                    print new_model.get_id()
                     self.delete_model_by_id(new_model.get_id())
                     return False
             self.models[model_id] = new_model
@@ -293,7 +294,6 @@ class Group_of_Models(persistent.Persistent):
         p.communicate()
         sys.stdout = sys.__stdout__ 
         f.close()
-
 
     def delete_model_by_id(self, model_id):
         """ Delete one model given a model id """
