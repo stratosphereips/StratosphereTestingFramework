@@ -25,7 +25,6 @@ class File(persistent.Persistent):
         # Guess the file type to compute some of the info
         self.guess_type()
 
-
     def get_size_in_megabytes(self):
         try:
             size = self.size
@@ -100,6 +99,7 @@ class File(persistent.Persistent):
         self.type = type
 
     def get_type(self):
+        """ Returns the type of file """
         return self.type
 
     def get_binetflowinfos(self):
