@@ -161,7 +161,7 @@ class Detection(persistent.Persistent):
             model_training.set_self_probability(original_self_prob)
         else:
             final_position = amount
-        print_info('Distance up to {} letters: {}'.format(final_position, self.dict_of_distances[final_position-1]))
+        print_info('Letter by letter distance up to {} letters: {} (may differ from final one)'.format(final_position, self.dict_of_distances[final_position-1]))
         # Ascii plot
         p = ap.AFigure()
         x = range(len(self.dict_of_distances[0:final_position]))
