@@ -471,6 +471,7 @@ Now stf can import external modules that implement new functionality.
 
 
 ### TODO
+- Some biargus files forced several numbers in the state again!
 - Add a check before deleting big stuff
 - Add an automatic comparison of the current 'models' (e.g. markov models) with all the 'unknown' models in a new dataset.
 - When deleting a dataset, also delete all the connections in the labels that has that dataset.
