@@ -29,7 +29,11 @@ class Model(persistent.Persistent):
 
     def add_flow(self,flow):
         """ Get a flow and generate a state to store"""
-        self.state += self.constructor.get_state(flow, self.get_id())
+        state = self.constructor.get_state(flow, self.get_id())
+        if state:
+            self.state += state
+        else:
+            return False
 
     def set_constructor(self,constructor):
         """ Set the constructor of the model"""
