@@ -32,6 +32,7 @@ class Model(persistent.Persistent):
         state = self.constructor.get_state(flow, self.get_id())
         if state:
             self.state += state
+            return True
         else:
             return False
 
@@ -163,7 +164,8 @@ class Group_of_Models(persistent.Persistent):
             # Set the constructor for this model. Each model has a specific way of constructing the states
             new_model.set_constructor(__modelsconstructors__.get_default_constructor())
             for flow in connection.get_flows():
-                new_model.add_flow(flow)
+                if not new_model.add_flow(flow):
+                    return False
             self.models[model_id] = new_model
 
     def construct_filter(self,filter):
