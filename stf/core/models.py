@@ -165,7 +165,7 @@ class Group_of_Models(persistent.Persistent):
             new_model.set_constructor(__modelsconstructors__.get_default_constructor())
             for flow in connection.get_flows():
                 if not new_model.add_flow(flow):
-                    self.delete_model_by_id(model_id)
+                    self.delete_model_by_id(new_model.get_id())
                     return False
             self.models[model_id] = new_model
 
