@@ -238,7 +238,6 @@ class Model_Constructor(object):
 
         # Compute the new letters for the time of the periodicity.
         if not isinstance(model['T2'], bool):
-        #if model['T2']:
             if model['T2'] <= datetime.timedelta(seconds=5):
                 state += '.'
             elif model['T2'] <= datetime.timedelta(seconds=60):
