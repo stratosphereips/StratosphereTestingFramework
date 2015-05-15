@@ -606,12 +606,12 @@ class Group_Of_Connections(object):
             elif filter_key == 'flowlabel':
                 flowlabel = connection.get_label()
                 if operator == '=':
-                    if value == flowlabel:
+                    if value in flowlabel:
                         responses.append(True)
                     else:
                         responses.append(False)
                 elif operator == '!=':
-                    if value == flowlabel:
+                    if value in flowlabel:
                         responses.append(False)
                     else:
                         responses.append(True)
@@ -844,6 +844,7 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
             group = self.get_group(int(group_id))
             if group:
                 group.delete_connection_by_filter(filter)
+                # Add autonote
             else:
                 print_error('No group with that id')
         else:
