@@ -454,7 +454,7 @@ You can check that this was successful by inspecting the connections with ```con
 
 - There is a feature in **stf** that allows it to add text automaticaly to the notes of the dataset. This feature is used to insert notes on certain important operations that is good for the researcher to remember. For example, if you trim the amount of flows in the connections, **stf** will add a text in the dataset note with details of this operation.
 - **stf** also allow you to execute bash commands by using ! as the first letter. Therefore is easy to interact with other tools, such as tcpdump, tshark or the argus clients.
-- The filters can use the following keys. For connections: flowamount and name. For models: name, statelength. The operators in the filters are: <, >, = and !=
+- The filters can use the following keys. For connections: flowamount, flowlabel (the label in the original flow) and name. For models: name, statelength, labelname (the label assigned by stf). The operators in the filters are: <, >, = and !=
 - The listings of models and datasets include a column with the id of the note that is related to that object. You can edit notes directly with ```notes -e id```
 - Since the notes are stored as MarkDown text, it is nice to have some markdown support in your editor. In vi you can have nice colors and shortcuts.
 - You can limit the amount of flows to show with the command _connections -F_ so large connections can be visualized better.
@@ -471,14 +471,10 @@ Now stf can import external modules that implement new functionality.
 
 
 ### TODO
-- Some biargus files forced several numbers in the state again!
-- Add a check before deleting big stuff
+- Add autotext note when I delete models or connections
 - Add an automatic comparison of the current 'models' (e.g. markov models) with all the 'unknown' models in a new dataset.
 - When deleting a dataset, also delete all the connections in the labels that has that dataset.
 - When the stf is used from several locations, it can happend that some dataset commands do not work because the pcap file is not there. Capture these issues.
-- Show more info about the model constructor
-- Show table for each model constructor
-- Add autotext note when I delete models or connections
 - Relate the notes with the objects they reference. So after a search you can find the object again.
 - Print the duration and size in the model -L command.
 - Filter models by duration and size, so we can delete them better.
