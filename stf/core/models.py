@@ -117,6 +117,16 @@ class Model(persistent.Persistent):
             return self.label_name
         except:
             return ''
+    
+    def get_flow_label(self, model_group_id):
+        """ Returns the label in the first flow on the connections """
+        # Horrible to get the model group id in a parameter... i know
+        # Get the group of connections id
+        group_of_connections_id = int(model_group_id.split('-')[0])
+        group_of_connections = __group_of_group_of_connections__.get_group(group_of_connections_id)
+        # Get the flow label. This is horrible and we should not do it, but we need to access the first connection in the list... so just access the dict directly...
+        first_connection = group_of_connections.connections[group_of_connections.connections.keys()[0]]
+        return first_connection.get_label()
 
 
 
@@ -264,6 +274,18 @@ class Group_of_Models(persistent.Persistent):
                         responses.append(False)
                 elif operator == '!=':
                     if value not in labelname:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            elif key == 'flowlabel':
+                flowlabel = model.get_flow_label(self.get_id())
+                if operator == '=':
+                    if value in flowlabel:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if value not in flowlabel:
                         responses.append(True)
                     else:
                         responses.append(False)
