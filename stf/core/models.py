@@ -164,8 +164,10 @@ class Group_of_Models(persistent.Persistent):
             # Set the constructor for this model. Each model has a specific way of constructing the states
             new_model.set_constructor(__modelsconstructors__.get_default_constructor())
             for flow in connection.get_flows():
+                # Try to add the flow
                 if not new_model.add_flow(flow):
-                    self.delete_model_by_id(new_model.get_id())
+                    # The flows are not ordered. Delete the truckated models
+                    __groupofgroupofmodels__.delete_group_of_models(self.get_id())
                     return False
             self.models[model_id] = new_model
 
