@@ -307,6 +307,8 @@ class Group_of_Models(persistent.Persistent):
             model.del_note()
             # Now delete the model
             self.models.pop(model_id)
+            # Add an auto note
+            self.add_note_to_dataset('Model {} deleted from the group id {}.'.format(model.get_id(), self.get_id()))
             return True
         except KeyError:
             print_error('That model does not exists.')
@@ -314,22 +316,20 @@ class Group_of_Models(persistent.Persistent):
 
     def delete_model_by_filter(self, filter):
         """ Delete the models using the filter. Do not delete the related connections """
-        try:
-            # set the filter
-            self.construct_filter(filter)
-            amount = 0
-            ids_to_delete = []
-            for model in self.models.values():
-                if self.apply_filter(model):
-                    ids_to_delete.append(model.get_id())
-                    amount += 1
-            # We should delete the models AFTER finding them, if not, for some reason the following model after a match is missed.
-            for id in ids_to_delete:
-                self.delete_model_by_id(id)
-            print_info('Amount of modules deleted: {}'.format(amount))
-        except:
-            print_error('An error ocurred while deleting models by filter.')
-            print_error('Filter used: '.format(filter))
+        # set the filter
+        self.construct_filter(filter)
+        amount = 0
+        ids_to_delete = []
+        for model in self.models.values():
+            if self.apply_filter(model):
+                ids_to_delete.append(model.get_id())
+                amount += 1
+        # We should delete the models AFTER finding them, if not, for some reason the following model after a match is missed.
+        for id in ids_to_delete:
+            self.delete_model_by_id(id)
+        print_info('Amount of modules deleted: {}'.format(amount))
+        # Add an auto note
+        self.add_note_to_dataset('{} models deleted from the group id {} using the filter {}.'.format(amount, self.get_id(), filter))
 
     def count_models(self, filter=''):
         # set the filter
@@ -404,6 +404,18 @@ class Group_of_Models(persistent.Persistent):
             model.del_note()
         except KeyError:
             print_error('That model does not exists.')
+
+    def add_note_to_dataset(self, text_to_add):
+        """ Add an auto note to the dataset where this group of model belongs """
+        note_id = __datasets__.current.get_note_id()
+        if note_id:
+            __notes__.add_auto_text_to_note(note_id, text_to_add)
+        else:
+            # There was no not yet. Create it and add the text.
+            note_id = __notes__.new_note()
+            __datasets__.current.set_note_id(note_id)
+            __notes__.add_auto_text_to_note(note_id, text_to_add)
+
 
 
 ###############################
