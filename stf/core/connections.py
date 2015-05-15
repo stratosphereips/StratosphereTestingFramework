@@ -597,6 +597,19 @@ class Group_Of_Connections(object):
                         responses.append(True)
                     else:
                         responses.append(False)
+
+            elif filter_key == 'flowlabel':
+                flowlabel = connection.get_label()
+                if operator == '=':
+                    if value == flowlabel:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if value == flowlabel:
+                        responses.append(False)
+                    else:
+                        responses.append(True)
             else:
                 responses.append(False)
         for response in responses:
