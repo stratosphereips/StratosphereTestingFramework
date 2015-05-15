@@ -158,7 +158,7 @@ class Dataset(persistent.Persistent):
         binetflow_file_name = biargus_file_name_without_extension + '.binetflow'
         ra_path = Popen('bash -i -c "type ra"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
         if ra_path:
-            (ra_data,ra_error) = Popen('ra -F ./confs/ra.conf -n -Z b -r '+biargus_file_name+' > '+binetflow_file_name, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate()
+            (ra_data,ra_error) = Popen('ra -F ./confs/ra.conf -n -Z b -r '+biargus_file_name+'|sort -n > '+binetflow_file_name, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate()
             if not ra_error:
                 # Add the new biargus file to the dataset
                 self.add_file(binetflow_file_name)

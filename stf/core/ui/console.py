@@ -12,7 +12,7 @@ from stf.common.out import *
 from stf.core.plugins import __modules__
 
 
-version = "0.1.4alpha"
+version = "0.1.5alpha"
 
 def logo():
     print("""
