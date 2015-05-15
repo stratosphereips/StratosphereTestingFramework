@@ -242,6 +242,11 @@ class Connection(persistent.Persistent):
         self.flows[self.new_future_flow_id] = new_flow
         self.new_future_flow_id += 1
 
+    def get_label(self):
+        """ Return the label of the first flow in this connection """
+        first_flow = self.flows[0]
+        return first_flow.get_label()
+
     def get_id(self):
         return self.id
 
