@@ -660,10 +660,12 @@ class Group_Of_Connections(object):
             self.delete_connection_by_id(id)
             amount += 1
         print_info('Amount of connections deleted: {}'.format(amount))
+        # Add autonote
+        self.add_note_to_dataset('{} connections were deleted with the filter: {}.'.format(amount, filter))
 
 
     def delete_connections_if_model_deleted(self):
-        """ Delete the connections only of all the models related to that connection were deleted """
+        """ Delete the connections only if all the models related to that connection were deleted """
         from stf.core.models import __groupofgroupofmodels__
         amount = 0
         ids_to_delete = []
@@ -685,6 +687,8 @@ class Group_Of_Connections(object):
         for id in ids_to_delete:
             self.delete_connection_by_id(id)
         print_info('Amount of connections deleted: {}'.format(amount))
+        # Add autonote
+        self.add_note_to_dataset('{} connections were deleted because their model was deleted (-M)'.format(amount))
 
     def trim_flows(self, trim_amount):
         """ For each connection in this group, tell it  to trim the amount of flows """
@@ -844,7 +848,6 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
             group = self.get_group(int(group_id))
             if group:
                 group.delete_connection_by_filter(filter)
-                # Add autonote
             else:
                 print_error('No group with that id')
         else:
