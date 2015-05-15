@@ -257,6 +257,10 @@ class Datasets(persistent.Persistent):
 
     def delete(self, dataset_id): 
         """ Delete a dataset from the list of datasets """
+        # Verify the decision
+        input = raw_input('Are you sure you want to delete this dataset? (YES/NO): ')
+        if input != 'YES':
+            return False
         # Before deleting the dataset, delete the connections
         from stf.core.connections import __group_of_group_of_connections__
         __group_of_group_of_connections__.delete_group_of_connections(dataset_id)
