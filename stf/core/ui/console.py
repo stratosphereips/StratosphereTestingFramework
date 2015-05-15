@@ -201,10 +201,14 @@ class Console(object):
                     continue
 
                 # Check for output redirection
-                # If there is a > in the string, we assume the user wants to output to file.
                 filename = False
-                if '>' in data:
-                    data, filename = data.split('>')
+
+                # If there is a > in the string, we assume the user wants to output to file.
+                # We erase this because it was interfering with our > filter
+                #if '>' in data:
+                #    temp = data.split('>')
+                #    data = temp[0]
+                #    filename = temp[1]
                 
                 # If the input starts with an exclamation mark, we treat the
                 # input as a bash command and execute it.
