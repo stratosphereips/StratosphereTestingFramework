@@ -476,7 +476,5 @@ Now stf can import external modules that implement new functionality.
 - When the stf is used from several locations, it can happend that some dataset commands do not work because the pcap file is not there. Capture these issues.
 - Relate the notes with the objects they reference. So after a search you can find the object again.
 - Print the duration and size in the model -L command.
-- Filter models by duration and size, so we can delete them better.
-- Filter connectins without notes, so we don't have to see what we already analyzed.
 
 [stf]:https://stratosphereips.org/development-of-the-stratosphere-testing-framework.html "The Stratosphere Testing Framework"
