@@ -452,6 +452,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
             group = self.group_of_models[id]
         except KeyError:
             print_error('There is no such an id for a group of models.')
+            return False
         # First delete all the the models in the group
         ids_to_delete = []
         for model in group.get_models():
