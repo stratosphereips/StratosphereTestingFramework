@@ -429,7 +429,11 @@ class Group_of_Models(persistent.Persistent):
 
     def add_note_to_dataset(self, text_to_add):
         """ Add an auto note to the dataset where this group of model belongs """
-        note_id = __datasets__.current.get_note_id()
+        try:
+            note_id = __datasets__.current.get_note_id()
+        except AttributeError:
+            # The dataset may be already deleted?
+            pass
         if note_id:
             __notes__.add_auto_text_to_note(note_id, text_to_add)
         else:
