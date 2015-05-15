@@ -29,7 +29,12 @@ class Model(persistent.Persistent):
 
     def add_flow(self,flow):
         """ Get a flow and generate a state to store"""
-        self.state += self.constructor.get_state(flow, self.get_id())
+        state = self.constructor.get_state(flow, self.get_id())
+        if state:
+            self.state += state
+            return True
+        else:
+            return False
 
     def set_constructor(self,constructor):
         """ Set the constructor of the model"""
@@ -159,7 +164,11 @@ class Group_of_Models(persistent.Persistent):
             # Set the constructor for this model. Each model has a specific way of constructing the states
             new_model.set_constructor(__modelsconstructors__.get_default_constructor())
             for flow in connection.get_flows():
-                new_model.add_flow(flow)
+                # Try to add the flow
+                if not new_model.add_flow(flow):
+                    # The flows are not ordered. Delete the truckated models
+                    __groupofgroupofmodels__.delete_group_of_models(self.get_id())
+                    return False
             self.models[model_id] = new_model
 
     def construct_filter(self,filter):

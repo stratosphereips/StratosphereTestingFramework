@@ -105,7 +105,6 @@ class Dataset(persistent.Persistent):
         self.files[f_id] = f
         print_info('Added file {} to dataset {}'.format(filename, self.name))
 
-
     def get_folder(self):
         return self.folder 
 
