@@ -744,6 +744,9 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
             return self.group_of_connections[id]
         except KeyError:
             return False
+        except TypeError:
+            print_error('Group id should be a number.')
+            return False
 
     def create_group_of_connections(self):
         """ Create a group of connections for the current dataset """
