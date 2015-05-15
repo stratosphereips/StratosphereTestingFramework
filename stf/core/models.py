@@ -534,7 +534,11 @@ class Group_of_Group_of_Models(persistent.Persistent):
     def delete_a_model_from_the_group_by_id(self, group_of_models_id, model_id):
         # Get the id of the current dataset
         if __datasets__.current:
-            group_of_models = self.group_of_models[group_of_models_id]
+            try:
+                group_of_models = self.group_of_models[group_of_models_id]
+            except KeyError:
+                print_error('No such group of models id available.')
+                return False
             group_of_models.delete_model_by_id(model_id)
         else:
             # This is not necesary to work, but is a nice precaution
@@ -543,7 +547,11 @@ class Group_of_Group_of_Models(persistent.Persistent):
     def delete_a_model_from_the_group_by_filter(self, group_of_models_id, filter=''):
         # Get the id of the current dataset
         if __datasets__.current:
-            group_of_models = self.group_of_models[group_of_models_id]
+            try:
+                group_of_models = self.group_of_models[group_of_models_id]
+            except KeyError:
+                print_error('No such group of models id available.')
+                return False
             group_of_models.delete_model_by_filter(filter)
         else:
             # This is not necesary to work, but is a nice precaution
