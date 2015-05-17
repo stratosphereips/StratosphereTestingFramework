@@ -241,6 +241,11 @@ class Connection(persistent.Persistent):
         self.flows[self.new_future_flow_id] = new_flow
         self.new_future_flow_id += 1
 
+    def get_label(self):
+        """ Return the label of the first flow in this connection """
+        first_flow = self.flows[0]
+        return first_flow.get_label()
+
     def get_id(self):
         return self.id
 
@@ -404,7 +409,7 @@ class Group_Of_Connections(object):
 
             # Get all the dst data. The end is one before the last field. That we know is the label.
             dstudata_index_ends = len(temp_values) - 1
-            temp_dstudata = temp_values[dstudata_index_starts:dstudata_index_ends]
+                temp_dstudata = temp_values[dstudata_index_starts:dstudata_index_ends]
             dstudata = ''
             for j in temp_dstudata:
                 dstudata = dstudata + j
@@ -596,6 +601,19 @@ class Group_Of_Connections(object):
                         responses.append(True)
                     else:
                         responses.append(False)
+
+            elif filter_key == 'flowlabel':
+                flowlabel = connection.get_label()
+                if operator == '=':
+                    if value in flowlabel:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if value in flowlabel:
+                        responses.append(False)
+                    else:
+                        responses.append(True)
             else:
                 responses.append(False)
         for response in responses:
@@ -641,10 +659,12 @@ class Group_Of_Connections(object):
             self.delete_connection_by_id(id)
             amount += 1
         print_info('Amount of connections deleted: {}'.format(amount))
+        # Add autonote
+        self.add_note_to_dataset('{} connections were deleted with the filter: {}.'.format(amount, filter))
 
 
     def delete_connections_if_model_deleted(self):
-        """ Delete the connections only of all the models related to that connection were deleted """
+        """ Delete the connections only if all the models related to that connection were deleted """
         from stf.core.models import __groupofgroupofmodels__
         amount = 0
         ids_to_delete = []
@@ -666,6 +686,8 @@ class Group_Of_Connections(object):
         for id in ids_to_delete:
             self.delete_connection_by_id(id)
         print_info('Amount of connections deleted: {}'.format(amount))
+        # Add autonote
+        self.add_note_to_dataset('{} connections were deleted because their model was deleted (-M)'.format(amount))
 
     def trim_flows(self, trim_amount):
         """ For each connection in this group, tell it  to trim the amount of flows """
@@ -720,6 +742,9 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
         try:
             return self.group_of_connections[id]
         except KeyError:
+            return False
+        except TypeError:
+            print_error('Group id should be a number.')
             return False
 
     def create_group_of_connections(self):

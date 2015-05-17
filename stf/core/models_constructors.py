@@ -75,7 +75,7 @@ class Model_Constructor(object):
             model = self.models[model_id]
 
         # Compute the periodic
-        if not model['T1'] or not model['T2']:
+        if (isinstance(model['T1'], bool) and model['T1'] == False) or (isinstance(model['T2'], bool) and  model['T2'] == False):
             periodic = -1
         elif model['T2'] >= self.get_tto():
             # We convert it to int because we count the amount of complete hours that timeouted. The remaining time is not a timeout... 
@@ -86,7 +86,9 @@ class Model_Constructor(object):
             for i in range(int(t2_in_hours)):
                 state += '0'
 
-        if model['T1'] and model['T2']:
+        # We should get inside the next if only when T2 and T1 are not False. However, since also datatime(0) matches a False, we can only check to see if it is bool or not. 
+        # We are only using False when we start, so it is not necessary to check if it is False also.
+        if not isinstance(model['T1'], bool) and not isinstance(model['T2'], bool):
             # We have some values. See which is larger
             try:
                 if model['T2'] >= model['T1']:
@@ -239,7 +241,7 @@ class Model_Constructor(object):
         #print_info('Model: {}, T1: {}, T2: {}, TD:{}, Periodicity: {}, State: {}'.format(model_id, model['T1'], model['T2'], [TD.total_seconds() if not isinstance(TD,int) else -1], periodic, state))
 
         # Compute the new letters for the time of the periodicity.
-        if model['T2']:
+        if not isinstance(model['T2'], bool):
             if model['T2'] <= datetime.timedelta(seconds=5):
                 state += '.'
             elif model['T2'] <= datetime.timedelta(seconds=60):

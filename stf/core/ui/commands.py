@@ -248,7 +248,7 @@ class Commands(object):
         parser.add_argument('-d', '--delete', metavar="group_of_connections_id", help="Delete the group of connections.")
         parser.add_argument('-L', '--listconnections', metavar="group_connection_id", help="List the connections inside a group.")
         parser.add_argument('-F', '--showflows', metavar="connection_id", type=str, help="List the flows inside a specific connection.")
-        parser.add_argument('-f', '--filter', metavar="filter", nargs='+', help="Use this filter to work with connections. Format: \"variable[=<>]value\". You can use the variables: name, flowamount. Example: \"name=tcp\". Or \"flowamount<10\"")
+        parser.add_argument('-f', '--filter', metavar="filter", nargs='+', help="Use this filter to work with connections. Format: \"variable[!=<>]value\". You can use the variables: name, flowamount. Example: \"name=tcp\". Or \"flowamount<10\"")
         parser.add_argument('-D', '--deleteconnection', metavar="group_connection_id", help="Delete a connection from the group. This is the id of the group. Use -i to give the connection id to delete (4-tuple) or -f to use a filter.")
         parser.add_argument('-i', '--connectionid', metavar="connection_id", help="Use this connection id (4-tuple). Commonly used with -D.")
         parser.add_argument('-M', '--deleteconnectionifmodel', metavar="group_connection_id", help="Delete the connections from the group which models were deleted. Only give the connection group id. Useful to clean the  database of connections that are not used.")

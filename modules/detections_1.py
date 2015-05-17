@@ -116,6 +116,9 @@ class Detection(persistent.Persistent):
         model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
         model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
         # Dont repeat the computation if we already have the data
+        # Check the amount
+        if amount == -1:
+            amount = len(self.testing_states)
         if amount != -1 and amount > len(self.dict_of_distances):
             # Store the original matrix and prob for later
             original_matrix = model_training.get_matrix()
@@ -125,9 +128,6 @@ class Detection(persistent.Persistent):
                 training_original_prob = model_training.compute_probability(self.training_states)
                 model_training.set_self_probability(training_original_prob)
 
-            # Check the amount
-            if amount == -1:
-                amount = len(self.testing_states)
             # Only generate what we dont have, not all of it
             index = len(self.dict_of_distances)
             while index < len(self.testing_states) and index < amount:
@@ -161,7 +161,7 @@ class Detection(persistent.Persistent):
             model_training.set_self_probability(original_self_prob)
         else:
             final_position = amount
-        print_info('Letter by letter distance up to {} letters: {} (may differ from final one)'.format(final_position, self.dict_of_distances[final_position-1]))
+        print_info('Letter by letter distance up to {} letters: {} (may differ from final distance)'.format(final_position, self.dict_of_distances[final_position-1]))
         # Ascii plot
         p = ap.AFigure()
         x = range(len(self.dict_of_distances[0:final_position]))

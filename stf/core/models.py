@@ -117,6 +117,16 @@ class Model(persistent.Persistent):
             return self.label_name
         except:
             return ''
+    
+    def get_flow_label(self, model_group_id):
+        """ Returns the label in the first flow on the connections """
+        # Horrible to get the model group id in a parameter... i know
+        # Get the group of connections id
+        group_of_connections_id = int(model_group_id.split('-')[0])
+        group_of_connections = __group_of_group_of_connections__.get_group(group_of_connections_id)
+        # Get the flow label. This is horrible and we should not do it, but we need to access the first connection in the list... so just access the dict directly...
+        first_connection = group_of_connections.connections[group_of_connections.connections.keys()[0]]
+        return first_connection.get_label()
 
 
 
@@ -164,9 +174,11 @@ class Group_of_Models(persistent.Persistent):
             # Set the constructor for this model. Each model has a specific way of constructing the states
             new_model.set_constructor(__modelsconstructors__.get_default_constructor())
             for flow in connection.get_flows():
+                # Try to add the flow
                 if not new_model.add_flow(flow):
-                    print new_model.get_id()
                     self.delete_model_by_id(new_model.get_id())
+                    # The flows are not ordered. Delete the truckated models
+                    __groupofgroupofmodels__.delete_group_of_models(self.get_id())
                     return False
             self.models[model_id] = new_model
 
@@ -267,6 +279,18 @@ class Group_of_Models(persistent.Persistent):
                         responses.append(True)
                     else:
                         responses.append(False)
+            elif key == 'flowlabel':
+                flowlabel = model.get_flow_label(self.get_id())
+                if operator == '=':
+                    if value in flowlabel:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if value not in flowlabel:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
             else:
                 return False
 
@@ -306,6 +330,8 @@ class Group_of_Models(persistent.Persistent):
             model.del_note()
             # Now delete the model
             self.models.pop(model_id)
+            # Add an auto note
+            self.add_note_to_dataset('Model {} deleted from the group id {}.'.format(model.get_id(), self.get_id()))
             return True
         except KeyError:
             print_error('That model does not exists.')
@@ -313,22 +339,20 @@ class Group_of_Models(persistent.Persistent):
 
     def delete_model_by_filter(self, filter):
         """ Delete the models using the filter. Do not delete the related connections """
-        try:
-            # set the filter
-            self.construct_filter(filter)
-            amount = 0
-            ids_to_delete = []
-            for model in self.models.values():
-                if self.apply_filter(model):
-                    ids_to_delete.append(model.get_id())
-                    amount += 1
-            # We should delete the models AFTER finding them, if not, for some reason the following model after a match is missed.
-            for id in ids_to_delete:
-                self.delete_model_by_id(id)
-            print_info('Amount of modules deleted: {}'.format(amount))
-        except:
-            print_error('An error ocurred while deleting models by filter.')
-            print_error('Filter used: '.format(filter))
+        # set the filter
+        self.construct_filter(filter)
+        amount = 0
+        ids_to_delete = []
+        for model in self.models.values():
+            if self.apply_filter(model):
+                ids_to_delete.append(model.get_id())
+                amount += 1
+        # We should delete the models AFTER finding them, if not, for some reason the following model after a match is missed.
+        for id in ids_to_delete:
+            self.delete_model_by_id(id)
+        print_info('Amount of modules deleted: {}'.format(amount))
+        # Add an auto note
+        self.add_note_to_dataset('{} models deleted from the group id {} using the filter {}.'.format(amount, self.get_id(), filter))
 
     def count_models(self, filter=''):
         # set the filter
@@ -404,6 +428,22 @@ class Group_of_Models(persistent.Persistent):
         except KeyError:
             print_error('That model does not exists.')
 
+    def add_note_to_dataset(self, text_to_add):
+        """ Add an auto note to the dataset where this group of model belongs """
+        try:
+            note_id = __datasets__.current.get_note_id()
+        except AttributeError:
+            # The dataset may be already deleted?
+            pass
+        if note_id:
+            __notes__.add_auto_text_to_note(note_id, text_to_add)
+        else:
+            # There was no not yet. Create it and add the text.
+            note_id = __notes__.new_note()
+            __datasets__.current.set_note_id(note_id)
+            __notes__.add_auto_text_to_note(note_id, text_to_add)
+
+
 
 ###############################
 ###############################
@@ -451,6 +491,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
             group = self.group_of_models[id]
         except KeyError:
             print_error('There is no such an id for a group of models.')
+            return False
         # First delete all the the models in the group
         ids_to_delete = []
         for model in group.get_models():
@@ -532,7 +573,11 @@ class Group_of_Group_of_Models(persistent.Persistent):
     def delete_a_model_from_the_group_by_id(self, group_of_models_id, model_id):
         # Get the id of the current dataset
         if __datasets__.current:
-            group_of_models = self.group_of_models[group_of_models_id]
+            try:
+                group_of_models = self.group_of_models[group_of_models_id]
+            except KeyError:
+                print_error('No such group of models id available.')
+                return False
             group_of_models.delete_model_by_id(model_id)
         else:
             # This is not necesary to work, but is a nice precaution
@@ -541,7 +586,11 @@ class Group_of_Group_of_Models(persistent.Persistent):
     def delete_a_model_from_the_group_by_filter(self, group_of_models_id, filter=''):
         # Get the id of the current dataset
         if __datasets__.current:
-            group_of_models = self.group_of_models[group_of_models_id]
+            try:
+                group_of_models = self.group_of_models[group_of_models_id]
+            except KeyError:
+                print_error('No such group of models id available.')
+                return False
             group_of_models.delete_model_by_filter(filter)
         else:
             # This is not necesary to work, but is a nice precaution
