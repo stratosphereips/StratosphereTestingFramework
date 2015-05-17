@@ -126,7 +126,6 @@ class Model(persistent.Persistent):
         group_of_connections = __group_of_group_of_connections__.get_group(group_of_connections_id)
         # Get the flow label. This is horrible and we should not do it, but we need to access the first connection in the list... so just access the dict directly...
         connection = group_of_connections.connections[self.get_id()]
-        print connection.get_label()
         return connection.get_label()
 
 
