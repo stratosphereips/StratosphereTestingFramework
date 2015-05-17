@@ -255,6 +255,7 @@ class Group_of_Models(persistent.Persistent):
                     else:
                         responses.append(False)
             elif key == 'labelname':
+                # For filtering based on the label assigned to the model with stf (contrary to the flow label)
                 labelname = model.get_label_name()
                 if operator == '=':
                     if value in labelname:
