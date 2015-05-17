@@ -409,7 +409,7 @@ class Group_Of_Connections(object):
 
             # Get all the dst data. The end is one before the last field. That we know is the label.
             dstudata_index_ends = len(temp_values) - 1
-                temp_dstudata = temp_values[dstudata_index_starts:dstudata_index_ends]
+            temp_dstudata = temp_values[dstudata_index_starts:dstudata_index_ends]
             dstudata = ''
             for j in temp_dstudata:
                 dstudata = dstudata + j
