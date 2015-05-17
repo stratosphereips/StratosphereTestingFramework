@@ -125,8 +125,9 @@ class Model(persistent.Persistent):
         group_of_connections_id = int(model_group_id.split('-')[0])
         group_of_connections = __group_of_group_of_connections__.get_group(group_of_connections_id)
         # Get the flow label. This is horrible and we should not do it, but we need to access the first connection in the list... so just access the dict directly...
-        first_connection = group_of_connections.connections[group_of_connections.connections.keys()[0]]
-        return first_connection.get_label()
+        connection = group_of_connections.connections[self.get_id()]
+        print connection.get_label()
+        return connection.get_label()
 
 
 
@@ -434,7 +435,7 @@ class Group_of_Models(persistent.Persistent):
             note_id = __datasets__.current.get_note_id()
         except AttributeError:
             # The dataset may be already deleted?
-            pass
+            return False
         if note_id:
             __notes__.add_auto_text_to_note(note_id, text_to_add)
         else:
