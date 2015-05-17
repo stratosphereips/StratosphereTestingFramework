@@ -39,7 +39,6 @@ class Flow(object):
         # T2 is usually a timedelta. but it can be also False
         self.t2 = t2
 
-
     def set_td(self,td):
         self.td = float(td)
 
