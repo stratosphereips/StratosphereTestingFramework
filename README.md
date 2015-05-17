@@ -472,7 +472,7 @@ Now stf can import external modules that implement new functionality.
 
 ### TODO
 - Verify how the distances in the detections are computed
-- When deleting a dataset, also delete all the connections in the labels that has that dataset.
+- When deleting a dataset, also delete all the connections in the labels that had that dataset.
 - When the stf is used from several locations, it can happend that some dataset commands do not work because the pcap file is not there. Capture these issues.
 - Show more info about the model constructor
 - Show table for each model constructor
