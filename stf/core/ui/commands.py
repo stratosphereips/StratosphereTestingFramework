@@ -145,7 +145,7 @@ class Commands(object):
         parser.add_argument('-i', '--modelid', metavar="model_id", help="Use this model id (4-tuple). Commonly used with -D.")
         parser.add_argument('-L', '--listmodels', metavar="group_model_id", help="List the models inside a group. You can use filters.")
         parser.add_argument('-C', '--countmodels', metavar="group_model_id", help="Count the models inside a group.")
-        parser.add_argument('-f', '--filter', metavar="filter", nargs = '+', help="Use this filter to work with models. You can use multiple filter separated by a space. Format: \"variable[=<>]value\". You can use the variables: statelength, name and labelname. For example: -f statelength>100 name=tcp. Another example: -f name=-tcp- labelname=Botnet")
+        parser.add_argument('-f', '--filter', metavar="filter", nargs = '+', default="", help="Use this filter to work with models. You can use multiple filter separated by a space. Format: \"variable[=<>]value\". You can use the variables: statelength, name and labelname. For example: -f statelength>100 name=tcp. Another example: -f name=-tcp- labelname=Botnet")
         parser.add_argument('-H', '--histogram', metavar="group_model_id", help="Plot a histogram of the lengths of models states in the given id of group of models.")
         parser.add_argument('-N', '--delnote', metavar='group_model_id', help="Delete completely the note related with this model id. Use -i to give the model id to add the note to (4-tuple).")
         parser.add_argument('-n', '--editnote', metavar='group_model_id', help="Edit the note related with this model id. Use -i to give the model id to add the note to (4-tuple).")
@@ -178,12 +178,7 @@ class Commands(object):
 
         # Subcomand to list the models in a group
         elif args.listmodels:
-            filter = ''
-            try:
-                filter = args.filter
-            except AttributeError:
-                pass
-            __groupofgroupofmodels__.list_models_in_group(args.listmodels, filter, int(args.amountoflettersinstate))
+            __groupofgroupofmodels__.list_models_in_group(args.listmodels, args.filter, int(args.amountoflettersinstate))
 
         # Subcomand to delete a model from a group by id or filter
         elif args.deletemodel:
@@ -201,16 +196,12 @@ class Commands(object):
 
         # Subcomand to count the amount of models
         elif args.countmodels:
-            try:
-                filter = args.filter
-            except AttributeError:
-                pass
-            __groupofgroupofmodels__.count_models_in_group(args.countmodels, filter)
+            __groupofgroupofmodels__.count_models_in_group(args.countmodels, args.filter)
             __database__.root._p_changed = True
 
         # Subcomand to plot histogram of states lengths
         elif args.histogram:
-            __groupofgroupofmodels__.plot_histogram(args.histogram)
+            __groupofgroupofmodels__.plot_histogram(args.histogram, args.filter)
 
         # Subcomand to edit the note of this model
         elif args.editnote:
@@ -230,10 +221,6 @@ class Commands(object):
 
         # Subcomand to list the note of this model
         elif args.listnotes :
-            try:
-                filter = args.filter
-            except AttributeError:
-                pass
             __groupofgroupofmodels__.list_notes(args.listnotes, args.filter)
             __database__.root._p_changed = True
 
