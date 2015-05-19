@@ -328,8 +328,6 @@ class Group_of_Models(persistent.Persistent):
             model.del_note()
             # Now delete the model
             self.models.pop(model_id)
-            # Add an auto note
-            self.add_note_to_dataset('Model {} deleted from the group id {}.'.format(model.get_id(), self.get_id()))
             return True
         except KeyError:
             print_error('That model does not exists.')
@@ -440,7 +438,7 @@ class Group_of_Models(persistent.Persistent):
         if note_id:
             __notes__.add_auto_text_to_note(note_id, text_to_add)
         else:
-            # There was no not yet. Create it and add the text.
+            # There was no note yet. Create it and add the text.
             note_id = __notes__.new_note()
             __datasets__.current.set_note_id(note_id)
             __notes__.add_auto_text_to_note(note_id, text_to_add)
@@ -511,6 +509,8 @@ class Group_of_Group_of_Models(persistent.Persistent):
         self.group_of_models.pop(id)
         # Here we should put all the t1 and t2 of the models in zero somehow????
         print_info('Deleted group of models with id {}'.format(id))
+        # Add an auto note
+        self.add_note_to_dataset('Deleted group of models id {}.'.format(id))
 
     def delete_group_of_models_with_dataset_id(self, target_dataset_id):
         """Get the id of a dataset and delete all the models that were generated from it"""
@@ -595,6 +595,8 @@ class Group_of_Group_of_Models(persistent.Persistent):
                 print_error('No such group of models id available.')
                 return False
             group_of_models.delete_model_by_id(model_id)
+            # Add an auto note
+            self.add_note_to_dataset('Model {} deleted from the group of models id {}.'.format(model_id, group_of_models.get_id()))
         else:
             # This is not necesary to work, but is a nice precaution
             print_error('There is no dataset selected.')
