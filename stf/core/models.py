@@ -543,6 +543,20 @@ class Group_of_Group_of_Models(persistent.Persistent):
             # The id of this group of models is the id of the dataset + the id of the model constructor. Because we can have the same connnections modeled by different constructors.
             group_of_models_id = str(dataset_id) + '-' + str(__modelsconstructors__.get_default_constructor().get_id())
 
+            # If we already have a group of models, ask what to do
+            try:
+                group_of_models = self.group_of_models[group_of_models_id]
+                print_warning('There is already a group of models for this dataset. Do you want to delete the current models and create a new one?')
+                answer = raw_input('YES/NO?')
+                if answer == 'YES':
+                    # First delete the old models
+                    self.delete_group_of_models(group_of_models_id)
+                else:
+                    return False
+            except KeyError:
+                # first time. Not to repeat the code, we leave this empty and we do a new try
+                pass
+
             # Do we have the group of models for this id?
             try:
                 group_of_models = self.group_of_models[group_of_models_id]
