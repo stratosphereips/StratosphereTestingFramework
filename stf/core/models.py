@@ -180,7 +180,7 @@ class Group_of_Models(persistent.Persistent):
                     return False
             self.models[model_id] = new_model
 
-    def construct_filter(self,filter):
+    def construct_filter(self, filter):
         """ Get the filter string and decode all the operations """
         # If the filter string is empty, delete the filter variable
         if not filter:
@@ -222,7 +222,7 @@ class Group_of_Models(persistent.Persistent):
                     pass
             self.filter.append((key, operator, value))
 
-    def apply_filter(self,model):
+    def apply_filter(self, model):
         """ Use the stored filter to know what we should match"""
         responses = []
         try:
@@ -367,15 +367,19 @@ class Group_of_Models(persistent.Persistent):
         else:
             return False
 
-    def plot_histogram(self):
+    def plot_histogram(self, filter):
+        """ Plot the histogram of statelengths """
+        # Construct the filter
+        self.construct_filter(filter)
         """ Plot the histogram of length of states using an external tool """
         dist_path,error = Popen('bash -i -c "type distribution"', shell=True, stderr=PIPE, stdin=PIPE, stdout=PIPE).communicate()
         if not error:
             distribution_path = dist_path.split()[0]
             all_text_state = ''
             for model in self.get_models():
-                state_len = str(len(model.get_state()))
-                all_text_state += state_len + '\n'
+                if self.apply_filter(model):
+                    state_len = str(len(model.get_state()))
+                    all_text_state += state_len + '\n'
             print 'Key=Length of state'
             Popen('echo \"' + all_text_state + '\" |distribution --height=900 | sort -nk1', shell=True).communicate()
         else:
@@ -615,10 +619,10 @@ class Group_of_Group_of_Models(persistent.Persistent):
         except KeyError:
             print_error('No such group of models.')
 
-    def plot_histogram(self, group_of_models_id):
+    def plot_histogram(self, group_of_models_id, filter=""):
         try:
             group = self.group_of_models[group_of_models_id]
-            group.plot_histogram()
+            group.plot_histogram(filter)
         except KeyError:
             print_error('No such group of models.')
 
