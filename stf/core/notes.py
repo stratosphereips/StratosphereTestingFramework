@@ -136,10 +136,15 @@ class Group_of_Notes(persistent.Persistent):
 
     def list_notes(self):
         """ List all the notes """
-        rows = []
+        f = tempfile.NamedTemporaryFile()
         for note in self.get_notes():
-            print_info(cyan('Note {}'.format(note.get_id())))
-            print'{}'.format(note.get_text())
+            f.write(cyan('Note {}'.format(note.get_id())) + '\n')
+            f.write(note.get_text() + '\n')
+        f.flush()
+        p = Popen('less -R ' + f.name, shell=True, stdin=PIPE)
+        p.communicate()
+        sys.stdout = sys.__stdout__ 
+        f.close()
 
     def add_auto_text_to_note(self, note_id, text_to_add):
         """ Gets a text to be automatically added to the note. Used to log internal operations of the framework in the notes. Such as, the flows in this connection had been trimed """
