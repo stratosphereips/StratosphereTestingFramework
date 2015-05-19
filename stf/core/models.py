@@ -20,8 +20,6 @@ class Model(persistent.Persistent):
     def __init__(self, id):
         self.id = id
         self.state = ''
-        # To hold information stored by the constructors
-        self.constructor_info = {}
         self.note_id = False
 
     def get_id(self):
