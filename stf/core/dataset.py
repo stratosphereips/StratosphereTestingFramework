@@ -387,7 +387,7 @@ class Datasets(persistent.Persistent):
         try:
             self.current = self.datasets[int(dataset_id)]
             print_info('The current dataset is {} with id {}'.format(self.current.get_name(), self.current.get_id()))
-        except KeyError:
+        except (KeyError, ValueError):
             print_error('No such dataset id')
 
     def generate_argus_files(self):
