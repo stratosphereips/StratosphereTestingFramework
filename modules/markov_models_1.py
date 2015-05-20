@@ -201,6 +201,13 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         """ Set the main dict where we store the info. From the database"""
         self.markov_models = dict
 
+    def get_markov_model_by_label_id(self, id):
+        """ Search a markov model by label id """
+        for markov_model in self.get_markov_models():
+            if markov_model.get_label_id() == id:
+                return True
+        return False
+
     def get_markov_model(self, id):
         try:
             return self.markov_models[id]
@@ -361,7 +368,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         """ Read all the labels and generate all the markov models if they dont already have one """
         labels = __group_of_labels__.get_labels()
         for label in labels:
-            if not self.get_markov_model(label.get_name()):
+            if not self.get_markov_model_by_label_id(label.get_id()):
                 # We dont have it
                 self.create_new_model(label.get_name())
 
