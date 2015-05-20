@@ -184,6 +184,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete this markov chain. Give the markov chain id.')
         self.parser.add_argument('-p', '--printstate', metavar='printstate', help='Print the chain of states of all the models included in this markov chain. Give the markov chain id.')
         self.parser.add_argument('-r', '--regenerate', metavar='regenerate', help='Regenerate the markov chain. Usually because more connections were added to the label. Give the markov chain id.')
+        self.parser.add_argument('-a', '--generateall', action='store_true', help='Generate the markov chain for all the labels that don\'t have one already')
 
     # Mandatory Method!
     def get_name(self):
@@ -201,7 +202,10 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         self.markov_models = dict
 
     def get_markov_model(self, id):
-        return self.markov_models[id]
+        try:
+            return self.markov_models[id]
+        except KeyError:
+            return False
 
     def get_markov_models(self):
         return self.markov_models.values()
@@ -353,6 +357,13 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         markov_model.create(markov_model.get_state())
         print_info('Markov model {} regenerated.'.format(markov_model_id))
 
+    def generate_all_models(self):
+        """ Read all the labels and generate all the markov models if they dont already have one """
+        labels = __group_of_labels__.get_labels()
+        for label in labels:
+            if not self.get_markov_model(label.get_name()):
+                # We dont have it
+                self.create_new_model(label.get_name())
 
 
 
@@ -390,6 +401,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             self.printstate(self.args.printstate)
         elif self.args.regenerate:
             self.regenerate(self.args.regenerate)
+        elif self.args.generateall:
+            self.generate_all_models()
         else:
             print_error('At least one of the parameter is required in this module')
             self.usage()
