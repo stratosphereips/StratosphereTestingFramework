@@ -19,6 +19,7 @@ from stf.core.models_constructors import __modelsconstructors__
 from stf.core.models import __groupofgroupofmodels__
 from stf.core.notes import __notes__
 from stf.core.labels import __group_of_labels__ 
+from stf.core.plugins import __modules__
 
 class Commands(object):
 
