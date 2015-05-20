@@ -172,7 +172,9 @@ class Group_Of_Labels(persistent.Persistent):
         matches = []
         rows = []
         for label in self.get_labels():
-            if str(name) in label.get_name():
+            # Take the name of the label except the last id
+            temp_name = '-'.join(label.get_name().split('-')[0:-1])
+            if str(name) == temp_name:
                 matches.append(label.get_name())
                 rows.append([label.get_id(), label.get_name(), label.get_group_of_model_id(), label.get_connections()])
 
