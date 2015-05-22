@@ -167,22 +167,30 @@ class Group_Of_Labels(persistent.Persistent):
                     print_info('Found in label: {}'.format(label.get_name()))
                     return label.get_id()
 
-    def search_label_name(self, name, verbose = True, exact = True):
-        """ Given a name, return the labels that match. Exact true means EXACT. Exact false means any substring. """
+    def search_label_name(self, name, verbose = True, exact = 1):
+        """ Given a name, return the labels that match. exact=1 means exact mathching of the name without the final number, and exact=3 means any substring of the name without the final number. """
         matches = []
         rows = []
-        # if the name does have a final number at the end, strip it. So we can actually compare labels
-        lastpart = name.split('-')[-1]
-        if isinstance(lastpart, int):
-            name = '-'.join(name.split('-')[0:-1])
         for label in self.get_labels():
             # Take the name of the label except the last id
             temp_name = '-'.join(label.get_name().split('-')[0:-1])
-            if exact:
+            if exact == 1:
                 if str(name) == temp_name:
                     matches.append(label.get_name())
                     rows.append([label.get_id(), label.get_name(), label.get_group_of_model_id(), label.get_connections()])
-            elif not exact:
+            elif exact == 2:
+                # Exact without the last id
+                lastpart = name.split('-')[-1]
+                try:
+                    lastpart = int(lastpart)
+                    # New name without the last int
+                    shortname = '-'.join(name.split('-')[0:-1])
+                    if str(shortname) == temp_name:
+                        matches.append(label.get_name())
+                        rows.append([label.get_id(), label.get_name(), label.get_group_of_model_id(), label.get_connections()])
+                except ValueError:
+                    matches.append(False)
+            elif exact == 3:
                 if str(name) in temp_name:
                     matches.append(label.get_name())
                     rows.append([label.get_id(), label.get_name(), label.get_group_of_model_id(), label.get_connections()])
@@ -232,7 +240,7 @@ class Group_Of_Labels(persistent.Persistent):
                     label_id = 1
                 name = self.decide_a_label_name(connection_id)
                 if name:
-                    previous_label = self.search_label_name(name, verbose=False, exact=True)
+                    previous_label = self.search_label_name(name, verbose=False, exact=1)
                     if previous_label:
                         label = self.get_label(name)
                         label.add_connection(group_of_model_id, connection_id)
@@ -306,10 +314,20 @@ class Group_Of_Labels(persistent.Persistent):
         # First choose amount the current labels
         print_info('Current Labels')
         self.list_labels()
-        selection = raw_input('Select a label id or Enter to create a new one:')
+        selection = raw_input('Select a label Id to assign the same label BUT with a new final number to the current connection. Or press Enter to create a new one:')
         try:
+            # Get the label selected with an id
             label = self.get_label_by_id(int(selection))
-            return label.get_name()
+            # Get its name
+            name = label.get_name()
+            # Now get all the labels named the same (except the last number)
+            matches = self.search_label_name(name, verbose=False, exact=2)
+            last_name = matches[-1]
+            last_id = int(last_name.split('-')[-1])
+            last_name_without_id = '-'.join(last_name.split('-')[0:-1])
+            new_id = last_id + 1
+            new_name = last_name_without_id + '-' + str(new_id)
+            return new_name
         except ValueError:
             pass
 
@@ -364,7 +382,7 @@ class Group_Of_Labels(persistent.Persistent):
 
         # Separator id
         # Search for labels with this 'name' so far
-        matches = self.search_label_name(name_so_far, verbose=True, exact = True)
+        matches = self.search_label_name(name_so_far, verbose=True, exact = 3)
         if matches:
             print_info("There are other labels with a similar name. You can enter 'NEW' to create a new label with this name and a new id. Or you can input the label ID to add this connection to that label. Any other input will stop the creation of the label to let you inspect the content of the labels.")
             text = raw_input().strip()
