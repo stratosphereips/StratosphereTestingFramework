@@ -171,6 +171,8 @@ class Group_Of_Labels(persistent.Persistent):
         """ Given a name, return the labels that match """
         matches = []
         rows = []
+        # if the name does have a final number at the end, strip it. So we can actually compare labels
+        name = '-'.join(name.split('-')[0:-1])
         for label in self.get_labels():
             # Take the name of the label except the last id
             temp_name = '-'.join(label.get_name().split('-')[0:-1])
