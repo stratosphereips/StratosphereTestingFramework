@@ -168,11 +168,13 @@ class Group_Of_Labels(persistent.Persistent):
                     return label.get_id()
 
     def search_label_name(self, name, verbose = True, exact = True):
-        """ Given a name, return the labels that match """
+        """ Given a name, return the labels that match. Exact true means EXACT. Exact false means any substring. """
         matches = []
         rows = []
         # if the name does have a final number at the end, strip it. So we can actually compare labels
-        name = '-'.join(name.split('-')[0:-1])
+        lastpart = name.split('-')[-1]
+        if isinstance(lastpart, int):
+            name = '-'.join(name.split('-')[0:-1])
         for label in self.get_labels():
             # Take the name of the label except the last id
             temp_name = '-'.join(label.get_name().split('-')[0:-1])
