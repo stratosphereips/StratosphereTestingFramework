@@ -471,11 +471,14 @@ Now stf can import external modules that implement new functionality.
 
 
 ### TODO
+- Live analysis
+- Fix argus timeout/long report times
+- Concurrency in db?
+- Copy between dbs?
+- Add an automatic comparison of the current 'models' (e.g. markov models) with all the 'unknown' models in a new dataset.
 - Verify how the distances in the detections are computed
 - When deleting a dataset, also delete all the connections in the labels that had that dataset.
-- Add an automatic comparison of the current 'models' (e.g. markov models) with all the 'unknown' models in a new dataset.
 - When the stf is used from several locations, it can happend that some dataset commands do not work because the pcap file is not there. Capture these issues.
 - Relate the notes with the objects they reference. So after a search you can find the object again.
-- Print the duration and size in the model -L command.
 
 [stf]:https://stratosphereips.org/development-of-the-stratosphere-testing-framework.html "The Stratosphere Testing Framework"
