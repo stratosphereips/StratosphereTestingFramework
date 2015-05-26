@@ -596,7 +596,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
                 return False
             group_of_models.delete_model_by_id(model_id)
             # Add an auto note
-            self.add_note_to_dataset('Model {} deleted from the group of models id {}.'.format(model_id, group_of_models.get_id()))
+            group_of_models.add_note_to_dataset('Model {} deleted from the group of models id {}.'.format(model_id, group_of_models.get_id()))
         else:
             # This is not necesary to work, but is a nice precaution
             print_error('There is no dataset selected.')
