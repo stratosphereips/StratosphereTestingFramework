@@ -510,7 +510,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
         # Here we should put all the t1 and t2 of the models in zero somehow????
         print_info('Deleted group of models with id {}'.format(id))
         # Add an auto note
-        self.add_note_to_dataset('Deleted group of models id {}.'.format(id))
+        group.add_note_to_dataset('Deleted group of models id {}.'.format(id))
 
     def delete_group_of_models_with_dataset_id(self, target_dataset_id):
         """Get the id of a dataset and delete all the models that were generated from it"""
