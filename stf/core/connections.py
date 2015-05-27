@@ -253,7 +253,7 @@ class Connection(persistent.Persistent):
         return self.flows.values()
 
     def show_flows(self):
-        all_text=''
+        all_text=yellow("StartTime,Dur,Proto,SrcAddr,Sport,Dir,DstAddr,Dport,State,sTos,dTos,TotPkts,TotBytes,SrcBytes,srcUdata,dstUdata,Label\n")
         for flow_id in self.flows:
             all_text = all_text + self.flows[flow_id].return_flow_info() + '\n'
         f = tempfile.NamedTemporaryFile()
