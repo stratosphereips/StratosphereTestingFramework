@@ -471,7 +471,6 @@ Now stf can import external modules that implement new functionality.
 
 
 ### TODO
-- When deleting a dataset, also delete all the connections in the labels that had that dataset.
 - Live analysis
 - Fix argus timeout/long report times
 - Concurrency in db?
