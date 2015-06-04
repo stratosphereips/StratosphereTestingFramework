@@ -55,7 +55,7 @@ class Markov_Model(persistent.Persistent):
         return self.connections
     
     def set_connections(self, connections):
-        # Use deepcopy so we store a copy of the connections and not the connections themselves. This is needed because more connections can be added to the label, however the state in this markov chain will miss them
+        # Use deepcopy so we store a copy of the connections and not the connections themselves. This is needed because more connections can be added to the label, however the state in this markov chain will miss them. Also because the original connections can be deleted
         self.connections = copy.deepcopy(connections)
 
     def set_self_probability(self, prob):
@@ -231,7 +231,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 label = __group_of_labels__.get_label_by_id(markov_model.get_label_id())
                 label_name = label.get_name()
             except KeyError:
-                print_error('The label used in the markov model {} does not exist anymore. You should delete the markov chain (It will not appear in the list).'.format(markov_model.get_id()))
+                print_error('The label used in the markov model {} does not exist anymore. You should delete the markov chain manually (The markov chain {} does not appear in the following list).'.format(markov_model.get_id(),markov_model.get_id()))
                 continue
             current_connections = label.get_connections_complete()
             needs_regenerate = True
