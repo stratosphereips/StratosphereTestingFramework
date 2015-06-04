@@ -20,7 +20,7 @@ class Label(persistent.Persistent):
     def __init__(self,id):
         self.id = id
         self.name = ''
-        # This holds all the connections in the label
+        # This holds all the connections IDs in the label
         self.connections = {}
 
     def get_id(self):
@@ -436,6 +436,10 @@ class Group_Of_Labels(persistent.Persistent):
                     group_of_model_id = str(dataset_id) + '-1' 
                     label.change_dataset_id_to_group_of_models_id(dataset_id, group_of_model_id)
                     print_info('\tMigrated')
+
+    def delete_all_labels_from_dataset(self, dataset_id):
+        """ Given a dataset id, delete all the connections from that dataset from the labels """
+        pass
 
 
 __group_of_labels__ = Group_Of_Labels()
