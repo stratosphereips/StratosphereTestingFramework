@@ -178,8 +178,17 @@ class Detection(persistent.Persistent):
     def check_need_for_regeneration(self):
         """ Check if the training or testing of this detection changed since we use them """
         structures = __database__.get_structures()
-        current_training_model_len = len(structures[self.training_structure_name][int(self.model_training_id)].get_state())
-        current_testing_model_len = len(structures[self.testing_structure_name][int(self.model_testing_id)].get_state())
+        try:
+            current_training_model_len = len(structures[self.training_structure_name][int(self.model_training_id)].get_state())
+        except KeyError:
+            print_warning('Warning! In detection id {}, the training model was deleted. However, this detection can still be used.'.format(self.get_id()))
+            return False
+        try:
+            current_testing_model_len = len(structures[self.testing_structure_name][int(self.model_testing_id)].get_state())
+        except KeyError:
+            print_warning('Warning! In detection id {}, the testing model was deleted. However, this detection can still be used.'.format(self.get_id()))
+            return False
+
         if len(self.training_states) != current_training_model_len or len(self.testing_states) != current_testing_model_len:
             return True
         else:
