@@ -168,7 +168,7 @@ class Markov_Model(persistent.Persistent):
 ######################
 class Group_of_Markov_Models_1(Module, persistent.Persistent):
     cmd = 'markov_models_1'
-    description = 'This module implements markov chains of first order over the letters in the chains of states in a LABEL.'
+    description = 'This module implements markov chains of first order over the letters in the chains of states in a LABEL. ' + yellow('Warning') + ', if the original models or labels are deleted, you should fix these models by hand.'
     authors = ['Sebastian Garcia']
     # Markov Models main dictionary
     markov_models = BTrees.OOBTree.BTree()
