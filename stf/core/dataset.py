@@ -258,6 +258,7 @@ class Datasets(persistent.Persistent):
     def delete(self, dataset_id): 
         """ Delete a dataset from the list of datasets """
         # Verify the decision
+        print_warning('Warning! The connections and models created from this dataset WILL be deleted. However, all the labels created from this dataset WILL NOT be deleted (due to their associations with third-party modules). You should delete the labels by hand.')
         input = raw_input('Are you sure you want to delete this dataset? (YES/NO): ')
         if input != 'YES':
             return False
