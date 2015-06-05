@@ -47,7 +47,7 @@ class Template_Object(persistent.Persistent):
 
     # Mandatory __repr__ module. Something you want to identify each object with. Usefull for selecting objects later
     def __repr__(self):
-        return('Id:'+self.get_id())
+        return('Id:' + str(self.get_id()))
 
 
 
