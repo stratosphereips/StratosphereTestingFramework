@@ -153,7 +153,6 @@ class Console(object):
             if state < len(cmds):
                 return cmds[state]
 
-
             # Then autocomplete paths.
             if text.startswith("~"):
                 text = "{0}{1}".format(os.getenv("HOME"), text[1:])
