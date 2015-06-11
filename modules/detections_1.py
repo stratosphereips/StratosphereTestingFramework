@@ -114,7 +114,13 @@ class Detection(persistent.Persistent):
         """
         # Get the models. But don't store them... they are 'heavy'
         model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
+        if not model_training:
+            print_error('The training model was possibly deleted. We can not re-run a letter by letter comparison.')
+            return False
         model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
+        if not model_testing:
+            print_error('The testing model was possibly deleted. We can not re-run a letter by letter comparison.')
+            return False
         # Dont repeat the computation if we already have the data
         # Check the amount
         if amount == -1:
@@ -227,9 +233,10 @@ class Group_of_Detections(Module, persistent.Persistent):
         # Example of a parameter with arguments
         self.parser.add_argument('-n', '--new', action='store_true', help='Create a new detection. You will be prompted to select the trained model and the \'unknown\' model.')
         self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete the detection id.')
-        self.parser.add_argument('-L', '--letter', type=int, metavar='letter', help='Compare the distances between the models letter-by-letter. Give the detection id. Optionally you can use -a to analize a fixed amount of letters. An ascii plot is generated.')
+        self.parser.add_argument('-L', '--letterbyletter', type=int, metavar='id', help='Compare and print the distances between the models letter-by-letter. Give the detection id. Optionally you can use -a to analize a fixed amount of letters. An ascii plot is generated.')
         self.parser.add_argument('-a', '--amount', type=int, default=-1, metavar='amount', help='Amount of letters to compare in the letter-by-letter comparison.')
         self.parser.add_argument('-r', '--regenerate', metavar='regenerate', type=int, help='Regenerate the detection. Used when the original training or testing models changed. Give the detection id.')
+        self.parser.add_argument('-p', '--print', metavar='print', type=int, help='Print the values of the letter by letter comparison. No graph.')
 
     def get_name(self):
         """ Return the name of the module"""
@@ -340,6 +347,7 @@ class Group_of_Detections(Module, persistent.Persistent):
             detection.detect_letter_by_letter(amount)
         except KeyError:
             print_error('No such detection id exists.')
+            return False
 
     def regenerate(self, detection_id):
         """ Regenerate """
@@ -380,8 +388,8 @@ class Group_of_Detections(Module, persistent.Persistent):
             self.create_new_detection()
         elif self.args.delete:
             self.delete_detection(self.args.delete)
-        elif self.args.letter:
-            self.detect_letter_by_letter(self.args.letter, self.args.amount)
+        elif self.args.letterbyletter:
+            self.detect_letter_by_letter(self.args.letterbyletter, self.args.amount)
         elif self.args.regenerate:
             self.regenerate(self.args.regenerate)
         else:
