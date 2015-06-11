@@ -174,10 +174,12 @@ class Group_Of_Labels(persistent.Persistent):
         for label in self.get_labels():
             # Take the name of the label except the last id
             temp_name = '-'.join(label.get_name().split('-')[0:-1])
+            # Exact 2 is a complete match with the given string. Original label has the id truncated
             if exact == 1:
                 if str(name) == temp_name:
                     matches.append(label.get_name())
                     rows.append([label.get_id(), label.get_name(), label.get_group_of_model_id(), label.get_connections()])
+            # Exact 2 is a complete match with the given string. Original label has the id truncaed
             elif exact == 2:
                 # Exact without the last id
                 lastpart = name.split('-')[-1]
@@ -190,6 +192,7 @@ class Group_Of_Labels(persistent.Persistent):
                         rows.append([label.get_id(), label.get_name(), label.get_group_of_model_id(), label.get_connections()])
                 except ValueError:
                     matches.append(False)
+            # Exact 3 is any partial match with the given string. Original label has the id truncaed
             elif exact == 3:
                 if str(name) in temp_name:
                     matches.append(label.get_name())
