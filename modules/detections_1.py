@@ -215,10 +215,10 @@ class Detection(persistent.Persistent):
         if not self.dict_of_distances:
             print_warning('Please first run -L to compute the letter by letter distances.')
             return False
-        print_info('Letter index | Distance Value')
+        print_info('\tLetter Index | Training Letter | Testing Letter | Distance Value')
         index = 0
         while index < len(self.dict_of_distances):
-            print_info('\t{}\t|{}'.format(index, self.dict_of_distances[index]))
+            print_info('\t\t{}|\t\t{}|\t\t{}|\t\t{}'.format(index, self.training_states[index], self.testing_states[index], self.dict_of_distances[index]))
             index += 1
 
 
