@@ -519,7 +519,7 @@ class Commands(object):
 
         # Subcomand to search label names
         elif args.search:
-            __group_of_labels__.search_label_name(args.search, verbose=True, exact = False)
+            __group_of_labels__.search_label_name(args.search, verbose=True, exact=3)
 
         # Subcomand to search a connection in the label
         elif args.searchconnection:
