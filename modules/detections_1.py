@@ -210,6 +210,17 @@ class Detection(persistent.Persistent):
         self.detect(self.training_structure_name, structure_training, self.model_training_id, self.testing_structure_name, structure_testing, self.model_testing_id)
         # Empty the dict of distances
 
+    def print_comparison(self):
+        """ Print the letter by letter values of the comparison """
+        if not self.dict_of_distances:
+            print_warning('Please first run -L to compute the letter by letter distances.')
+            return False
+        print_info('Letter index | Distance Value')
+        index = 0
+        while index < len(self.dict_of_distances):
+            print_info('\t{}\t|{}'.format(index, self.dict_of_distances[index]))
+            index += 1
+
 
 
 ######################
@@ -236,7 +247,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         self.parser.add_argument('-L', '--letterbyletter', type=int, metavar='id', help='Compare and print the distances between the models letter-by-letter. Give the detection id. Optionally you can use -a to analize a fixed amount of letters. An ascii plot is generated.')
         self.parser.add_argument('-a', '--amount', type=int, default=-1, metavar='amount', help='Amount of letters to compare in the letter-by-letter comparison.')
         self.parser.add_argument('-r', '--regenerate', metavar='regenerate', type=int, help='Regenerate the detection. Used when the original training or testing models changed. Give the detection id.')
-        self.parser.add_argument('-p', '--print', metavar='print', type=int, help='Print the values of the letter by letter comparison. No graph.')
+        self.parser.add_argument('-p', '--print-comparison', metavar='id', type=int, help='Print the values of the letter by letter comparison. No graph.')
 
     def get_name(self):
         """ Return the name of the module"""
@@ -357,6 +368,13 @@ class Group_of_Detections(Module, persistent.Persistent):
         except KeyError:
             print_error('No such detection id exists.')
 
+    def print_comparison(self, detection_id):
+        """ Print the comparison letter by letter using the actual values """
+        try:
+            detection = self.main_dict[detection_id]
+            detection.print_comparison()
+        except KeyError:
+            print_error('No such detection id exists.')
 
 
     # The run method runs every time that this command is used. Mandatory
@@ -392,6 +410,8 @@ class Group_of_Detections(Module, persistent.Persistent):
             self.detect_letter_by_letter(self.args.letterbyletter, self.args.amount)
         elif self.args.regenerate:
             self.regenerate(self.args.regenerate)
+        elif self.args.print_comparison:
+            self.print_comparison(self.args.print_comparison)
         else:
             print_error('At least one of the parameter is required in this module')
             self.usage()
