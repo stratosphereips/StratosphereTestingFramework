@@ -217,7 +217,7 @@ class Detection(persistent.Persistent):
             return False
         print_info('\tLetter Index | Training Letter | Testing Letter | Distance Value')
         index = 0
-        while index < len(self.dict_of_distances):
+        while index < len(self.dict_of_distances) and index < len(self.training_states) and index < len(self.testing_states):
             print_info('\t\t{}|\t\t{}|\t\t{}|\t\t{}'.format(index, self.training_states[index], self.testing_states[index], self.dict_of_distances[index]))
             index += 1
 
