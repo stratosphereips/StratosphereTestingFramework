@@ -194,7 +194,7 @@ class Group_Of_Labels(persistent.Persistent):
                     matches.append(False)
             # Exact 3 is any partial match with the given string. Original label has the id truncaed
             elif exact == 3:
-                if str(name) in temp_name:
+                if str(name).lower() in temp_name.lower():
                     matches.append(label.get_name())
                     rows.append([label.get_id(), label.get_name(), label.get_group_of_model_id(), label.get_connections()])
 
