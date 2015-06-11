@@ -157,7 +157,7 @@ class Markov_Model(persistent.Persistent):
             label_name = label.get_name()
         except KeyError:
             label_name = 'Deleted'
-        current_connections = label.get_connections_complete()
+        #current_connections = label.get_connections_complete()
         response = "Id:"+str(self.get_id())+", Label: "+label_name+", State Len:"+str(len(self.get_state()))+", #Conns:"+str(self.count_connections())+", First 50 states: "+self.get_state()[0:50]
         return(response)
 
