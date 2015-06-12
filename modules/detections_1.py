@@ -60,6 +60,12 @@ class Detection(persistent.Persistent):
     def get_training_id(self):
         return self.model_training_id
 
+    def set_training_id(self, model_training_id):
+        self.model_training_id = model_training_id
+
+    def set_testing_id(self, model_testing_id):
+        self.model_testing_id = model_testing_id
+
     def get_training_structure_name(self):
         return self.training_structure_name
 
@@ -74,9 +80,9 @@ class Detection(persistent.Persistent):
 
     def detect(self, training_structure_name,  structure_training, model_training_id, testing_structure_name, structure_testing, model_testing_id):
         """ Perform the detection between the testing model and the training model"""
-        self.model_training_id = model_training_id
+        self.set_model_training_id(model_training_id)
+        self.set_model_testing_id(model_testing_id)
         self.structure_training = structure_training
-        self.model_testing_id = model_testing_id
         self.structure_testing = structure_testing
         self.training_structure_name = training_structure_name
         self.testing_structure_name = testing_structure_name
@@ -221,6 +227,25 @@ class Detection(persistent.Persistent):
             print_info('\t\t{}|\t\t{}|\t\t{}|\t\t{}'.format(index, self.training_states[index], self.testing_states[index], self.dict_of_distances[index]))
             index += 1
 
+    def get_training_label(self):
+        """ Get the training label of the training model """
+        model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
+        label = __group_of_labels__.get_label_by_id(model_training.get_label_id())
+        if label:
+            labelname = label.get_name()
+        else:
+            labelname = 'Deleted'
+        return labelname
+
+    def get_testing_label(self):
+        """ Get the testing label of the training model """
+        model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
+        label = __group_of_labels__.get_label_by_id(model_testing.get_label_id())
+        if label:
+            labelname = label.get_name()
+        else:
+            labelname = 'Deleted'
+        return labelname
 
 
 
@@ -282,8 +307,10 @@ class Group_of_Detections(Module, persistent.Persistent):
         rows = []
         for detection in self.get_detections():
             regenerate = detection.check_need_for_regeneration()
-            rows.append([ detection.get_id(), detection.get_training_structure_name() + ': ' + str(detection.get_training_id()), detection.get_testing_structure_name() + ': ' + str(detection.get_testing_id()), detection.get_distance(), regenerate])
-        print(table(header=['Id', 'Training ID', 'Testing ID', 'Distance', 'Needs Regenerate'], rows=rows))
+            training_label = detection.get_training_label()
+            testing_label = detection.get_testing_label()
+            rows.append([ detection.get_id(), detection.get_training_structure_name() + ': ' + str(detection.get_training_id()) + ' (' + training_label + ')', detection.get_testing_structure_name() + ': ' + str(detection.get_testing_id()) + ' (' + testing_label + ')', detection.get_distance(), regenerate])
+        print(table(header=['Id', 'Training', 'Testing', 'Distance', 'Needs Regenerate'], rows=rows))
 
     def delete_detection(self, detection_id):
         """ Delete a detection """
