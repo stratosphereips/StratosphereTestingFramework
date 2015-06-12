@@ -145,6 +145,9 @@ class Group_Of_Labels(persistent.Persistent):
         except TypeError:
             print_error('The label id should be integer.')
             return False
+        except KeyError:
+            # The label was probably deleted.
+            return False
 
     def get_label_name_by_id(self, label_id):
         """ Get the name of the label by its id"""
