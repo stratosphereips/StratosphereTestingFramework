@@ -80,7 +80,7 @@ class Detection(persistent.Persistent):
         self.structure_testing = structure_testing
         self.training_structure_name = training_structure_name
         self.testing_structure_name = testing_structure_name
-        # Get the models. But don't store them... they are 'heavy'
+        # Get the models. But don't store them... they are too 'heavy'
         model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
         model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
         print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
@@ -90,6 +90,10 @@ class Detection(persistent.Persistent):
         # Get the original probability of detecting the training state in the training module
         self.training_original_prob = model_training.compute_probability(self.training_states)
         print_info('Probability of detecting the training model with the training model: {}'.format(self.training_original_prob))
+        # Compute the distance with the cut training chain of states
+        len_testing_chain = len(self.testing_states)
+        self.distance = self.detect_letter_by_letter(len_testing_chain)
+        """
         # Get the prob of detecting the complete testing state
         self.testing_final_prob = model_training.compute_probability(self.testing_states)
         print_info('Probability of detecting the testing model with the training model: {}'.format(self.testing_final_prob))
@@ -104,6 +108,7 @@ class Detection(persistent.Persistent):
                 self.distance = self.testing_final_prob / self.training_original_prob
             except ZeroDivisionError:
                 self.distance = -1
+        """
         print_info('Final Distance: {}'.format(self.distance))
 
     def detect_letter_by_letter(self, amount):
@@ -167,19 +172,14 @@ class Detection(persistent.Persistent):
             model_training.set_self_probability(original_self_prob)
         else:
             final_position = amount
-        print_info('Letter by letter distance up to {} letters: {} (may differ from final distance)'.format(final_position, self.dict_of_distances[final_position-1]))
+        print_info('Letter by letter distance up to {} letters: {}'.format(final_position, self.dict_of_distances[final_position-1]))
+        # Return the final distance.
         # Ascii plot
         p = ap.AFigure()
         x = range(len(self.dict_of_distances[0:final_position]))
         y = self.dict_of_distances[0:final_position]
-        # Lower all the distances more than 5
-        #i = 0
-        #while i < len(y):
-        #    if y[i] > 5:
-        #        y[i] = -1
-        #    i += 1
-        #print p.plot(x, y, marker='_.')
         print p.plot(x, y, marker='_of')
+        return self.dict_of_distances[final_position-1]
 
     def check_need_for_regeneration(self):
         """ Check if the training or testing of this detection changed since we use them """
@@ -282,7 +282,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         rows = []
         for detection in self.get_detections():
             regenerate = detection.check_need_for_regeneration()
-            rows.append([ detection.get_id(), str(detection.get_training_id())+' in '+detection.get_training_structure_name(), str(detection.get_testing_id())+' in '+detection.get_testing_structure_name(), detection.get_distance(), regenerate])
+            rows.append([ detection.get_id(), detection.get_training_structure_name() + ': ' + str(detection.get_training_id()), detection.get_testing_structure_name() + ': ' + str(detection.get_testing_id()), detection.get_distance(), regenerate])
         print(table(header=['Id', 'Training ID', 'Testing ID', 'Distance', 'Needs Regenerate'], rows=rows))
 
     def delete_detection(self, detection_id):
