@@ -138,7 +138,7 @@ class Markov_Model(persistent.Persistent):
                 i += 1
                 if temp_prob != float('-inf'):                
                     probability = probability + temp_prob # logs should be +
-                    #print_info('Transition [{}:{}]: {} -> Prob:{:.10f}. Our so far: {}. Real so far: {}'.format(i-1, i,vector, temp_prob, probability, self.matrix.walk_probability(growing_v)))
+                    #print_info('Transition [{}:{}]: {} -> Prob:{:.10f}. Our type of prob so far: {}. Real MC prob so far: {}'.format(i-1, i,vector, temp_prob, probability, self.matrix.walk_probability(growing_v)))
                 else:
                     # Here is our trick. If two letters are not in the matrix... ignore the transition.
                     if '#' not in vector:
@@ -410,8 +410,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         dist_path,error = Popen('bash -i -c "type distribution"', shell=True, stderr=PIPE, stdin=PIPE, stdout=PIPE).communicate()
         if not error:
             distribution_path = dist_path.split()[0]
-            list_of_letters = ''.join([i+'\n' for i in list(state)])
-            print 'Key=Amount of letters'
+            list_of_letters = ''.join([i+'\n' for i in list(state)])[0:65535]
+            print 'Key=Amount of letters (up to the first 65536 letters)'
             Popen('echo \"' + list_of_letters + '\" |distribution --height=50 | sort -nk1', shell=True).communicate()
         else:
             print_error('For ploting the histogram we use the tool https://github.com/philovivero/distribution. Please install it in the system to enable this command.')
