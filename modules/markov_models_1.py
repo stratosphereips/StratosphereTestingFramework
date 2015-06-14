@@ -152,10 +152,10 @@ class Markov_Model(persistent.Persistent):
         return probability       
 
     def __repr__(self):
-        try:
-            label = __group_of_labels__.get_label_by_id(self.get_label_id())
+        label = __group_of_labels__.get_label_by_id(self.get_label_id())
+        if label:
             label_name = label.get_name()
-        except KeyError:
+        else:
             label_name = 'Deleted'
         #current_connections = label.get_connections_complete()
         response = "Id:"+str(self.get_id())+", Label: "+label_name+", State Len:"+str(len(self.get_state()))+", #Conns:"+str(self.count_connections())+", First 50 states: "+self.get_state()[0:50]
