@@ -227,10 +227,10 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         print_info('First Order Markov Models')
         rows = []
         for markov_model in self.get_markov_models():
-            try:
-                label = __group_of_labels__.get_label_by_id(markov_model.get_label_id())
+            label = __group_of_labels__.get_label_by_id(markov_model.get_label_id())
+            if label:
                 label_name = label.get_name()
-            except KeyError:
+            else:
                 print_error('The label used in the markov model {} does not exist anymore. You should delete the markov chain manually (The markov chain {} does not appear in the following list).'.format(markov_model.get_id(),markov_model.get_id()))
                 continue
             current_connections = label.get_connections_complete()
