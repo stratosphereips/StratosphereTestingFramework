@@ -471,6 +471,7 @@ Now stf can import external modules that implement new functionality.
 
 
 ### TODO
+- Only compare when the upper most protocol matches. TCP with TCP, UDP with UDP, ICMP with ICMP.
 - Add an automatic comparison of the current 'models' (e.g. markov models) with all the 'unknown' models in a new dataset.
 - Add notes to detections
 - Live analysis
