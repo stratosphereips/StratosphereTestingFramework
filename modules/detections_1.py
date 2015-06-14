@@ -57,13 +57,13 @@ class Detection(persistent.Persistent):
             print_error('No such id available.')
             return False
 
-    def get_training_id(self):
+    def get_model_training_id(self):
         return self.model_training_id
 
-    def set_training_id(self, model_training_id):
+    def set_model_training_id(self, model_training_id):
         self.model_training_id = model_training_id
 
-    def set_testing_id(self, model_testing_id):
+    def set_model_testing_id(self, model_testing_id):
         self.model_testing_id = model_testing_id
 
     def get_training_structure_name(self):
@@ -309,7 +309,7 @@ class Group_of_Detections(Module, persistent.Persistent):
             regenerate = detection.check_need_for_regeneration()
             training_label = detection.get_training_label()
             testing_label = detection.get_testing_label()
-            rows.append([ detection.get_id(), detection.get_training_structure_name() + ': ' + str(detection.get_training_id()) + ' (' + training_label + ')', detection.get_testing_structure_name() + ': ' + str(detection.get_testing_id()) + ' (' + testing_label + ')', detection.get_distance(), regenerate])
+            rows.append([ detection.get_id(), detection.get_training_structure_name() + ': ' + str(detection.get_model_training_id()) + ' (' + training_label + ')', detection.get_testing_structure_name() + ': ' + str(detection.get_testing_id()) + ' (' + testing_label + ')', detection.get_distance(), regenerate])
         print(table(header=['Id', 'Training', 'Testing', 'Distance', 'Needs Regenerate'], rows=rows))
 
     def delete_detection(self, detection_id):
