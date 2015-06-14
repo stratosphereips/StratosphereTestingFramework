@@ -191,7 +191,8 @@ class Detection(persistent.Persistent):
                     self.prob_distance = 1
 
                 self.dict_of_distances.insert(index, self.prob_distance)
-                #print_info('Seq: {} -> O_LogProb: {}, T_LogProb: {}, Dist: {}'.format(test_sequence, self.training_original_prob, temp_prob, self.prob_distance))
+                #print_info('Trai Seq: {}'.format(train_sequence))
+                #print_info('Test Seq: {} -> O_LogProb: {}, T_LogProb: {}, Dist: {}'.format(test_sequence, self.training_original_prob, temp_prob, self.prob_distance))
                 index += 1
             final_position = index
             # Put back the original matrix and values in the model
@@ -247,6 +248,7 @@ class Detection(persistent.Persistent):
         while index < len(self.dict_of_distances) and index < len(self.training_states) and index < len(self.testing_states):
             print_info('\t\t{}|\t\t{}|\t\t{}|\t\t{}'.format(index, self.training_states[index], self.testing_states[index], self.dict_of_distances[index]))
             index += 1
+        print_info('(The list only prints until the length of the shorter model)')
 
     def get_training_label(self):
         """ Get the training label of the training model """
