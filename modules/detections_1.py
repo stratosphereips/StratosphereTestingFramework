@@ -60,6 +60,9 @@ class Detection(persistent.Persistent):
     def get_model_training_id(self):
         return self.model_training_id
 
+    def get_model_testing_id(self):
+        return self.model_testing_id
+
     def set_model_training_id(self, model_training_id):
         self.model_training_id = model_training_id
 
@@ -72,20 +75,38 @@ class Detection(persistent.Persistent):
     def get_testing_structure_name(self):
         return self.testing_structure_name
 
+    def set_testing_structure_name(self, testing_structure_name):
+        self.testing_structure_name = testing_structure_name
+
+    def set_training_structure_name(self, training_structure_name):
+        self.training_structure_name = training_structure_name
+
     def get_testing_id(self):
         return self.model_testing_id
 
     def get_distance(self):
         return self.distance
 
+    def get_structure_testing(self):
+        return self.structure_testing
+
+    def get_structure_training(self):
+        return self.structure_training
+
+    def set_structure_training(self, structure_training):
+        self.structure_training = structure_training
+
+    def set_structure_testing(self, structure_testing):
+        self.structure_testing = structure_testing
+
     def detect(self, training_structure_name,  structure_training, model_training_id, testing_structure_name, structure_testing, model_testing_id):
         """ Perform the detection between the testing model and the training model"""
         self.set_model_training_id(model_training_id)
         self.set_model_testing_id(model_testing_id)
-        self.structure_training = structure_training
-        self.structure_testing = structure_testing
-        self.training_structure_name = training_structure_name
-        self.testing_structure_name = testing_structure_name
+        self.set_structure_training(structure_training)
+        self.set_structure_testing(structure_testing)
+        self.set_training_structure_name(training_structure_name)
+        self.set_testing_structure_name(testing_structure_name)
         # Get the models. But don't store them... they are too 'heavy'
         model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
         model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
@@ -229,8 +250,16 @@ class Detection(persistent.Persistent):
 
     def get_training_label(self):
         """ Get the training label of the training model """
-        model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
-        label = __group_of_labels__.get_label_by_id(model_training.get_label_id())
+        try:
+            model_training = self.get_model_from_id(self.get_structure_training(), self.get_model_training_id())
+        except AttributeError:
+            labelname = 'Deleted'
+            return labelname
+        try:
+            label = __group_of_labels__.get_label_by_id(model_training.get_label_id())
+        except AttributeError:
+            labelname = 'Deleted'
+            return labelname
         if label:
             labelname = label.get_name()
         else:
@@ -239,8 +268,16 @@ class Detection(persistent.Persistent):
 
     def get_testing_label(self):
         """ Get the testing label of the training model """
-        model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
-        label = __group_of_labels__.get_label_by_id(model_testing.get_label_id())
+        try:
+            model_testing = self.get_model_from_id(self.get_structure_testing(), self.get_model_testing_id())
+        except AttributeError:
+            labelname = 'Deleted'
+            return labelname
+        try:
+            label = __group_of_labels__.get_label_by_id(model_testing.get_label_id())
+        except AttributeError:
+            labelname = 'Deleted'
+            return labelname
         if label:
             labelname = label.get_name()
         else:
