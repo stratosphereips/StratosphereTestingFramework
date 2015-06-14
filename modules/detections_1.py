@@ -172,7 +172,7 @@ class Detection(persistent.Persistent):
                 test_sequence = self.testing_states[0:index+1]
                 train_sequence = self.training_states[0:index+1]
                 # First re-create the matrix only for this sequence
-                model_training.create(test_sequence)
+                ## model_training.create(test_sequence)
                 # Get the new original prob so far...
                 self.training_original_prob = model_training.compute_probability(train_sequence)
                 # Now obtain the probability for testing
@@ -192,7 +192,7 @@ class Detection(persistent.Persistent):
 
                 self.dict_of_distances.insert(index, self.prob_distance)
                 #print_info('Trai Seq: {}'.format(train_sequence))
-                #print_info('Test Seq: {} -> O_LogProb: {}, T_LogProb: {}, Dist: {}'.format(test_sequence, self.training_original_prob, temp_prob, self.prob_distance))
+                #print_info('Test Seq: {} -> Ori_LogProb: {}, Test_LogProb: {}, Dist: {}'.format(test_sequence, self.training_original_prob, temp_prob, self.prob_distance))
                 index += 1
             final_position = index
             # Put back the original matrix and values in the model
