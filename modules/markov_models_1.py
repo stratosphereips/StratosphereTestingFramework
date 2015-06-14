@@ -8,6 +8,7 @@ import pykov
 import BTrees.OOBTree
 from subprocess import Popen, PIPE
 import copy
+import re
 
 from stf.common.out import *
 from stf.common.abstracts import Module
@@ -151,6 +152,15 @@ class Markov_Model(persistent.Persistent):
             #ignored = 0
         return probability       
 
+    def get_label(self):
+        """ Return the label name"""
+        label = __group_of_labels__.get_label_by_id(self.get_label_id())
+        if label:
+            label_name = label.get_name()
+        else:
+            print_error('The label used in the markov model {} does not exist anymore. You should delete the markov chain manually (The markov chain {} does not appear in the following list).'.format(markov_model.get_id(),markov_model.get_id()))
+        return label
+            
     def __repr__(self):
         label = __group_of_labels__.get_label_by_id(self.get_label_id())
         if label:
@@ -180,11 +190,12 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         self.parser.add_argument('-l', '--list', action='store_true', help='List the markov models already applied')
         self.parser.add_argument('-g', '--generate', metavar='generate', help='Generate the markov chain for this label. Give label name.')
         self.parser.add_argument('-m', '--printmatrix', metavar='printmatrix', help='Print the markov chains matrix of the given markov model id.')
-        self.parser.add_argument('-s', '--simulate', metavar='simulate', help='Use this markov chain to generate a new simulated chain of states. Give the markov chain id. The length is now fixed in 100 states.')
+        self.parser.add_argument('-S', '--simulate', metavar='simulate', help='Use this markov chain to generate a new simulated chain of states. Give the markov chain id. The length is now fixed in 100 states.')
         self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete this markov chain. Give the markov chain id.')
         self.parser.add_argument('-p', '--printstate', metavar='printstate', help='Print the chain of states of all the models included in this markov chain. Give the markov chain id.')
         self.parser.add_argument('-r', '--regenerate', metavar='regenerate', help='Regenerate the markov chain. Usually because more connections were added to the label. Give the markov chain id.')
         self.parser.add_argument('-a', '--generateall', action='store_true', help='Generate the markov chain for all the labels that don\'t have one already')
+        self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the markov models. For example for listing. Keywords: name.Usage: name=<text>. Partial matching.')
 
     # Mandatory Method!
     def get_name(self):
@@ -223,24 +234,98 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         except KeyError:
             print_error('That markov model id does not exists.')
 
-    def list_markov_models(self):
+    def construct_filter(self, filter):
+        """ Get the filter string and decode all the operations """
+        # If the filter string is empty, delete the filter variable
+        if not filter:
+            try:
+                del self.filter 
+            except:
+                pass
+            return True
+        self.filter = []
+        # Get the individual parts. We only support and's now.
+        for part in filter:
+            # Get the key
+            try:
+                key = re.split('<|>|=|\!=', part)[0]
+                value = re.split('<|>|=|\!=', part)[1]
+            except IndexError:
+                # No < or > or = or != in the string. Just stop.
+                break
+            try:
+                part.index('<')
+                operator = '<'
+            except ValueError:
+                pass
+            try:
+                part.index('>')
+                operator = '>'
+            except ValueError:
+                pass
+            # We should search for != before =
+            try:
+                part.index('!=')
+                operator = '!='
+            except ValueError:
+                # Now we search for =
+                try:
+                    part.index('=')
+                    operator = '='
+                except ValueError:
+                    pass
+            self.filter.append((key, operator, value))
+
+    def apply_filter(self, model):
+        """ Use the stored filter to know what we should match"""
+        responses = []
+        try:
+            self.filter
+        except AttributeError:
+            # If we don't have any filter string, just return true and show everything
+            return True
+        # Check each filter
+        for filter in self.filter:
+            key = filter[0]
+            operator = filter[1]
+            value = filter[2]
+            if key == 'name':
+                # For filtering based on the label assigned to the model with stf (contrary to the flow label)
+                label = model.get_label()
+                labelname = label.get_name()
+                if operator == '=':
+                    if value in labelname:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if value not in labelname:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            else:
+                return False
+
+        for response in responses:
+            if not response:
+                return False
+        return True
+
+    def list_markov_models(self, filter):
+        self.construct_filter(filter)
         print_info('First Order Markov Models')
         rows = []
         for markov_model in self.get_markov_models():
-            label = __group_of_labels__.get_label_by_id(markov_model.get_label_id())
-            if label:
+            if self.apply_filter(markov_model):
+                label = markov_model.get_label()
                 label_name = label.get_name()
-            else:
-                print_error('The label used in the markov model {} does not exist anymore. You should delete the markov chain manually (The markov chain {} does not appear in the following list).'.format(markov_model.get_id(),markov_model.get_id()))
-                continue
-            current_connections = label.get_connections_complete()
-            needs_regenerate = True
-            # Do we need to regenerate this mc?
-            if current_connections == markov_model.get_connections():
-                needs_regenerate = False
-            rows.append([ markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate, markov_model.get_state()[0:100]])
+                current_connections = label.get_connections_complete()
+                needs_regenerate = True
+                # Do we need to regenerate this mc?
+                if current_connections == markov_model.get_connections():
+                    needs_regenerate = False
+                rows.append([ markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate, markov_model.get_state()[0:100]])
         print(table(header=['Id', 'State Len', '# Connections', 'Label', 'Needs Regenerate', 'First 100 Letters in State'], rows=rows))
-
 
     def create_new_model(self, label_name):
         """ Given a label name create a new markov chain object"""
@@ -395,7 +480,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         
         # Process the command line
         if self.args.list:
-            self.list_markov_models()
+            self.list_markov_models(self.args.filter)
         elif self.args.generate:
             self.create_new_model(self.args.generate)
         elif self.args.printmatrix:
