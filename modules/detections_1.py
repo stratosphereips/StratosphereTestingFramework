@@ -110,6 +110,9 @@ class Detection(persistent.Persistent):
         # Get the models. But don't store them... they are too 'heavy'
         model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
         model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
+        if not model_testing or not model_training:
+            print_error('Id is incorrect.')
+            return False
         print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
         # Get the states 
         self.training_states = model_training.get_state()
