@@ -316,7 +316,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         self.parser.add_argument('-a', '--amount', type=int, default=-1, metavar='amount', help='Amount of letters to compare in the letter-by-letter comparison.')
         self.parser.add_argument('-r', '--regenerate', metavar='regenerate', type=int, help='Regenerate the detection. Used when the original training or testing models changed. Give the detection id.')
         self.parser.add_argument('-p', '--print-comparison', metavar='id', type=int, help='Print the values of the letter by letter comparison. No graph.')
-        self.parser.add_argument('-c', '--compareall', metavar='structure', help='Compare all the models between themselves in the structure specified. The comparisons are not repeted if the already exists. For example: -a markov_models_1')
+        self.parser.add_argument('-c', '--compareall', metavar='structure', help='Compare all the models between themselves in the structure specified. The comparisons are not repeted if the already exists. For example: -a markov_models_1. You can force a maximun amount of letters to compare with -a.')
 
     def get_name(self):
         """ Return the name of the module"""
@@ -458,7 +458,7 @@ class Group_of_Detections(Module, persistent.Persistent):
                 break
         return response
 
-    def compare_all(self, structure_name):
+    def compare_all(self, structure_name, amount):
         """ Compare all the models between themselves in the specified structure. Do not repeat the comparison if it already exists """
         structures = __database__.get_structures()
         try:
@@ -488,7 +488,7 @@ class Group_of_Detections(Module, persistent.Persistent):
                     self.main_dict[new_id] = new_detection
                     print_info('\tNew detection created with id {}'.format(new_id))
                     # Run the detection rutine
-                    new_detection.detect(structure_name, structure, train_model_id, structure_name, structure, test_model_id)
+                    new_detection.detect(structure_name, structure, train_model_id, structure_name, structure, test_model_id, amount)
 
     # The run method runs every time that this command is used. Mandatory
     def run(self):
@@ -526,7 +526,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         elif self.args.print_comparison:
             self.print_comparison(self.args.print_comparison)
         elif self.args.compareall:
-            self.compare_all(self.args.compareall)
+            self.compare_all(self.args.compareall, self.args.amount)
         else:
             print_error('At least one of the parameter is required in this module')
             self.usage()
