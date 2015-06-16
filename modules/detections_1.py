@@ -35,6 +35,7 @@ class Detection(persistent.Persistent):
         self.testing_states = ""
         self.training_original_prob = -1
         self.testing_final_prob = -1
+        # The distances between the models for EACH letter. The index in the dict is the index letter in the testing chain of state
         self.dict_of_distances = []
         self.distance = -1
         self.struture_training = -1
@@ -200,7 +201,9 @@ class Detection(persistent.Persistent):
         # Store the amount used if it is larger than the previous one stored
         if self.get_amount() < final_position:
             self.set_amount(final_position)
-        print_info('Letter by letter distance up to {} letters: {}'.format(final_position, self.dict_of_distances[final_position-1]))
+            # Update the final distance of this detection because we compute more letters
+            self.distance = self.dict_of_distances[final_position-1]
+        print_info('Letter by letter distance up to {} letters: {}'.format(final_position, red(self.dict_of_distances[final_position-1])))
         # Return the final distance.
         # Ascii plot
         p = ap.AFigure()
@@ -349,7 +352,7 @@ class Group_of_Detections(Module, persistent.Persistent):
             regenerate = detection.check_need_for_regeneration()
             training_label = detection.get_training_label()
             testing_label = detection.get_testing_label()
-            rows.append([ detection.get_id(), detection.get_training_structure_name() + ': ' + str(detection.get_model_training_id()) + ' (' + training_label + ')', detection.get_testing_structure_name() + ': ' + str(detection.get_model_testing_id()) + ' (' + testing_label + ')', str(detection.get_distance()) + '( ' + str(detection.get_amount()) + ' letters )', regenerate])
+            rows.append([ detection.get_id(), detection.get_training_structure_name() + ': ' + str(detection.get_model_training_id()) + ' (' + training_label + ')', detection.get_testing_structure_name() + ': ' + str(detection.get_model_testing_id()) + ' (' + testing_label + ')', str(detection.get_distance()) + ' ( ' + str(detection.get_amount()) + ' letters )', regenerate])
         print(table(header=['Id', 'Training', 'Testing', 'Distance', 'Needs Regenerate'], rows=rows))
 
     def delete_detection(self, detection_id):
