@@ -81,7 +81,7 @@ class Detection(persistent.Persistent):
     def set_training_structure_name(self, training_structure_name):
         self.training_structure_name = training_structure_name
 
-    def get_testing_id(self):
+    def get_model_testing_id(self):
         return self.model_testing_id
 
     def get_distance(self):
@@ -316,6 +316,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         self.parser.add_argument('-a', '--amount', type=int, default=-1, metavar='amount', help='Amount of letters to compare in the letter-by-letter comparison.')
         self.parser.add_argument('-r', '--regenerate', metavar='regenerate', type=int, help='Regenerate the detection. Used when the original training or testing models changed. Give the detection id.')
         self.parser.add_argument('-p', '--print-comparison', metavar='id', type=int, help='Print the values of the letter by letter comparison. No graph.')
+        self.parser.add_argument('-c', '--compareall', metavar='structure', help='Compare all the models between themselves in the structure specified. The comparisons are not repeted if the already exists. For example: -a markov_models_1')
 
     def get_name(self):
         """ Return the name of the module"""
@@ -351,7 +352,7 @@ class Group_of_Detections(Module, persistent.Persistent):
             regenerate = detection.check_need_for_regeneration()
             training_label = detection.get_training_label()
             testing_label = detection.get_testing_label()
-            rows.append([ detection.get_id(), detection.get_training_structure_name() + ': ' + str(detection.get_model_training_id()) + ' (' + training_label + ')', detection.get_testing_structure_name() + ': ' + str(detection.get_testing_id()) + ' (' + testing_label + ')', detection.get_distance(), regenerate])
+            rows.append([ detection.get_id(), detection.get_training_structure_name() + ': ' + str(detection.get_model_training_id()) + ' (' + training_label + ')', detection.get_testing_structure_name() + ': ' + str(detection.get_model_testing_id()) + ' (' + testing_label + ')', detection.get_distance(), regenerate])
         print(table(header=['Id', 'Training', 'Testing', 'Distance', 'Needs Regenerate'], rows=rows))
 
     def delete_detection(self, detection_id):
@@ -446,6 +447,47 @@ class Group_of_Detections(Module, persistent.Persistent):
         except KeyError:
             print_error('No such detection id exists.')
 
+    def has_detection(self, train_id, test_id, train_structure, test_structure):
+        """ Given a model train id and test id, return if the detection was previously done or not """
+        response = False
+        for detection in self.get_detections():
+            stored_train_model_id = int(detection.get_model_training_id())
+            stored_test_model_id = int(detection.get_model_testing_id())
+            if stored_train_model_id == train_id and stored_test_model_id == test_id:
+                response = True
+                break
+        return response
+
+    def compare_all(self, structure_name):
+        """ Compare all the models between themselves in the specified structure. Do not repeat the comparison if it already exists """
+        structures = __database__.get_structures()
+        try:
+            structure = structures[structure_name]
+        except KeyError:
+            print_error('No such structure available.')
+            return False
+        for train_object in structure:
+            train_model_id = int(structure[train_object].get_id())
+            # Run this model against the rest
+            for test_object in structure:
+                test_model_id = int(structure[test_object].get_id())
+                if not self.has_detection(train_model_id, test_model_id, structure_name, structure_name):
+                    print('Training model:'),
+                    print_info(structure[train_object])
+                    print('\tTesting model: '),
+                    print_info(structure[test_object])
+                    # Generate the new id for this detection
+                    try:
+                        new_id = self.main_dict[list(self.main_dict.keys())[-1]].get_id() + 1
+                    except (KeyError, IndexError):
+                        new_id = 1
+                    # Create the new object
+                    new_detection = Detection(new_id)
+                    # Store on DB the new detection
+                    self.main_dict[new_id] = new_detection
+                    print_info('\tNew detection created with id {}'.format(new_id))
+                    # Run the detection rutine
+                    new_detection.detect(structure_name, structure, train_model_id, structure_name, structure, test_model_id)
 
     # The run method runs every time that this command is used. Mandatory
     def run(self):
@@ -482,6 +524,8 @@ class Group_of_Detections(Module, persistent.Persistent):
             self.regenerate(self.args.regenerate)
         elif self.args.print_comparison:
             self.print_comparison(self.args.print_comparison)
+        elif self.args.compareall:
+            self.compare_all(self.args.compareall)
         else:
             print_error('At least one of the parameter is required in this module')
             self.usage()
