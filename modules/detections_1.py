@@ -41,6 +41,7 @@ class Detection(persistent.Persistent):
         self.struture_testing = -1
         self.training_structure_name = ""
         self.testing_structure_name = ""
+        self.amount = -1
 
     def get_id(self):
         return self.id
@@ -99,7 +100,16 @@ class Detection(persistent.Persistent):
     def set_structure_testing(self, structure_testing):
         self.structure_testing = structure_testing
 
-    def detect(self, training_structure_name,  structure_training, model_training_id, testing_structure_name, structure_testing, model_testing_id):
+    def set_amount(self,amount):
+        self.amount = amount
+
+    def get_amount(self):
+        try:
+            return self.amount
+        except AttributeError:
+            return -1
+
+    def detect(self, training_structure_name,  structure_training, model_training_id, testing_structure_name, structure_testing, model_testing_id, amount):
         """ Perform the detection between the testing model and the training model"""
         self.set_model_training_id(model_training_id)
         self.set_model_testing_id(model_testing_id)
@@ -122,23 +132,7 @@ class Detection(persistent.Persistent):
         print_info('Probability of detecting the training model with the training model: {}'.format(self.training_original_prob))
         # Compute the distance with the cut training chain of states
         len_testing_chain = len(self.testing_states)
-        self.distance = self.detect_letter_by_letter(len_testing_chain)
-        """
-        # Get the prob of detecting the complete testing state
-        self.testing_final_prob = model_training.compute_probability(self.testing_states)
-        print_info('Probability of detecting the testing model with the training model: {}'.format(self.testing_final_prob))
-        # Compute distance
-        if self.training_original_prob < self.testing_final_prob:
-            try:
-                self.distance = self.training_original_prob / self.testing_final_prob
-            except ZeroDivisionError:
-                self.distance = -1
-        else:
-            try:
-                self.distance = self.testing_final_prob / self.training_original_prob
-            except ZeroDivisionError:
-                self.distance = -1
-        """
+        self.distance = self.detect_letter_by_letter(amount)
         print_info(red('Final Distance: {}'.format(self.distance)))
 
     def detect_letter_by_letter(self, amount):
@@ -203,6 +197,9 @@ class Detection(persistent.Persistent):
             model_training.set_self_probability(original_self_prob)
         else:
             final_position = amount
+        # Store the amount used if it is larger than the previous one stored
+        if self.get_amount() < final_position:
+            self.set_amount(final_position)
         print_info('Letter by letter distance up to {} letters: {}'.format(final_position, self.dict_of_distances[final_position-1]))
         # Return the final distance.
         # Ascii plot
@@ -238,7 +235,7 @@ class Detection(persistent.Persistent):
         structure_training = structures[self.training_structure_name]
         structure_testing = structures[self.testing_structure_name]
         self.dict_of_distances = []
-        self.detect(self.training_structure_name, structure_training, self.model_training_id, self.testing_structure_name, structure_testing, self.model_testing_id)
+        self.detect(self.training_structure_name, structure_training, self.model_training_id, self.testing_structure_name, structure_testing, self.model_testing_id, self.get_amount())
         # Empty the dict of distances
 
     def print_comparison(self):
@@ -352,7 +349,7 @@ class Group_of_Detections(Module, persistent.Persistent):
             regenerate = detection.check_need_for_regeneration()
             training_label = detection.get_training_label()
             testing_label = detection.get_testing_label()
-            rows.append([ detection.get_id(), detection.get_training_structure_name() + ': ' + str(detection.get_model_training_id()) + ' (' + training_label + ')', detection.get_testing_structure_name() + ': ' + str(detection.get_model_testing_id()) + ' (' + testing_label + ')', detection.get_distance(), regenerate])
+            rows.append([ detection.get_id(), detection.get_training_structure_name() + ': ' + str(detection.get_model_training_id()) + ' (' + training_label + ')', detection.get_testing_structure_name() + ': ' + str(detection.get_model_testing_id()) + ' (' + testing_label + ')', str(detection.get_distance()) + '( ' + str(detection.get_amount()) + ' letters )', regenerate])
         print(table(header=['Id', 'Training', 'Testing', 'Distance', 'Needs Regenerate'], rows=rows))
 
     def delete_detection(self, detection_id):
@@ -362,8 +359,8 @@ class Group_of_Detections(Module, persistent.Persistent):
         else:
             print_error('No such detection available.')
 
-    def create_new_detection(self):
-        """ Create a new detection. We must select the trained model and the unknown model """
+    def create_new_detection(self, amount):
+        """ Create a new detection. We must select the trained model and the unknown model. The amount is the max amount of letters to compare. """
         # Generate the new id for this detection
         try:
             new_id = self.main_dict[list(self.main_dict.keys())[-1]].get_id() + 1
@@ -421,7 +418,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         self.main_dict[new_id] = new_detection
         print_info('New detection created with id {}'.format(new_id))
         # Run the detection rutine
-        new_detection.detect(training_structure_name, selected_training_structure, model_training_id, training_structure_name, selected_testing_structure, model_testing_id)
+        new_detection.detect(training_structure_name, selected_training_structure, model_training_id, training_structure_name, selected_testing_structure, model_testing_id, amount)
 
     def detect_letter_by_letter(self, detection_id, amount):
         try:
@@ -516,7 +513,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         if self.args.list:
             self.list_detections()
         elif self.args.new:
-            self.create_new_detection()
+            self.create_new_detection(self.args.amount)
         elif self.args.delete:
             self.delete_detection(self.args.delete)
         elif self.args.letterbyletter:
