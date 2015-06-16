@@ -139,7 +139,7 @@ class Detection(persistent.Persistent):
             except ZeroDivisionError:
                 self.distance = -1
         """
-        print_info('Final Distance: {}'.format(self.distance))
+        print_info(red('Final Distance: {}'.format(self.distance)))
 
     def detect_letter_by_letter(self, amount):
         """ 
@@ -472,6 +472,7 @@ class Group_of_Detections(Module, persistent.Persistent):
             for test_object in structure:
                 test_model_id = int(structure[test_object].get_id())
                 if not self.has_detection(train_model_id, test_model_id, structure_name, structure_name):
+                    print
                     print('Training model:'),
                     print_info(structure[train_object])
                     print('\tTesting model: '),
