@@ -7,6 +7,8 @@
 import persistent
 import BTrees.OOBTree
 import re
+import tempfile
+from subprocess import Popen, PIPE
 
 from stf.common.out import *
 from stf.common.abstracts import Module
@@ -461,16 +463,22 @@ class Group_of_Detections(Module, persistent.Persistent):
         return self.main_dict.values()
 
     def list_detections(self, filter):
-        print_info('List of Detections')
+        #print_info('List of Detections')
         self.construct_filter(filter)
-        rows = []
+        all_text=' Id | Training | Testing | Distance | Needs Regenerate \n'
         for detection in self.get_detections():
             if self.apply_filter(detection):
                 regenerate = detection.check_need_for_regeneration()
                 training_label = detection.get_training_label()
                 testing_label = detection.get_testing_label()
-                rows.append([ detection.get_id(), detection.get_training_structure_name() + ': ' + str(detection.get_model_training_id()) + ' (' + training_label + ')', detection.get_testing_structure_name() + ': ' + str(detection.get_model_testing_id()) + ' (' + testing_label + ')', str(detection.get_distance()) + ' ( ' + str(detection.get_amount()) + ' letters )', regenerate])
-        print(table(header=['Id', 'Training', 'Testing', 'Distance', 'Needs Regenerate'], rows=rows))
+                all_text += ' {} | {} | {} | {} | {}\n'.format(detection.get_id(), detection.get_training_structure_name() + ': ' + str(detection.get_model_training_id()) + ' (' + training_label + ')', detection.get_testing_structure_name() + ': ' + str(detection.get_model_testing_id()) + ' (' + testing_label + ')', str(detection.get_distance()) + ' ( ' + str(detection.get_amount()) + ' letters )', regenerate)
+        f = tempfile.NamedTemporaryFile()
+        f.write(all_text)
+        f.flush()
+        p = Popen('less -R ' + f.name, shell=True, stdin=PIPE)
+        p.communicate()
+        sys.stdout = sys.__stdout__ 
+        f.close()
 
     def delete_detection(self, detection_id):
         """ Delete a detection """
