@@ -361,33 +361,56 @@ class Group_of_Detections(Module, persistent.Persistent):
         for part in filter:
             # Get the key
             try:
-                key = re.split('<|>|=|\!=', part)[0]
-                value = re.split('<|>|=|\!=', part)[1]
+                key = re.split('\!=|>=|<=|=|<|>', part)[0]
+                value = re.split('\!=|>=|<=|=|<|>', part)[1]
             except IndexError:
                 # No < or > or = or != in the string. Just stop.
                 break
+            # We should search for <= before <
             try:
-                part.index('<')
-                operator = '<'
+                part.index('<=')
+                operator = '<='
+                self.filter.append((key, operator, value))
+                continue
             except ValueError:
-                pass
+                # Now we search for <
+                try:
+                    part.index('<')
+                    operator = '<'
+                    self.filter.append((key, operator, value))
+                    continue
+                except ValueError:
+                    pass
+            # We should search for >= before >
             try:
-                part.index('>')
-                operator = '>'
+                part.index('>=')
+                operator = '>='
+                self.filter.append((key, operator, value))
+                continue
             except ValueError:
-                pass
+                # Now we search for >
+                try:
+                    part.index('>')
+                    operator = '>'
+                    self.filter.append((key, operator, value))
+                    continue
+                except ValueError:
+                    pass
             # We should search for != before =
             try:
                 part.index('!=')
                 operator = '!='
+                self.filter.append((key, operator, value))
+                continue
             except ValueError:
                 # Now we search for =
                 try:
                     part.index('=')
                     operator = '='
+                    self.filter.append((key, operator, value))
+                    continue
                 except ValueError:
                     pass
-            self.filter.append((key, operator, value))
 
     def apply_filter(self, model):
         """ Use the stored filter to know what we should match"""
@@ -428,7 +451,12 @@ class Group_of_Detections(Module, persistent.Persistent):
                         responses.append(False)
             elif key == 'distance':
                 distance = float(model.get_distance())
-                value = float(value)
+                try:
+                    value = float(value)
+                except ValueError:
+                    print_error('Value was not float or int')
+                    responses.append(False)
+                    continue
                 if operator == '=':
                     if distance == value:
                         responses.append(True)
@@ -444,8 +472,18 @@ class Group_of_Detections(Module, persistent.Persistent):
                         responses.append(True)
                     else:
                         responses.append(False)
+                elif operator == '<=':
+                    if distance <= value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
                 elif operator == '>':
                     if distance > value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '>=':
+                    if distance >= value:
                         responses.append(True)
                     else:
                         responses.append(False)
