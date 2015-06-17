@@ -329,7 +329,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         self.parser.add_argument('-r', '--regenerate', metavar='regenerate', type=int, help='Regenerate the detection. Used when the original training or testing models changed. Give the detection id.')
         self.parser.add_argument('-p', '--print_comparison', metavar='id', type=int, help='Print the values of the letter by letter comparison. No graph.')
         self.parser.add_argument('-c', '--compareall', metavar='structure', help='Compare all the models between themselves in the structure specified. The comparisons are not repeted if the already exists. For example: -a markov_models_1. You can force a maximun amount of letters to compare with -a.')
-        self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the detections. For example for listing. Keywords: testname, trainname, distance. Usage: testname=<text> distance<2. The names are partial matching. The operator for distances are <, >, = and !=')
+        self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the detections. For example for listing. Keywords: testname, trainname, distance, id. Usage: testname=<text> distance<2. The names are partial matching. The operator for distances are <, >, = and !=. The operator for id is = and !=')
         self.parser.add_argument('-D', '--deleteall', action='store_true', help='Delete all the detection object that matches the -f filter. Must provide a -f filter.')
 
     def get_name(self):
@@ -454,6 +454,11 @@ class Group_of_Detections(Module, persistent.Persistent):
                 value = float(value)
                 if operator == '=':
                     if id == value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if id != value:
                         responses.append(True)
                     else:
                         responses.append(False)
