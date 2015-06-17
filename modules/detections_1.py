@@ -314,13 +314,14 @@ class Group_of_Detections(Module, persistent.Persistent):
         self.parser.add_argument('-l', '--list', action='store_true', help='List the detections.')
         # Example of a parameter with arguments
         self.parser.add_argument('-n', '--new', action='store_true', help='Create a new detection. You will be prompted to select the trained model and the \'unknown\' model.')
-        self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete the detection id.')
+        self.parser.add_argument('-d', '--delete', metavar='id', help='Delete the detection object with the given id.')
         self.parser.add_argument('-L', '--letterbyletter', type=int, metavar='id', help='Compare and print the distances between the models letter-by-letter. Give the detection id. Optionally you can use -a to analize a fixed amount of letters. An ascii plot is generated.')
         self.parser.add_argument('-a', '--amount', type=int, default=-1, metavar='amount', help='Amount of letters to compare in the letter-by-letter comparison.')
         self.parser.add_argument('-r', '--regenerate', metavar='regenerate', type=int, help='Regenerate the detection. Used when the original training or testing models changed. Give the detection id.')
         self.parser.add_argument('-p', '--print-comparison', metavar='id', type=int, help='Print the values of the letter by letter comparison. No graph.')
         self.parser.add_argument('-c', '--compareall', metavar='structure', help='Compare all the models between themselves in the structure specified. The comparisons are not repeted if the already exists. For example: -a markov_models_1. You can force a maximun amount of letters to compare with -a.')
         self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the detections. For example for listing. Keywords: testname, trainname, distance. Usage: testname=<text> distance<2. The names are partial matching. The operator for distances are <, >, = and !=')
+        self.parser.add_argument('-D', '--deleteall', action='store_true', help='Delete all the detection object that matches the -f filter. Must provide a -f filter.')
 
     def get_name(self):
         """ Return the name of the module"""
@@ -463,7 +464,6 @@ class Group_of_Detections(Module, persistent.Persistent):
         return self.main_dict.values()
 
     def list_detections(self, filter):
-        #print_info('List of Detections')
         self.construct_filter(filter)
         all_text=' Id | Training | Testing | Distance | Needs Regenerate \n'
         for detection in self.get_detections():
@@ -486,6 +486,18 @@ class Group_of_Detections(Module, persistent.Persistent):
             self.main_dict.pop(int(detection_id))
         else:
             print_error('No such detection available.')
+
+    def delete_all(self, filter):
+        """ Delete all the objects that match the filter """
+        ids=[]
+        self.construct_filter(filter)
+        for detection in self.get_detections():
+            if self.apply_filter(detection):
+                ids.append(int(detection.get_id()))
+        # Must first store them and then delete them
+        for id in ids:
+            self.main_dict.pop(id)
+        print_info('Amount of objects deleted: {}'.format(len(ids)))
 
     def create_new_detection(self, amount):
         """ Create a new detection. We must select the trained model and the unknown model. The amount is the max amount of letters to compare. """
@@ -652,6 +664,11 @@ class Group_of_Detections(Module, persistent.Persistent):
             self.print_comparison(self.args.print_comparison)
         elif self.args.compareall:
             self.compare_all(self.args.compareall, self.args.amount)
+        elif self.args.deleteall:
+            if self.args.filter:
+                self.delete_all(self.args.filter)
+            else: 
+                print_error('Must provide a filter with -f')
         else:
             print_error('At least one of the parameter is required in this module')
             self.usage()
