@@ -327,7 +327,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         self.parser.add_argument('-L', '--letterbyletter', type=int, metavar='id', help='Compare and print the distances between the models letter-by-letter. Give the detection id. Optionally you can use -a to analize a fixed amount of letters. An ascii plot is generated.')
         self.parser.add_argument('-a', '--amount', type=int, default=-1, metavar='amount', help='Amount of letters to compare in the letter-by-letter comparison.')
         self.parser.add_argument('-r', '--regenerate', metavar='regenerate', type=int, help='Regenerate the detection. Used when the original training or testing models changed. Give the detection id.')
-        self.parser.add_argument('-p', '--print-comparison', metavar='id', type=int, help='Print the values of the letter by letter comparison. No graph.')
+        self.parser.add_argument('-p', '--print_comparison', metavar='id', type=int, help='Print the values of the letter by letter comparison. No graph.')
         self.parser.add_argument('-c', '--compareall', metavar='structure', help='Compare all the models between themselves in the structure specified. The comparisons are not repeted if the already exists. For example: -a markov_models_1. You can force a maximun amount of letters to compare with -a.')
         self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the detections. For example for listing. Keywords: testname, trainname, distance. Usage: testname=<text> distance<2. The names are partial matching. The operator for distances are <, >, = and !=')
         self.parser.add_argument('-D', '--deleteall', action='store_true', help='Delete all the detection object that matches the -f filter. Must provide a -f filter.')
@@ -403,7 +403,6 @@ class Group_of_Detections(Module, persistent.Persistent):
             operator = filter[1]
             value = filter[2]
             if key == 'testname':
-                # For filtering based on the label assigned to the model with stf (contrary to the flow label)
                 labelname = model.get_testing_label()
                 if operator == '=':
                     if value in labelname:
@@ -416,7 +415,6 @@ class Group_of_Detections(Module, persistent.Persistent):
                     else:
                         responses.append(False)
             elif key == 'trainname':
-                # For filtering based on the label assigned to the model with stf (contrary to the flow label)
                 labelname = model.get_training_label()
                 if operator == '=':
                     if value in labelname:
@@ -429,7 +427,6 @@ class Group_of_Detections(Module, persistent.Persistent):
                     else:
                         responses.append(False)
             elif key == 'distance':
-                # For filtering based on the label assigned to the model with stf (contrary to the flow label)
                 distance = float(model.get_distance())
                 value = float(value)
                 if operator == '=':
@@ -449,6 +446,14 @@ class Group_of_Detections(Module, persistent.Persistent):
                         responses.append(False)
                 elif operator == '>':
                     if distance > value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            elif key == 'id':
+                id = float(model.get_id())
+                value = float(value)
+                if operator == '=':
+                    if id == value:
                         responses.append(True)
                     else:
                         responses.append(False)
