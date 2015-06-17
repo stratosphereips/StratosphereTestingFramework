@@ -121,6 +121,14 @@ class Detection(persistent.Persistent):
         self.set_structure_testing(structure_testing)
         self.set_training_structure_name(training_structure_name)
         self.set_testing_structure_name(testing_structure_name)
+        # Check if we can make the detection based on the protocols.
+        train_label = self.get_training_label()
+        test_label = self.get_testing_label()
+        train_protocol = train_label.split('-')[2]
+        test_protocol = test_label.split('-')[2]
+        # Only compare if the protocols are the same
+        if not train_protocol == test_protocol:
+            return False
         # Get the models. But don't store them... they are too 'heavy'
         model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
         model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
@@ -138,6 +146,7 @@ class Detection(persistent.Persistent):
         len_testing_chain = len(self.testing_states)
         self.distance = self.detect_letter_by_letter(amount)
         print_info(red('Final Distance: {}'.format(self.distance)))
+        return True
 
     def detect_letter_by_letter(self, amount):
         """ 
@@ -554,11 +563,12 @@ class Group_of_Detections(Module, persistent.Persistent):
             print '\t',
             print_info(selected_testing_structure[object])
         model_testing_id = raw_input('Id:')
-        # Store on DB the new detection
-        self.main_dict[new_id] = new_detection
-        print_info('New detection created with id {}'.format(new_id))
         # Run the detection rutine
-        new_detection.detect(training_structure_name, selected_training_structure, model_training_id, training_structure_name, selected_testing_structure, model_testing_id, amount)
+        if new_detection.detect(training_structure_name, selected_training_structure, model_training_id, training_structure_name, selected_testing_structure, model_testing_id, amount):
+            # Store on DB the new detection only if the comparison was successful.
+            self.main_dict[new_id] = new_detection
+            print_info('New detection created with id {}'.format(new_id))
+
 
     def detect_letter_by_letter(self, detection_id, amount):
         try:
@@ -621,11 +631,11 @@ class Group_of_Detections(Module, persistent.Persistent):
                         new_id = 1
                     # Create the new object
                     new_detection = Detection(new_id)
-                    # Store on DB the new detection
-                    self.main_dict[new_id] = new_detection
-                    print_info('\tNew detection created with id {}'.format(new_id))
                     # Run the detection rutine
-                    new_detection.detect(structure_name, structure, train_model_id, structure_name, structure, test_model_id, amount)
+                    if new_detection.detect(structure_name, structure, train_model_id, structure_name, structure, test_model_id, amount):
+                        # Store on DB the new detection only if the comparison was successful
+                        self.main_dict[new_id] = new_detection
+                        print_info('\tNew detection created with id {}'.format(new_id))
 
     # The run method runs every time that this command is used. Mandatory
     def run(self):
