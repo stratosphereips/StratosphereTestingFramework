@@ -6,6 +6,7 @@
 
 import persistent
 import BTrees.OOBTree
+import re
 
 from stf.common.out import *
 from stf.common.abstracts import Module
@@ -317,6 +318,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         self.parser.add_argument('-r', '--regenerate', metavar='regenerate', type=int, help='Regenerate the detection. Used when the original training or testing models changed. Give the detection id.')
         self.parser.add_argument('-p', '--print-comparison', metavar='id', type=int, help='Print the values of the letter by letter comparison. No graph.')
         self.parser.add_argument('-c', '--compareall', metavar='structure', help='Compare all the models between themselves in the structure specified. The comparisons are not repeted if the already exists. For example: -a markov_models_1. You can force a maximun amount of letters to compare with -a.')
+        self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the detections. For example for listing. Keywords: testname, trainname, distance. Usage: testname=<text> distance<2. The names are partial matching. The operator for distances are <, >, = and !=')
 
     def get_name(self):
         """ Return the name of the module"""
@@ -333,6 +335,119 @@ class Group_of_Detections(Module, persistent.Persistent):
         self.main_dict = dict
     ############ End of Mandatory Methods #########################
 
+    def construct_filter(self, filter):
+        """ Get the filter string and decode all the operations """
+        # If the filter string is empty, delete the filter variable
+        if not filter:
+            try:
+                del self.filter 
+            except:
+                pass
+            return True
+        self.filter = []
+        # Get the individual parts. We only support and's now.
+        for part in filter:
+            # Get the key
+            try:
+                key = re.split('<|>|=|\!=', part)[0]
+                value = re.split('<|>|=|\!=', part)[1]
+            except IndexError:
+                # No < or > or = or != in the string. Just stop.
+                break
+            try:
+                part.index('<')
+                operator = '<'
+            except ValueError:
+                pass
+            try:
+                part.index('>')
+                operator = '>'
+            except ValueError:
+                pass
+            # We should search for != before =
+            try:
+                part.index('!=')
+                operator = '!='
+            except ValueError:
+                # Now we search for =
+                try:
+                    part.index('=')
+                    operator = '='
+                except ValueError:
+                    pass
+            self.filter.append((key, operator, value))
+
+    def apply_filter(self, model):
+        """ Use the stored filter to know what we should match"""
+        responses = []
+        try:
+            self.filter
+        except AttributeError:
+            # If we don't have any filter string, just return true and show everything
+            return True
+        # Check each filter
+        for filter in self.filter:
+            key = filter[0]
+            operator = filter[1]
+            value = filter[2]
+            if key == 'testname':
+                # For filtering based on the label assigned to the model with stf (contrary to the flow label)
+                labelname = model.get_testing_label()
+                if operator == '=':
+                    if value in labelname:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if value not in labelname:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            elif key == 'trainname':
+                # For filtering based on the label assigned to the model with stf (contrary to the flow label)
+                labelname = model.get_training_label()
+                if operator == '=':
+                    if value in labelname:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if value not in labelname:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            elif key == 'distance':
+                # For filtering based on the label assigned to the model with stf (contrary to the flow label)
+                distance = float(model.get_distance())
+                value = float(value)
+                if operator == '=':
+                    if distance == value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if distance != value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '<':
+                    if distance < value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '>':
+                    if distance > value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            else:
+                return False
+
+        for response in responses:
+            if not response:
+                return False
+        return True
+
     def has_detection_id(self, id):
         try:
             return self.main_dict[id]
@@ -345,14 +460,16 @@ class Group_of_Detections(Module, persistent.Persistent):
     def get_detections(self):
         return self.main_dict.values()
 
-    def list_detections(self):
+    def list_detections(self, filter):
         print_info('List of Detections')
+        self.construct_filter(filter)
         rows = []
         for detection in self.get_detections():
-            regenerate = detection.check_need_for_regeneration()
-            training_label = detection.get_training_label()
-            testing_label = detection.get_testing_label()
-            rows.append([ detection.get_id(), detection.get_training_structure_name() + ': ' + str(detection.get_model_training_id()) + ' (' + training_label + ')', detection.get_testing_structure_name() + ': ' + str(detection.get_model_testing_id()) + ' (' + testing_label + ')', str(detection.get_distance()) + ' ( ' + str(detection.get_amount()) + ' letters )', regenerate])
+            if self.apply_filter(detection):
+                regenerate = detection.check_need_for_regeneration()
+                training_label = detection.get_training_label()
+                testing_label = detection.get_testing_label()
+                rows.append([ detection.get_id(), detection.get_training_structure_name() + ': ' + str(detection.get_model_training_id()) + ' (' + training_label + ')', detection.get_testing_structure_name() + ': ' + str(detection.get_model_testing_id()) + ' (' + testing_label + ')', str(detection.get_distance()) + ' ( ' + str(detection.get_amount()) + ' letters )', regenerate])
         print(table(header=['Id', 'Training', 'Testing', 'Distance', 'Needs Regenerate'], rows=rows))
 
     def delete_detection(self, detection_id):
@@ -431,7 +548,7 @@ class Group_of_Detections(Module, persistent.Persistent):
             print_error('No such detection id exists.')
             return False
 
-    def regenerate(self, detection_id):
+    def regenerate(self, detection_id, filter):
         """ Regenerate """
         try:
             detection = self.main_dict[detection_id]
@@ -514,7 +631,7 @@ class Group_of_Detections(Module, persistent.Persistent):
 
         # Process the command line and call the methods. Here add your own parameters
         if self.args.list:
-            self.list_detections()
+            self.list_detections(self.args.filter)
         elif self.args.new:
             self.create_new_detection(self.args.amount)
         elif self.args.delete:
@@ -522,7 +639,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         elif self.args.letterbyletter:
             self.detect_letter_by_letter(self.args.letterbyletter, self.args.amount)
         elif self.args.regenerate:
-            self.regenerate(self.args.regenerate)
+            self.regenerate(self.args.regenerate, self.args.filter)
         elif self.args.print_comparison:
             self.print_comparison(self.args.print_comparison)
         elif self.args.compareall:
