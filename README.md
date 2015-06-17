@@ -474,13 +474,14 @@ Now stf can import external modules that implement new functionality.
 
 
 ### TODO
+- Notes are not being stored. At least when working with labels.
+- When deleting a label, delete its note too.
 - Only compare when the upper most protocol matches. TCP with TCP, UDP with UDP, ICMP with ICMP.
 - Add notes to detections
 - Live analysis
-- Fix argus timeout/long report times
+- Fix argus timeout
 - Concurrency in db?
 - Copy between dbs?
-- Verify how the distances in the detections are computed
 - When the stf is used from several locations, it can happend that some dataset commands do not work because the pcap file is not there. Capture these issues.
 - Relate the notes with the objects they reference. So after a search you can find the object again.
 
