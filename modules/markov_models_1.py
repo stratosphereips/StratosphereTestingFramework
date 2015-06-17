@@ -187,7 +187,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
     def __init__(self):
         # Call to our super init
         super(Group_of_Markov_Models_1, self).__init__()
-        self.parser.add_argument('-l', '--list', action='store_true', help='List the markov models already applied')
+        self.parser.add_argument('-l', '--list', action='store_true', help='List the markov models already applied. You can use a filter with -f.')
         self.parser.add_argument('-g', '--generate', metavar='generate', help='Generate the markov chain for this label. Give label name.')
         self.parser.add_argument('-m', '--printmatrix', metavar='printmatrix', help='Print the markov chains matrix of the given markov model id.')
         self.parser.add_argument('-S', '--simulate', metavar='simulate', help='Use this markov chain to generate a new simulated chain of states. Give the markov chain id. The length is now fixed in 100 states.')
@@ -195,7 +195,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         self.parser.add_argument('-p', '--printstate', metavar='printstate', help='Print the chain of states of all the models included in this markov chain. Give the markov chain id.')
         self.parser.add_argument('-r', '--regenerate', metavar='regenerate', help='Regenerate the markov chain. Usually because more connections were added to the label. Give the markov chain id.')
         self.parser.add_argument('-a', '--generateall', action='store_true', help='Generate the markov chain for all the labels that don\'t have one already')
-        self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the markov models. For example for listing. Keywords: name.Usage: name=<text>. Partial matching.')
+        self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the markov models. For example for listing. Keywords: name. Usage: name=<text>. Partial matching.')
 
     # Mandatory Method!
     def get_name(self):
