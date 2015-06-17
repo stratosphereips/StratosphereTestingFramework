@@ -462,6 +462,7 @@ You can check that this was successful by inspecting the connections with ```con
 - It assigns an auto note when putting a label.
 - Show which connections have a label while listing models.
 - You can filter by labelname in the models.
+- You can filter by trainname, testname and distance in the detection_1 module.
 
 ## Modules
 Now stf can import external modules that implement new functionality.
