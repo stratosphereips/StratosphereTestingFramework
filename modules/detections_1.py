@@ -150,8 +150,8 @@ class Detection(persistent.Persistent):
         self.training_states = model_training.get_state()
         self.testing_states = model_testing.get_state()
         # Get the original probability of detecting the training state in the training module
-        self.training_original_prob = model_training.compute_probability(self.training_states)
-        print_info('Probability of detecting the training model with the training model: {}'.format(self.training_original_prob))
+        #self.training_original_prob = model_training.compute_probability(self.training_states)
+        #print_info('Probability of detecting the training model with the training model: {}'.format(self.training_original_prob))
         # Compute the distance with the cut training chain of states
         len_testing_chain = len(self.testing_states)
         self.distance = self.detect_letter_by_letter(amount)
@@ -191,32 +191,30 @@ class Detection(persistent.Persistent):
             while index < len(self.testing_states) and index < amount:
                 test_sequence = self.testing_states[0:index+1]
                 train_sequence = self.training_states[0:index+1]
-                # First re-create the matrix only for this sequence
-                ## model_training.create(test_sequence)
                 # Get the new original prob so far...
                 self.training_original_prob = model_training.compute_probability(train_sequence)
                 # Store the prob for future verification
                 self.train_prob_vector.insert(index, self.training_original_prob)
                 # Now obtain the probability for testing
-                temp_prob = model_training.compute_probability(test_sequence)
+                test_prob = model_training.compute_probability(test_sequence)
                 # Store the prob for future verification
-                self.test_prob_vector.insert(index, temp_prob)
-                if self.training_original_prob < temp_prob:
+                self.test_prob_vector.insert(index, test_prob)
+                if self.training_original_prob < test_prob:
                     try:
-                        self.prob_distance = self.training_original_prob / temp_prob
+                        self.prob_distance = self.training_original_prob / test_prob
                     except ZeroDivisionError:
                         self.prob_distance = -1
-                elif self.training_original_prob > temp_prob:
+                elif self.training_original_prob > test_prob:
                     try:
-                        self.prob_distance = temp_prob / self.training_original_prob
+                        self.prob_distance = test_prob / self.training_original_prob
                     except ZeroDivisionError:
                         self.prob_distance = -1
-                elif self.training_original_prob == temp_prob:
+                elif self.training_original_prob == test_prob:
                     self.prob_distance = 1
 
                 self.dict_of_distances.insert(index, self.prob_distance)
-                #print_info('Trai Seq: {}'.format(train_sequence))
-                #print_info('Test Seq: {} -> Ori_LogProb: {}, Test_LogProb: {}, Dist: {}'.format(test_sequence, self.training_original_prob, temp_prob, self.prob_distance))
+                print_info('Trai Seq: {}'.format(train_sequence))
+                print_info('Test Seq: {} -> Train_LogProb: {}, Test_LogProb: {}, Dist: {}'.format(test_sequence, self.training_original_prob, test_prob, self.prob_distance))
                 index += 1
             final_position = index
             # Put back the original matrix and values in the model
@@ -274,10 +272,34 @@ class Detection(persistent.Persistent):
             return False
         print_info('\tLetter Index | Training Letter | Testing Letter | Train Prob | Test Prob | Distance Value')
         index = 0
-        while index < len(self.dict_of_distances) and index < len(self.training_states) and index < len(self.testing_states):
-            print_info('\t\t{}|\t\t{}|\t\t{}|\t\t{} |\t\t{} |\t\t{}'.format(index, self.training_states[index], self.testing_states[index], self.train_prob_vector[index], self.test_prob_vector[index], self.dict_of_distances[index]))
+        #while index < len(self.dict_of_distances) and index < len(self.training_states) and index < len(self.testing_states):
+        while index < len(self.dict_of_distances):
+            try:
+                test_state = self.testing_states[index]
+                test_prob = self.test_prob_vector[index]
+            except IndexError:
+                test_state = ""
+            try:
+                train_state = self.training_states[index]
+                train_prob = self.train_prob_vector[index]
+            except IndexError:
+                train_state = ""
+            print_info('\t\t{}|\t\t{}|\t\t{}|\t\t{} |\t\t{} |\t\t{}'.format(index, train_state, test_state, train_prob, test_prob, self.dict_of_distances[index]))
             index += 1
-        print_info('(The list only prints until the length of the shorter model)')
+        # Print the matrix
+        print
+        print_info('Train Markov Chain matrix')
+        model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
+        train_matrix = model_training.get_matrix()
+        for line in train_matrix:
+            print line, train_matrix[line]
+        print
+        print_info('Test Markov Chain matrix')
+        model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
+        test_matrix = model_testing.get_matrix()
+        for line in test_matrix:
+            print line, test_matrix[line]
+
 
     def get_training_label(self):
         """ Get the training label of the training model """
