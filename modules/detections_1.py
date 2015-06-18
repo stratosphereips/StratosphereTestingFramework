@@ -45,6 +45,10 @@ class Detection(persistent.Persistent):
         self.struture_testing = -1
         self.training_structure_name = ""
         self.testing_structure_name = ""
+        # The vector of probabilities for each letter of the training model
+        self.train_prob_vector = []
+        # The vector of probabilities for each letter of the testing model
+        self.test_prob_vector = []
         self.amount = -1
 
     def get_id(self):
@@ -61,6 +65,12 @@ class Detection(persistent.Persistent):
         except (KeyError, ValueError):
             print_error('No such id available.')
             return False
+
+    def get_train_prob_vector(self):
+        return self.train_prob_vector
+
+    def get_test_prob_vector(self):
+        return self.test_prob_vector
 
     def get_model_training_id(self):
         return self.model_training_id
@@ -185,8 +195,12 @@ class Detection(persistent.Persistent):
                 ## model_training.create(test_sequence)
                 # Get the new original prob so far...
                 self.training_original_prob = model_training.compute_probability(train_sequence)
+                # Store the prob for future verification
+                self.train_prob_vector.insert(index, self.training_original_prob)
                 # Now obtain the probability for testing
                 temp_prob = model_training.compute_probability(test_sequence)
+                # Store the prob for future verification
+                self.test_prob_vector.insert(index, temp_prob)
                 if self.training_original_prob < temp_prob:
                     try:
                         self.prob_distance = self.training_original_prob / temp_prob
@@ -258,10 +272,10 @@ class Detection(persistent.Persistent):
         if not self.dict_of_distances:
             print_warning('Please first run -L to compute the letter by letter distances.')
             return False
-        print_info('\tLetter Index | Training Letter | Testing Letter | Distance Value')
+        print_info('\tLetter Index | Training Letter | Testing Letter | Train Prob | Test Prob | Distance Value')
         index = 0
         while index < len(self.dict_of_distances) and index < len(self.training_states) and index < len(self.testing_states):
-            print_info('\t\t{}|\t\t{}|\t\t{}|\t\t{}'.format(index, self.training_states[index], self.testing_states[index], self.dict_of_distances[index]))
+            print_info('\t\t{}|\t\t{}|\t\t{}|\t\t{} |\t\t{} |\t\t{}'.format(index, self.training_states[index], self.testing_states[index], self.train_prob_vector[index], self.test_prob_vector[index], self.dict_of_distances[index]))
             index += 1
         print_info('(The list only prints until the length of the shorter model)')
 
