@@ -474,6 +474,7 @@ Now stf can import external modules that implement new functionality.
 
 
 ### TODO
+- Put a limit to markov_models: amount of flows, or amount of time or maybe a specific string of letters that should be looked up.
 - Notes are not being stored. At least when working with labels.
 - When deleting a label, delete its note too.
 - Only compare when the upper most protocol matches. TCP with TCP, UDP with UDP, ICMP with ICMP.
