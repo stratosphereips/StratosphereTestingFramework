@@ -127,6 +127,8 @@ class Markov_Model(persistent.Persistent):
         i = 0
         probability = 0
         ignored = 0
+        for j in self.get_matrix():
+            print j, self.get_matrix()[j]
         # We should have more than 2 states at least
         while i < len(state) and len(state) > 1:
             try:
@@ -138,7 +140,7 @@ class Markov_Model(persistent.Persistent):
                 i += 1
                 if temp_prob != float('-inf'):                
                     probability = probability + temp_prob # logs should be +
-                    #print_info('Transition [{}:{}]: {} -> Prob:{:.10f}. Our type of prob so far: {}. Real MC prob so far: {}'.format(i-1, i,vector, temp_prob, probability, self.matrix.walk_probability(growing_v)))
+                    print_info('\tTransition [{}:{}]: {} -> Prob:{:.10f}. CumProb: {}'.format(i-1, i,vector, temp_prob, probability))
                 else:
                     # Here is our trick. If two letters are not in the matrix... ignore the transition.
                     if '#' not in vector:
@@ -158,7 +160,7 @@ class Markov_Model(persistent.Persistent):
         if label:
             label_name = label.get_name()
         else:
-            print_error('The label used in the markov model {} does not exist anymore. You should delete the markov chain manually (The markov chain {} does not appear in the following list).'.format(markov_model.get_id(),markov_model.get_id()))
+            print_error('The label used in the markov model {} does not exist anymore. You should delete the markov chain manually (The markov chain {} does not appear in the following list).'.format(self.get_id(), self.get_id()))
         return label
             
     def __repr__(self):
