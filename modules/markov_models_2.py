@@ -183,7 +183,7 @@ class Markov_Model(persistent.Persistent):
         if label:
             label_name = label.get_name()
         else:
-            print_error('The label used in the markov model {} does not exist anymore. You should delete the markov chain manually (The markov chain {} does not appear in the following list).'.format(markov_model.get_id(),markov_model.get_id()))
+            print_error('The label used in the markov model {} does not exist anymore. You should delete the markov chain manually (The markov chain {} does not appear in the following list).'.format(self.get_id(), self.get_id()))
         return label
             
     def __repr__(self):
