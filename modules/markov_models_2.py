@@ -343,7 +343,12 @@ class Group_of_Markov_Models_2(Module, persistent.Persistent):
         for markov_model in self.get_markov_models():
             if self.apply_filter(markov_model):
                 label = markov_model.get_label()
-                label_name = label.get_name()
+                if not label:
+                    label_name = 'Deleted'
+                    current_connections = 'Unknown'
+                else:
+                    label_name = label.get_name()
+                    current_connections = label.get_connections_complete()
                 current_connections = label.get_connections_complete()
                 needs_regenerate = True
                 # Do we need to regenerate this mc?
