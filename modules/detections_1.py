@@ -213,8 +213,8 @@ class Detection(persistent.Persistent):
                     self.prob_distance = 1
 
                 self.dict_of_distances.insert(index, self.prob_distance)
-                print_info('Trai Seq: {}'.format(train_sequence))
-                print_info('Test Seq: {} -> Train_LogProb: {}, Test_LogProb: {}, Dist: {}'.format(test_sequence, self.training_original_prob, test_prob, self.prob_distance))
+                #print_info('Trai Seq: {}'.format(train_sequence))
+                #print_info('Test Seq: {} -> Train_LogProb: {}, Test_LogProb: {}, Dist: {}'.format(test_sequence, self.training_original_prob, test_prob, self.prob_distance))
                 index += 1
             final_position = index
             # Put back the original matrix and values in the model
