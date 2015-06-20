@@ -196,8 +196,8 @@ class Detection(persistent.Persistent):
                 # First re-create the matrix only for this sequence
                 model_training.create(train_sequence)
                 #print_info('\tNew Matrix:')
-                for item in model_training.get_matrix():
-                    print '\t', item, model_training.get_matrix()[item]
+                #for item in model_training.get_matrix():
+                    #print '\t', item, model_training.get_matrix()[item]
                 # Get the new original prob so far...
                 self.training_original_prob = model_training.compute_probability(train_sequence)
                 #print_info('\tTrain prob: {}'.format(self.training_original_prob))
