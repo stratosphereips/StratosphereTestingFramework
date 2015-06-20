@@ -127,6 +127,9 @@ class Markov_Model(persistent.Persistent):
         i = 0
         probability = 0
         ignored = 0
+        # Debug pring the matrix so far
+        for j in self.get_matrix():
+            print j, self.get_matrix()[j]
         # We should have more than 2 states at least
         while i < len(state) and len(state) > 1:
             try:
@@ -138,7 +141,7 @@ class Markov_Model(persistent.Persistent):
                 i += 1
                 if temp_prob != float('-inf'):                
                     probability = probability + temp_prob # logs should be +
-                    #print_info('\tTransition [{}:{}]: {} -> Prob:{:.10f}. CumProb: {}'.format(i-1, i,vector, temp_prob, probability))
+                    print_info('\tTransition [{}:{}]: {} -> Prob:{:.10f}. CumProb: {}'.format(i-1, i,vector, temp_prob, probability))
                 else:
                     # Here is our trick. If two letters are not in the matrix... ignore the transition.
                     if '#' not in vector:
