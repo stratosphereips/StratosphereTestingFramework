@@ -191,14 +191,21 @@ class Detection(persistent.Persistent):
             while index < len(self.testing_states) and index < amount:
                 test_sequence = self.testing_states[0:index+1]
                 train_sequence = self.training_states[0:index+1]
+                print_info('Trai Seq: {}'.format(train_sequence))
+                print_info('Test Seq: {}'.format(test_sequencee))
                 # First re-create the matrix only for this sequence
                 model_training.create(train_sequence)
+                print_info('\tNew Matrix:')
+                for item in model_training.get_matrix():
+                    print '\t', item, model_training.get_matrix()[item]
                 # Get the new original prob so far...
                 self.training_original_prob = model_training.compute_probability(train_sequence)
+                print_info('\tTrain prob: {}'.format(self.training_original_prob))
                 # Store the prob for future verification
                 self.train_prob_vector.insert(index, self.training_original_prob)
                 # Now obtain the probability for testing
                 test_prob = model_training.compute_probability(test_sequence)
+                print_info('\tTest prob: {}'.format(test_prob))
                 # Store the prob for future verification
                 self.test_prob_vector.insert(index, test_prob)
                 if self.training_original_prob < test_prob:
@@ -213,10 +220,8 @@ class Detection(persistent.Persistent):
                         self.prob_distance = -1
                 elif self.training_original_prob == test_prob:
                     self.prob_distance = 1
-
                 self.dict_of_distances.insert(index, self.prob_distance)
-                print_info('Trai Seq: {}'.format(train_sequence))
-                print_info('Test Seq: {} -> Train_LogProb: {}, Test_LogProb: {}, Dist: {}'.format(test_sequence, self.training_original_prob, test_prob, self.prob_distance))
+                print_info('\tDistance: {}'.format(self.prob_distance))
                 index += 1
             final_position = index
             # Put back the original matrix and values in the model
