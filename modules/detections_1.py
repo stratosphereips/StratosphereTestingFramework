@@ -192,7 +192,7 @@ class Detection(persistent.Persistent):
                 test_sequence = self.testing_states[0:index+1]
                 train_sequence = self.training_states[0:index+1]
                 print_info('Trai Seq: {}'.format(train_sequence))
-                print_info('Test Seq: {}'.format(test_sequencee))
+                print_info('Test Seq: {}'.format(test_sequence))
                 # First re-create the matrix only for this sequence
                 model_training.create(train_sequence)
                 print_info('\tNew Matrix:')
