@@ -128,8 +128,8 @@ class Markov_Model(persistent.Persistent):
         probability = 0
         ignored = 0
         # Debug pring the matrix so far
-        for j in self.get_matrix():
-            print j, self.get_matrix()[j]
+        #for j in self.get_matrix():
+        #    print j, self.get_matrix()[j]
         # We should have more than 2 states at least
         while i < len(state) and len(state) > 1:
             try:
