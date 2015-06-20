@@ -173,7 +173,7 @@ class Flow(object):
         return self.line_separator
 
     def __repr__(self):
-        return (self.get_field_separator().join([str(self.get_id()),self.get_starttime(),self.get_duration(),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),self.get_totpkts(),self.get_totbytes(),self.get_srcbytes(),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
+        return (self.get_field_separator().join([str(self.get_id()), self.get_starttime(), str(self.get_duration()), self.get_proto(), self.get_scraddr(), self.get_dir(), self.get_dstaddr(), str(self.get_dport()), self.get_flowstate(), str(self.get_stos()), str(self.get_dtos()), str(self.get_totpkts()), str(self.get_totbytes()), str(self.get_srcbytes()), self.get_srcUdata(), self.get_dstUdata(), self.get_label()]))
 
     def print_flow(self):
         print_info(red(' State: \"' + self.get_state() + '\"') + cyan(' TD: ' + str(self.get_td()) + ' T2: ' + str(self.get_t2()) + ' T1: ' + str(self.get_t1())) + '\t' + self.get_field_separator().join([self.get_starttime(),cyan(str(self.get_duration())),self.get_proto(),self.get_scraddr(),self.get_dir(),self.get_dstaddr(),self.get_dport(),self.get_flowstate(),self.get_stos(),self.get_dtos(),str(self.get_totpkts()),cyan(str(self.get_totbytes())),str(self.get_srcbytes()),self.get_srcUdata(),self.get_dstUdata(),self.get_label()]))
