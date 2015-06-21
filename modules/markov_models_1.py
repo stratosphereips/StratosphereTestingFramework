@@ -298,7 +298,9 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                     labelname = label.get_name()
                 except AttributeError:
                     # Label was deleted
+                    labelname = False
                     responses.append(False)
+                    continue
                 if operator == '=':
                     if value in labelname:
                         responses.append(True)
