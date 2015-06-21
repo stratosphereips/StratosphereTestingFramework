@@ -134,7 +134,11 @@ class Detection(persistent.Persistent):
         # Check if we can make the detection based on the protocols.
         train_label = self.get_training_label()
         test_label = self.get_testing_label()
-        train_protocol = train_label.split('-')[2]
+        try:
+            train_protocol = train_label.split('-')[2]
+        except IndexError:
+            # The label is not complete, maybe because now is "Deleted". Ignore
+            return False
         try:
             test_protocol = test_label.split('-')[2]
         except IndexError:
