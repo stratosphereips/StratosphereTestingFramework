@@ -135,7 +135,11 @@ class Detection(persistent.Persistent):
         train_label = self.get_training_label()
         test_label = self.get_testing_label()
         train_protocol = train_label.split('-')[2]
-        test_protocol = test_label.split('-')[2]
+        try:
+            test_protocol = test_label.split('-')[2]
+        except IndexError:
+            # The label is not complete, maybe because now is "Deleted". Ignore
+            return False
         # Only compare if the protocols are the same
         if not train_protocol == test_protocol:
             return False
