@@ -305,13 +305,21 @@ class Detection(persistent.Persistent):
         print
         print_info('Train Markov Chain matrix')
         model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
-        train_matrix = model_training.get_matrix()
-        for line in train_matrix:
-            print line, train_matrix[line]
-        print
+        try:
+            train_matrix = model_training.get_matrix()
+            for line in train_matrix:
+                print line, train_matrix[line]
+            print
+        except AttributeError:
+            # No matrix
+            print_error('No matrix available. Perhaps the model was deleted.')
         print_info('Test Markov Chain matrix')
         model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
-        test_matrix = model_testing.get_matrix()
+        try:
+            test_matrix = model_testing.get_matrix()
+        except AttributeError:
+            # No matrix
+            print_error('No matrix available. Perhaps the model was deleted.')
         for line in test_matrix:
             print line, test_matrix[line]
 
