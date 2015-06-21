@@ -138,7 +138,7 @@ class Commands(object):
     # This command works with models
     def cmd_models(self, *args):
         parser = argparse.ArgumentParser(prog="models", description="Manage models", epilog="Manage models")
-        parser.add_argument('-c', '--listconstructors', action="store_true", help="List all models constructors available.")
+        parser.add_argument('-s', '--listconstructors', action="store_true", help="List all models constructors available.")
         parser.add_argument('-l', '--listgroups', action="store_true", help="List all the groups of  models. If a dataset is selected it only shows the models in that dataset.")
         parser.add_argument('-g', '--generate', action="store_true", help="Generate the models for the current dataset.")
         parser.add_argument('-d', '--deletegroup', metavar="group_model_id", help="Delete a group of models.")
@@ -152,6 +152,7 @@ class Commands(object):
         parser.add_argument('-n', '--editnote', metavar='group_model_id', help="Edit the note related with this model id. Use -i to give the model id to add the note to (4-tuple).")
         parser.add_argument('-o', '--listnotes', default=0,  metavar='group_model_id', help="List the notes related with this model id. You can use the -f with filters here.")
         parser.add_argument('-a', '--amountoflettersinstate', default=0, metavar='amount_of_letters', help="When used with -L, limit the maximum amount of letters in the state to show per line. Helps avoiding dangerously long lines.")
+        parser.add_argument('-c', '--constructor', metavar="constructor_id", type=int, help="Use this constructor for generating the new models. Use optionally with -g.")
 
 
         try:
@@ -169,7 +170,15 @@ class Commands(object):
 
         # Subcomand to generate the models
         elif args.generate:
-            __groupofgroupofmodels__.generate_group_of_models()
+            if args.constructor != None:
+                if __modelsconstructors__.has_constructor_id(args.constructor):
+                    constructor = int(args.constructor)
+                else:
+                    print_error('No such constructor id available.')
+                    return False
+            else:
+                constructor = __modelsconstructors__.get_default_constructor().get_id()
+            __groupofgroupofmodels__.generate_group_of_models(constructor)
             __database__.root._p_changed = True
 
         # Subcomand to delete the group of models of the current dataset
