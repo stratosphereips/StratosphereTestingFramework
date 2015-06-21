@@ -319,6 +319,11 @@ class Model_Constructor(object):
         self.threshold_timeout = value
 
 
+
+
+#########################
+#########################
+#########################
 class Models_Constructors(persistent.Persistent):
     def __init__(self):
         """ This class holds all the different constructors of behavioral models based on states"""
@@ -354,6 +359,17 @@ class Models_Constructors(persistent.Persistent):
         second_model_constructor.set_name('Model Bundchen')
         second_model_constructor.set_description('Uses the symbols between flows to store the time. Better thresholds.')
         self.models_constructors[second_model_constructor.get_id()] = second_model_constructor
+
+    def has_constructor_id(self, constructor_id):
+        try:
+            t = self.models_constructors[constructor_id]
+            return True
+        except KeyError:
+            return False
+
+    def get_constructor(self, id):
+        """ Return the constructors ids"""
+        return self.models_constructors[id]
 
     def get_constructors_ids(self):
         """ Return the constructors ids"""
