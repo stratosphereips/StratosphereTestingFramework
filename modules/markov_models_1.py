@@ -294,7 +294,11 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             if key == 'name':
                 # For filtering based on the label assigned to the model with stf (contrary to the flow label)
                 label = model.get_label()
-                labelname = label.get_name()
+                try:
+                    labelname = label.get_name()
+                except AttributeError:
+                    # Label was deleted
+                    responses.append(False)
                 if operator == '=':
                     if value in labelname:
                         responses.append(True)
