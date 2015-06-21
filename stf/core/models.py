@@ -136,6 +136,16 @@ class Group_of_Models(persistent.Persistent):
         """ This class holds all the models for a dataset"""
         self.id = id
         self.models = BTrees.OOBTree.BTree()
+        self.constructor_id = -1
+
+    def set_constructor_id(self, constructor_id):
+        self.constructor_id = constructor_id
+
+    def get_constructor_id(self):
+        try:
+            return self.constructor_id
+        except AttributeError:
+            return 'Not Stored'
 
     def set_dataset_id(self, dataset_id):
         self.dataset_id = dataset_id
@@ -170,7 +180,9 @@ class Group_of_Models(persistent.Persistent):
             model_id = connection.get_id()
             new_model = Model(model_id)
             # Set the constructor for this model. Each model has a specific way of constructing the states
-            new_model.set_constructor(__modelsconstructors__.get_default_constructor())
+            #new_model.set_constructor(__modelsconstructors__.get_default_constructor())
+            constructor_id = self.get_constructor_id()
+            new_model.set_constructor(__modelsconstructors__.get_constructor(constructor_id))
             for flow in connection.get_flows():
                 # Try to add the flow
                 if not new_model.add_flow(flow):
@@ -473,16 +485,16 @@ class Group_of_Group_of_Models(persistent.Persistent):
             rows = []
             for group in self.group_of_models.values():
                 if group.get_dataset_id() == __datasets__.current.get_id():
-                    rows.append([group.get_id(), len(group.get_models()), __datasets__.current.get_id(), __datasets__.current.get_name() ])
-            print(table(header=['Group of Model Id', 'Amount of Models', 'Dataset Id', 'Dataset Name'], rows=rows))
+                    rows.append([group.get_id(), group.get_constructor_id(), len(group.get_models()), __datasets__.current.get_id(), __datasets__.current.get_name() ])
+            print(table(header=['Group of Model Id', 'Constructor ID', 'Amount of Models', 'Dataset Id', 'Dataset Name'], rows=rows))
         # Otherwise print them all
         else:
             rows = []
             for group in self.group_of_models.values():
                 # Get the dataset based on the dataset id stored from this group 
                 dataset = __datasets__.get_dataset(group.get_dataset_id())
-                rows.append([group.get_id(), len(group.get_models()), dataset.get_id(), dataset.get_name() ])
-            print(table(header=['Group of Model Id', 'Amount of Models', 'Dataset Id', 'Dataset Name'], rows=rows))
+                rows.append([group.get_id(), group.get_constructor_id(), len(group.get_models()), dataset.get_id(), dataset.get_name() ])
+            print(table(header=['Group of Model Id', 'Constructor ID', 'Amount of Models', 'Dataset Id', 'Dataset Name'], rows=rows))
 
     def delete_group_of_models(self, id):
         """Get the id of a dataset and delete all the models that were generated from it"""
@@ -524,7 +536,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
                 self.group_of_models.pop(group_id)
                 print_info('Deleted group of models with id {}'.format(group_id))
 
-    def generate_group_of_models(self):
+    def generate_group_of_models(self, constructor_id):
         if __datasets__.current:
             # Get the id for the current dataset
             dataset_id = __datasets__.current.get_id()
@@ -542,7 +554,8 @@ class Group_of_Group_of_Models(persistent.Persistent):
                 print_error('There are no connections for this dataset yet. Please generate them.')
 
             # The id of this group of models is the id of the dataset + the id of the model constructor. Because we can have the same connnections modeled by different constructors.
-            group_of_models_id = str(dataset_id) + '-' + str(__modelsconstructors__.get_default_constructor().get_id())
+            #group_of_models_id = str(dataset_id) + '-' + str(__modelsconstructors__.get_default_constructor().get_id())
+            group_of_models_id = str(dataset_id) + '-' + str(constructor_id)
 
             # If we already have a group of models, ask what to do
             try:
@@ -569,6 +582,8 @@ class Group_of_Group_of_Models(persistent.Persistent):
                 group_of_models.set_group_connection_id(group_connection_id)
                 # Set the dataset id for this group of models
                 group_of_models.set_dataset_id(dataset_id)
+                # Set the model constructor used for all the models
+                group_of_models.set_constructor_id(constructor_id)
                 # Store the model
                 self.group_of_models[group_of_models_id] = group_of_models
                 # Update the dataset to include this group of models
