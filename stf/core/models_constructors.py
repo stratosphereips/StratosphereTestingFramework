@@ -22,6 +22,7 @@ class Model_Constructor(object):
         self.threshold_size_1 = False
         self.threshold_size_2 = False
         self.threshold_timeout = False
+        self.use_multiples_timeouts = True
 
         self.models = {}
       
@@ -318,6 +319,15 @@ class Model_Constructor(object):
     def set_tto(self, value):
         self.threshold_timeout = value
 
+    def set_use_mutiples_timeouts(self, value):
+        self.use_multiples_timeouts = value
+
+    def get_use_mutiples_timeouts(self):
+        try:
+            return self.use_multiples_timeouts
+        except AttributeError:
+            # If there is no info, by default use True
+            return True
 
 
 
@@ -342,11 +352,12 @@ class Models_Constructors(persistent.Persistent):
         first_model_constructor.set_ts1(float(125))
         first_model_constructor.set_ts2(float(1100))
         first_model_constructor.set_tto(datetime.timedelta(seconds=3600))
+        first_model_constructor.use_multiples_timeouts = True
         first_model_constructor.set_name('Model 0')
         first_model_constructor.set_description('To try at the thresholds.')
         self.models_constructors[first_model_constructor.get_id()] = first_model_constructor
 
-        # Add the first model constructor
+        # Add the second model constructor
         second_model_constructor = Model_Constructor(1)
         second_model_constructor.set_tt1(float(1.05))
         second_model_constructor.set_tt2(float(1.3))
@@ -356,9 +367,25 @@ class Models_Constructors(persistent.Persistent):
         second_model_constructor.set_ts1(float(250))
         second_model_constructor.set_ts2(float(1100))
         second_model_constructor.set_tto(datetime.timedelta(seconds=3600))
+        second_model_constructor.use_multiples_timeouts = True
         second_model_constructor.set_name('Model Bundchen')
         second_model_constructor.set_description('Uses the symbols between flows to store the time. Better thresholds.')
         self.models_constructors[second_model_constructor.get_id()] = second_model_constructor
+
+        # Add the third model constructor
+        third_model_constructor = Model_Constructor(2)
+        third_model_constructor.set_tt1(float(1.05))
+        third_model_constructor.set_tt2(float(1.3))
+        third_model_constructor.set_tt3(float(5))
+        third_model_constructor.set_td1(float(0.1))
+        third_model_constructor.set_td2(float(10))
+        third_model_constructor.set_ts1(float(250))
+        third_model_constructor.set_ts2(float(1100))
+        third_model_constructor.set_tto(datetime.timedelta(seconds=3600))
+        third_model_constructor.use_multiples_timeouts = False
+        third_model_constructor.set_name('Model Moss')
+        third_model_constructor.set_description('Uses the symbols between flows to store the time. Better thresholds.')
+        self.models_constructors[third_model_constructor.get_id()] = third_model_constructor
 
     def has_constructor_id(self, constructor_id):
         try:
