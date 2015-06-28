@@ -474,6 +474,7 @@ Now stf can import external modules that implement new functionality.
 
 
 ### TODO
+- Add less to the listing of -p of detections
 - The proxy connections (like htbot) maybe be detected by the ratio of in/out bytes of argus
 - argus is not detected when installed as root. Make the link
 - When deleting a dataset, not all the group of models are deleted
