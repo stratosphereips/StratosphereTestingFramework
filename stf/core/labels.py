@@ -288,7 +288,11 @@ class Group_Of_Labels(persistent.Persistent):
     def del_label_in_model(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label id and a current dataset, del the label id in the model"""
         model = self.get_the_model_of_a_connection(group_of_model_id, connection_id)
-        model.del_label_name(name)
+        try:
+            model.del_label_name(name)
+        except AttributeError:
+            print_error('Non existant label')
+            return False
 
     def add_auto_label_for_connection(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label name and a current dataset, add an auto note"""
