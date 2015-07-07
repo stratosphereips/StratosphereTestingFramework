@@ -272,9 +272,13 @@ class Group_Of_Labels(persistent.Persistent):
         dataset_id = int(group_of_model_id.split('-')[0])
         dataset = __datasets__.get_dataset(dataset_id)
         group = __groupofgroupofmodels__.get_group(group_of_model_id)
-        if group.has_model(connection_id):
-            model = group.get_model(connection_id)
-            return model
+        try:
+            if group.has_model(connection_id):
+                model = group.get_model(connection_id)
+                return model
+        except AttributeError:
+            print_error('The connection does not have a model. Probably deleted.')
+            return False
 
     def add_label_to_model(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label id and a current dataset, add the label id to the model"""
