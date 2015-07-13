@@ -5,6 +5,7 @@ import persistent
 import BTrees.IOBTree
 import os
 import sys
+import re
 
 from stf.common.out import *
 from stf.core.dataset import __datasets__
@@ -41,6 +42,10 @@ class Label(persistent.Persistent):
         self.connections.pop(dataset_id)
         self.connections[group_of_models_id] = prev_values
         self._p_changed = 1
+
+    def get_groups_id(self):
+        """ Return the ids of the groups of connections related to this label """
+        return self.connections.keys()
 
     def add_connection(self, group_of_model_id, connection_id):
         """ Receive a group_of_model_id and a connection_id and store them in this label"""
@@ -206,12 +211,136 @@ class Group_Of_Labels(persistent.Persistent):
             print table(header=['Id', 'Label Name', 'Group of Models', 'Connections'], rows=rows)
         return matches
 
-    def list_labels(self):
+    def construct_filter(self, filter):
+        """ Get the filter string and decode all the operations """
+        # If the filter string is empty, delete the filter variable
+        if not filter:
+            try:
+                del self.filter 
+            except:
+                pass
+            return True
+        self.filter = []
+        for part in filter:
+            # Get the key
+            try:
+                key = re.split('\!=|>=|<=|=|<|>', part)[0]
+                value = re.split('\!=|>=|<=|=|<|>', part)[1]
+            except IndexError:
+                # No < or > or = or != in the string. Just stop.
+                break
+            # We should search for <= before <
+            try:
+                part.index('<=')
+                operator = '<='
+                self.filter.append((key, operator, value))
+                continue
+            except ValueError:
+                # Now we search for <
+                try:
+                    part.index('<')
+                    operator = '<'
+                    self.filter.append((key, operator, value))
+                    continue
+                except ValueError:
+                    pass
+            # We should search for >= before >
+            try:
+                part.index('>=')
+                operator = '>='
+                self.filter.append((key, operator, value))
+                continue
+            except ValueError:
+                # Now we search for >
+                try:
+                    part.index('>')
+                    operator = '>'
+                    self.filter.append((key, operator, value))
+                    continue
+                except ValueError:
+                    pass
+            # We should search for != before =
+            try:
+                part.index('!=')
+                operator = '!='
+                self.filter.append((key, operator, value))
+                continue
+            except ValueError:
+                # Now we search for =
+                try:
+                    part.index('=')
+                    operator = '='
+                    self.filter.append((key, operator, value))
+                    continue
+                except ValueError:
+                    pass
+
+    def apply_filter(self, model):
+        """ Use the stored filter to know what we should match"""
+        responses = []
+        try:
+            self.filter
+        except AttributeError:
+            # If we don't have any filter string, just return true and show everything
+            return True
+        # Check each filter
+        for filter in self.filter:
+            key = filter[0]
+            operator = filter[1]
+            value = filter[2]
+            if key == 'name':
+                labelname = model.get_name()
+                if operator == '=':
+                    if value in labelname:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if value not in labelname:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            elif key == 'groupid':
+                groupsid = model.get_groups_id()
+                if operator == '=':
+                    if value in groupsid:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if value not in groupsid:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            elif key == 'id':
+                id = float(model.get_id())
+                value = float(value)
+                if operator == '=':
+                    if id == value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if id != value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            else:
+                return False
+
+        for response in responses:
+            if not response:
+                return False
+        return True
+
+    def list_labels(self, filter):
         """ List all the labels """
+        self.construct_filter(filter)
         rows = []
         for label in self.get_labels():
-            for group_of_model_id in label.get_group_of_model_id():
-                rows.append([label.get_id(), label.get_name(), group_of_model_id, label.get_connections(groupofmodelid=group_of_model_id)])
+            if self.apply_filter(label):
+                for group_of_model_id in label.get_group_of_model_id():
+                    rows.append([label.get_id(), label.get_name(), group_of_model_id, label.get_connections(groupofmodelid=group_of_model_id)])
         print table(header=['Id', 'Label Name', 'Group of Model', 'Connection'], rows=rows)
 
     def check_label_existance(self, group_of_model_id, connection_id):
