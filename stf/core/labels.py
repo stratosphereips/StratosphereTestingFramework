@@ -355,6 +355,55 @@ class Group_Of_Labels(persistent.Persistent):
         except AttributeError:
             return False
 
+    def add_label_with_filter(self, group_of_model_id, filter):
+        """ Add a label using the filters to a group of connection ids"""
+        if __datasets__.current:
+            dataset_id_standing = __datasets__.current.get_id()
+            dataset_id = group_of_model_id.split('-')[0]
+            if str(dataset_id_standing) != dataset_id:
+                print_error('You should select the dataset you are going to work in. Not another')
+                return False
+            if not __groupofgroupofmodels__.get_group(group_of_model_id):
+                print_error('That group of models does not exist.')
+                return False
+            has_label = self.check_label_existance(group_of_model_id, connection_id)
+            #if has_label:
+            #    print_error('This connection from this dataset was already assigned the label id {}'.format(has_label))
+            #else:
+            #    pass
+            print_warning('Remember that a label should represent a unique behavioral model!')
+            try:
+                label_id = self.labels[list(self.labels.keys())[-1]].get_id() + 1
+            except (KeyError, IndexError):
+                label_id = 1
+            # Construct the filter
+            self.construct_filter(filter)
+            print self.filter['=']
+
+            raw_input()
+            name = self.decide_a_label_name(connection_id)
+            if name:
+                previous_label = self.search_label_name(name, verbose=False, exact=1)
+                if previous_label:
+                    label = self.get_label(name)
+                    label.add_connection(group_of_model_id, connection_id)
+                else:
+                    label = Label(label_id)
+                    label.set_name(name)
+                    label.add_connection(group_of_model_id, connection_id)
+                    self.labels[label_id] = label
+                # Add label id to the model
+                self.add_label_to_model(group_of_model_id, connection_id, name)
+                # add auto note with the label to the model
+                self.add_auto_label_for_connection(group_of_model_id, connection_id, name)
+            else:
+                # This is not necesary, but is a precaution
+                print_error('Aborting the assignment of the label.')
+                return False
+        else:
+            print_error('There is no dataset selected.')
+
+
     def add_label(self, group_of_model_id, connection_id):
         """ Add a label """
         if __datasets__.current:
@@ -433,7 +482,11 @@ class Group_Of_Labels(persistent.Persistent):
         """ Given a connection id, label name and a current dataset, add an auto note"""
         text_to_add = "Added label {}".format(name)
         model = self.get_the_model_of_a_connection( group_of_model_id, connection_id)
-        note_id = model.get_note_id()
+        try:
+            note_id = model.get_note_id()
+        except AttributeError:
+            print_error('Some error trying to read tht note id of the model.')
+            return False
         if not note_id:
             # There was not originaly a note, so we should now store the new created not in the model.
             note_id =__notes__.new_note()
@@ -459,10 +512,21 @@ class Group_Of_Labels(persistent.Persistent):
         except KeyError:
             print_error('Label id does not exists.')
 
+    def protocols_match(self, old_connection, new_connection):
+        """ Check that the protocols in both connection match """
+        current_proto = str(old_connection.split('-')[-1])
+        new_proto = str(new_connection.split('-')[-1])
+        if current_proto == new_proto:
+            return True
+        else:
+            return False
+
     def decide_a_label_name(self, connection_id):
+        """ Get a connection id and return a label for it."""
         # First choose amount the current labels
         print_info('Current Labels')
-        self.list_labels()
+        # List all the labels, i.e. with an empty filter
+        self.list_labels("")
         selection = raw_input('Select a label Id to assign the same label BUT with a new final number to the current connection. Or press Enter to create a new one:')
         try:
             # Get the label selected with an id
@@ -476,7 +540,13 @@ class Group_Of_Labels(persistent.Persistent):
             last_name_without_id = '-'.join(last_name.split('-')[0:-1])
             new_id = last_id + 1
             new_name = last_name_without_id + '-' + str(new_id)
-            return new_name
+            # Check that the protocols match
+            first_connection = label.get_connections()[0]
+            if self.protocols_match(first_connection, connection_id):
+                return new_name
+            else:
+                print_error('Protocols in both connection ids should match. ({} and {})'.format(first_connection, connection_id))
+                return False
         except ValueError:
             pass
 
