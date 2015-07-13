@@ -10,6 +10,7 @@ import re
 from stf.common.out import *
 from stf.core.dataset import __datasets__
 from stf.core.models import __groupofgroupofmodels__
+from stf.core.connections import __group_of_group_of_connections__
 from stf.core.notes import   __notes__
 
 
@@ -327,6 +328,21 @@ class Group_Of_Labels(persistent.Persistent):
                         responses.append(True)
                     else:
                         responses.append(False)
+            elif key == 'connid':
+                try:
+                    connid = model.get_id()
+                except AttributeError:
+                    print_error('The connid filter should be only used for assigning a label to multiple connections.')
+                if operator == '=':
+                    if value in connid:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if value not in value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
             else:
                 return False
 
@@ -366,36 +382,48 @@ class Group_Of_Labels(persistent.Persistent):
             if not __groupofgroupofmodels__.get_group(group_of_model_id):
                 print_error('That group of models does not exist.')
                 return False
-            has_label = self.check_label_existance(group_of_model_id, connection_id)
-            #if has_label:
-            #    print_error('This connection from this dataset was already assigned the label id {}'.format(has_label))
-            #else:
-            #    pass
             print_warning('Remember that a label should represent a unique behavioral model!')
-            try:
-                label_id = self.labels[list(self.labels.keys())[-1]].get_id() + 1
-            except (KeyError, IndexError):
-                label_id = 1
-            # Construct the filter
-            self.construct_filter(filter)
-            print self.filter['=']
-
-            raw_input()
-            name = self.decide_a_label_name(connection_id)
-            if name:
-                previous_label = self.search_label_name(name, verbose=False, exact=1)
-                if previous_label:
-                    label = self.get_label(name)
-                    label.add_connection(group_of_model_id, connection_id)
-                else:
-                    label = Label(label_id)
-                    label.set_name(name)
-                    label.add_connection(group_of_model_id, connection_id)
-                    self.labels[label_id] = label
-                # Add label id to the model
-                self.add_label_to_model(group_of_model_id, connection_id, name)
-                # add auto note with the label to the model
-                self.add_auto_label_for_connection(group_of_model_id, connection_id, name)
+            # Get the base name of the labels
+            temp_general_name = self.decide_a_label_name("") # Connection id is empty because we are not checking the protos. This is used because we need to assign a label to multiple connections id.
+            if temp_general_name:
+                # The general name of the label is the one every connection will share except the final number that will change.
+                # The general_name_id is the final number that will keep changing
+                general_name = '-'.join(temp_general_name.split('-')[0:-1])
+                general_name_id = int(temp_general_name.split('-')[-1])
+                # Get all the connections from the connection model
+                group_of_connections_id = int(group_of_model_id.split('-')[0])
+                group_of_connections = __group_of_group_of_connections__.get_group(group_of_connections_id)
+                connections = group_of_connections.get_connections()
+                # Construct the filter
+                self.construct_filter(filter)
+                # Check we are using the correct filters
+                if self.filter[0][1] != "=" or self.filter[0][0] != "connid":
+                    print_error('Adding labels with a filter only supports the type of filter connid=')
+                    return False
+                for connection in connections:
+                    connection_id = connection.get_id()
+                    if self.apply_filter(connection):
+                        has_label = self.check_label_existance(group_of_model_id, connection_id)
+                        if has_label:
+                            print_error('This connection from this dataset was already assigned the label id {}. We did not change it.'.format(has_label))
+                            continue
+                        # Get next label id
+                        try:
+                            label_id = self.labels[list(self.labels.keys())[-1]].get_id() + 1
+                        except (KeyError, IndexError):
+                            label_id = 1
+                        # Obtain the name
+                        name = general_name + '-' + str(general_name_id)
+                        label = Label(label_id)
+                        label.set_name(name)
+                        #print_info('Assigning label to connection: {}'.format(connection_id))
+                        label.add_connection(group_of_model_id, connection_id)
+                        # Add label id to the model
+                        self.add_label_to_model(group_of_model_id, connection_id, name)
+                        # add auto note with the label to the model
+                        self.add_auto_label_for_connection(group_of_model_id, connection_id, name)
+                        self.labels[label_id] = label
+                        general_name_id += 1
             else:
                 # This is not necesary, but is a precaution
                 print_error('Aborting the assignment of the label.')
@@ -513,7 +541,7 @@ class Group_Of_Labels(persistent.Persistent):
             print_error('Label id does not exists.')
 
     def protocols_match(self, old_connection, new_connection):
-        """ Check that the protocols in both connection match """
+        """ Check that the protocols in both connection id match """
         current_proto = str(old_connection.split('-')[-1])
         new_proto = str(new_connection.split('-')[-1])
         if current_proto == new_proto:
@@ -522,7 +550,7 @@ class Group_Of_Labels(persistent.Persistent):
             return False
 
     def decide_a_label_name(self, connection_id):
-        """ Get a connection id and return a label for it."""
+        """ Get a connection id and return a label for it. The connection_id can be empty"""
         # First choose amount the current labels
         print_info('Current Labels')
         # List all the labels, i.e. with an empty filter
@@ -567,18 +595,12 @@ class Group_Of_Labels(persistent.Persistent):
             print_error('Only those options are available. If you need more, please submit a request')
             return False
         # Main 3 layer proto
-        if 'TCP' in connection_id.upper():
-            proto3 = 'TCP'
-        elif 'UDP' in connection_id.upper():
-            proto3 = 'UDP'
-        elif 'ICMP' in connection_id.upper():
-            proto3 = 'ICMP'
-        elif 'IGMP' in connection_id.upper():
-            proto3 = 'IGMP'
-        elif 'ARP' in connection_id.upper():
-            proto3 = 'ARP'
+        print ("Please provide the layer 3 proto. 'TCP', 'UDP', 'ICMP', 'IGMP', or 'ARP': ")
+        text = raw_input().strip()
+        if 'TCP' in text or 'UDP' in text or 'ICMP' in text or 'IGMP' in text or 'ARP' in text:
+            proto3 = text
         else:
-            print_error('The protocol of the connection could not be detected.')
+            print_error('Only those options are available. If you need more, please submit a request')
             return False
         # Main 4 layer proto
         print ("Please provide the main proto in layer 4. 'HTTP', 'HTTPS', 'FTP', 'SSH', 'DNS', 'SMTP', 'P2P', 'NTP', 'Multicast', 'NetBIOS', 'Unknown', 'Other', 'Custom', or 'None': ")
