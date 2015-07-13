@@ -504,7 +504,7 @@ class Commands(object):
         parser.add_argument('-D', '--deleteconnection', metavar="connection_id", help="Give a connection id to delete (4-tuple). You must give the group of model id with -g.")
         parser.add_argument('-g', '--modelgroupid', metavar="modelgroupid", help="Id of the group of models. Used with -a.")
         parser.add_argument('-m', '--migrate', action="store_true", help="Migrate <= 0.1.2alpha labels to the new database.")
-        parser.add_argument('-f', '--filter', metavar="filter", nargs='+', default="", help="Use this filter to work with labels. Format: \"variable[!=<>]value\". You can use the variables: name, id and groupid. Example: \"name=Botnet\". If you use -f to add labels, you should also specify -g.")
+        parser.add_argument('-f', '--filter', metavar="filter", nargs='+', default="", help="Use this filter to work with labels. Format: \"variable[!=<>]value\". You can use the variables: name, id, groupid and connid. Example: \"name=Botnet\". If you use -f to add labels, you should also specify -g. the variable connid is only used to assign a label to multiple connections")
 
         try:
             args = parser.parse_args(args)
