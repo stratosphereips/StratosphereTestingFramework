@@ -303,15 +303,17 @@ class Group_Of_Labels(persistent.Persistent):
             elif key == 'groupid':
                 groupsid = model.get_groups_id()
                 if operator == '=':
-                    if groupsid in value:
-                        responses.append(True)
-                    else:
-                        responses.append(False)
+                    for gid in groupsid:
+                        if value in gid:
+                            responses.append(True)
+                        else:
+                            responses.append(False)
                 elif operator == '!=':
-                    if groupsid not in value:
-                        responses.append(True)
-                    else:
-                        responses.append(False)
+                    for gid in groupsid:
+                        if value not in gid:
+                            responses.append(True)
+                        else:
+                            responses.append(False)
             elif key == 'id':
                 id = float(model.get_id())
                 value = float(value)
