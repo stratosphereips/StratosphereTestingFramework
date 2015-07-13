@@ -384,19 +384,39 @@ captura-i78zR: stf >
 captura-i78zR: stf > notes -e 1
 captura-i78zR: stf >
 ```
-- Adding a label
+- Adding a label to a specific connection
 ```
-test: stf > labels -a 192.168.1.128-54.208.18.216-80-tcp -g 15-1
+test: stf > labels -a -c 192.168.1.128-54.208.18.216-80-tcp -g 15-1
 [!] Remember that a label should represent a unique behavioral model!
 Please provide a direction. It means 'From' or 'To' the most important IP in the connection: 
 From
 Please provide the main decision. 'Botnet', 'Normal', 'Attack', or 'Background': 
 Normal
+Please provide the layer 3 proto. 'TCP', 'UDP', 'ICMP', 'IGMP', or 'ARP': 
+TCP
 Please provide the main proto in layer 4. 'HTTP', 'HTTPS', 'FTP', 'SSH', 'DNS', 'SMTP', 'P2P', 'Multicast', 'Unknown' or 'None': 
 HTTP
 Please provide optional details for this connection. Up to 30 chars (No - or spaces allowed). Example: 'Encrypted', 'PlainText', 'CustomEncryption', 'soundcound.com', 'microsoft.com', 'netbios': 
 iflscience.com
 [*] Connection has note id 59
+```
+- Adding a label to multiple connections
+```
+test: stf > labels -a -f connid=192.168.1.128 connid=-80-tcp -g 15-1
+[!] Remember that a label should represent a unique behavioral model!
+Please provide a direction. It means 'From' or 'To' the most important IP in the connection: 
+From
+Please provide the main decision. 'Botnet', 'Normal', 'Attack', or 'Background': 
+Normal
+Please provide the layer 3 proto. 'TCP', 'UDP', 'ICMP', 'IGMP', or 'ARP': 
+TCP
+Please provide the main proto in layer 4. 'HTTP', 'HTTPS', 'FTP', 'SSH', 'DNS', 'SMTP', 'P2P', 'Multicast', 'Unknown' or 'None': 
+HTTP
+Please provide optional details for this connection. Up to 30 chars (No - or spaces allowed). Example: 'Encrypted', 'PlainText', 'CustomEncryption', 'soundcound.com', 'microsoft.com', 'netbios': 
+iflscience.com
+[*] Connection has note id 59
+[*] Connection has note id 60
+[*] Connection has note id 61
 ```
 - Looking at the labels (For more information about the labelling process see [labels](doc/labels.md)) 
 ```
@@ -482,7 +502,6 @@ Now stf can import external modules that implement new functionality.
 - argus is not detected when installed as root. Make the link
 - When deleting a dataset, not all the group of models are deleted
 - Put a limit to markov_models: amount of flows, or amount of time or maybe a specific string of letters that should be looked up.
-- Notes are not being stored. At least when working with labels.
 - When deleting a label, delete its note too.
 - Only compare when the upper most protocol matches. TCP with TCP, UDP with UDP, ICMP with ICMP.
 - Add notes to detections
