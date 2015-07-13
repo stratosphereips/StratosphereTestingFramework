@@ -303,12 +303,12 @@ class Group_Of_Labels(persistent.Persistent):
             elif key == 'groupid':
                 groupsid = model.get_groups_id()
                 if operator == '=':
-                    if value in groupsid:
+                    if groupsid in value:
                         responses.append(True)
                     else:
                         responses.append(False)
                 elif operator == '!=':
-                    if value not in groupsid:
+                    if groupsid not in value:
                         responses.append(True)
                     else:
                         responses.append(False)
