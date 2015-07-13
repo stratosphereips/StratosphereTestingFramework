@@ -339,7 +339,7 @@ class Group_Of_Labels(persistent.Persistent):
                     else:
                         responses.append(False)
                 elif operator == '!=':
-                    if value not in value:
+                    if value not in connid:
                         responses.append(True)
                     else:
                         responses.append(False)
