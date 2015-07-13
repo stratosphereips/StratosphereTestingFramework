@@ -498,14 +498,13 @@ class Commands(object):
     def cmd_labels(self, *args):
         parser = argparse.ArgumentParser(prog="labels", description="Manage labels", epilog="Manage labels")
         parser.add_argument('-l', '--list', action="store_true", help="List all existing labels.")
-        parser.add_argument('-a', '--add', metavar="connection_id", help="Add a label to the given connection id. You should use -g to specify the id of the group of models.")
+        parser.add_argument('-a', '--add', action="store_true", help="Add a label. Use -c to add to a connection id or -f to add to a group of connections id.")
+        parser.add_argument('-c', '--connectionid', metavar="connection_id", help="Together with -a, add a label to the given connection id. You should use -g to specify the id of the group of models.")
         parser.add_argument('-d', '--delete', metavar="label_id", help="Delete a label given the label id.")
-        #parser.add_argument('-s', '--search', metavar="text", help="Search for a text in all the labels names.")
-        #parser.add_argument('-S', '--searchconnection', metavar="connection_id", help="Search for a connection id in all the labels.")
         parser.add_argument('-D', '--deleteconnection', metavar="connection_id", help="Give a connection id to delete (4-tuple). You must give the group of model id with -g.")
         parser.add_argument('-g', '--modelgroupid', metavar="modelgroupid", help="Id of the group of models. Used with -a.")
         parser.add_argument('-m', '--migrate', action="store_true", help="Migrate <= 0.1.2alpha labels to the new database.")
-        parser.add_argument('-f', '--filter', metavar="filter", nargs='+', default="", help="Use this filter to work with labels. Format: \"variable[!=<>]value\". You can use the variables: name. Example: \"name=Botnet\".")
+        parser.add_argument('-f', '--filter', metavar="filter", nargs='+', default="", help="Use this filter to work with labels. Format: \"variable[!=<>]value\". You can use the variables: name, id and groupid. Example: \"name=Botnet\". If you use -f to add labels, you should also specify -g.")
 
         try:
             args = parser.parse_args(args)
@@ -519,21 +518,18 @@ class Commands(object):
         # Subcomand to add a label
         elif args.add:
             if args.modelgroupid:
-                __group_of_labels__.add_label(args.modelgroupid, args.add)
+                # To a group of connections id using filters
+                if args.filter:
+                    __group_of_labels__.add_label_with_filter(args.modelgroupid, args.filter)
+                # To a unique connections id
+                elif args.connectionid:
+                    __group_of_labels__.add_label(args.modelgroupid, args.connectionid)
             else:
                 print_error('Please specify the id of the group of models where this connection belongs with -g.')
 
         # Subcomand to delete a label
         elif args.delete:
             __group_of_labels__.del_label(args.delete)
-
-        # Subcomand to search label names
-        #elif args.search:
-            #__group_of_labels__.search_label_name(args.search, verbose=True, exact=3)
-
-        # Subcomand to search a connection in the label
-        #elif args.searchconnection:
-        #    __group_of_labels__.search_connection_in_label(args.searchconnection)
 
         # Subcomand to delete a specific connection
         elif args.deleteconnection:
