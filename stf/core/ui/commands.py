@@ -500,11 +500,12 @@ class Commands(object):
         parser.add_argument('-l', '--list', action="store_true", help="List all existing labels.")
         parser.add_argument('-a', '--add', metavar="connection_id", help="Add a label to the given connection id. You should use -g to specify the id of the group of models.")
         parser.add_argument('-d', '--delete', metavar="label_id", help="Delete a label given the label id.")
-        parser.add_argument('-s', '--search', metavar="text", help="Search for a text in all the labels names.")
-        parser.add_argument('-S', '--searchconnection', metavar="connection_id", help="Search for a connection id in all the labels.")
+        #parser.add_argument('-s', '--search', metavar="text", help="Search for a text in all the labels names.")
+        #parser.add_argument('-S', '--searchconnection', metavar="connection_id", help="Search for a connection id in all the labels.")
         parser.add_argument('-D', '--deleteconnection', metavar="connection_id", help="Give a connection id to delete (4-tuple). You must give the group of model id with -g.")
         parser.add_argument('-g', '--modelgroupid', metavar="modelgroupid", help="Id of the group of models. Used with -a.")
         parser.add_argument('-m', '--migrate', action="store_true", help="Migrate <= 0.1.2alpha labels to the new database.")
+        parser.add_argument('-f', '--filter', metavar="filter", nargs='+', default="", help="Use this filter to work with labels. Format: \"variable[!=<>]value\". You can use the variables: name. Example: \"name=Botnet\".")
 
         try:
             args = parser.parse_args(args)
@@ -513,7 +514,7 @@ class Commands(object):
 
         # Subcomand to list labels
         if args.list:
-            __group_of_labels__.list_labels()
+            __group_of_labels__.list_labels(args.filter)
 
         # Subcomand to add a label
         elif args.add:
@@ -527,12 +528,12 @@ class Commands(object):
             __group_of_labels__.del_label(args.delete)
 
         # Subcomand to search label names
-        elif args.search:
-            __group_of_labels__.search_label_name(args.search, verbose=True, exact=3)
+        #elif args.search:
+            #__group_of_labels__.search_label_name(args.search, verbose=True, exact=3)
 
         # Subcomand to search a connection in the label
-        elif args.searchconnection:
-            __group_of_labels__.search_connection_in_label(args.searchconnection)
+        #elif args.searchconnection:
+        #    __group_of_labels__.search_connection_in_label(args.searchconnection)
 
         # Subcomand to delete a specific connection
         elif args.deleteconnection:
