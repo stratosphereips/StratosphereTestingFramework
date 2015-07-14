@@ -483,6 +483,7 @@ You can check that this was successful by inspecting the connections with ```con
 - Show which connections have a label while listing models.
 - You can filter by labelname in the models.
 - You can filter by trainname, testname and distance in the detection_1 module.
+- You can delete labels by range of ids.
 
 ## Modules
 Now stf can import external modules that implement new functionality.
