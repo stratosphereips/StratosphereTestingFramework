@@ -405,9 +405,6 @@ class Group_Of_Labels(persistent.Persistent):
                 for connection in connections:
                     connection_id = connection.get_id()
                     has_label = self.check_label_existance(group_of_model_id, connection_id)
-                    if has_label:
-                        print_error('This connection from this dataset was already assigned the label id {}. We did not change it.'.format(has_label))
-                        continue
                     # Get next label id
                     try:
                         label_id = self.labels[list(self.labels.keys())[-1]].get_id() + 1
@@ -419,6 +416,9 @@ class Group_Of_Labels(persistent.Persistent):
                     label.set_name(name)
                     label.add_connection(group_of_model_id, connection_id)
                     if self.apply_filter(label):
+                        if has_label:
+                            #print_error('This connection from this dataset was already assigned the label id {}. We did not change it.'.format(has_label))
+                            continue
                         # Add label id to the model
                         self.add_label_to_model(group_of_model_id, connection_id, name)
                         # add auto note with the label to the model
