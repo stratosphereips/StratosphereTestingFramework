@@ -198,6 +198,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         self.parser.add_argument('-r', '--regenerate', metavar='regenerate', help='Regenerate the markov chain. Usually because more connections were added to the label. Give the markov chain id.')
         self.parser.add_argument('-a', '--generateall', action='store_true', help='Generate the markov chain for all the labels that don\'t have one already')
         self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the markov models. For example for listing. Keywords: name. Usage: name=<text>. Partial matching.')
+        self.parser.add_argument('-n', '--numberoffflows', metavar='numberofflows', default="3", help='When creating the markov models, this is the minimum number of flows that the connection should have. Less than this and the connection will be ignored. Be default 3.')
 
     # Mandatory Method!
     def get_name(self):
@@ -339,7 +340,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 rows.append([ markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate, markov_model.get_state()[0:100]])
         print(table(header=['Id', 'State Len', '# Connections', 'Label', 'Needs Regenerate', 'First 100 Letters in State'], rows=rows))
 
-    def create_new_model(self, label_name):
+    def create_new_model(self, label_name, number_of_flows):
         """ Given a label name create a new markov chain object"""
         # Get the label object
         label_to_model = __group_of_labels__.get_label(label_name)
@@ -461,13 +462,13 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         markov_model.create(markov_model.get_state())
         print_info('Markov model {} regenerated.'.format(markov_model_id))
 
-    def generate_all_models(self):
+    def generate_all_models(self, number_of_flows):
         """ Read all the labels and generate all the markov models if they dont already have one """
         labels = __group_of_labels__.get_labels()
         for label in labels:
             if not self.get_markov_model_by_label_id(label.get_id()):
                 # We dont have it
-                self.create_new_model(label.get_name())
+                self.create_new_model(label.get_name(), number_of_flows)
 
 
 
@@ -494,7 +495,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         if self.args.list:
             self.list_markov_models(self.args.filter)
         elif self.args.generate:
-            self.create_new_model(self.args.generate)
+            self.create_new_model(self.args.generate, self.args.numberofflows)
         elif self.args.printmatrix:
             self.print_matrix(self.args.printmatrix)
         elif self.args.simulate:
@@ -506,7 +507,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         elif self.args.regenerate:
             self.regenerate(self.args.regenerate)
         elif self.args.generateall:
-            self.generate_all_models()
+            self.generate_all_models(self.args.numberofflows)
         else:
             print_error('At least one of the parameter is required in this module')
             self.usage()
