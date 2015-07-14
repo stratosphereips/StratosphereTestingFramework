@@ -397,7 +397,6 @@ class Group_Of_Labels(persistent.Persistent):
                 # Construct the filter
                 self.construct_filter(filter)
                 # Check we are using the correct filters
-                print self.filter
                 for temp_filter in self.filter:
                     if temp_filter[0] != "connid" :
                         print_error('Adding labels with a filter only supports the type of filter connid= and connid!=')
