@@ -546,7 +546,7 @@ class Group_Of_Labels(persistent.Persistent):
                 except ValueError:
                     print_error('Invalid label id')
                     return False
-            for id in range(first_id, second_id):
+            for id in range(first_id, second_id + 1):
                 label = self.labels[int(id)]
                 # First delete the label from the model
                 for group_id in label.get_group_of_model_id():
@@ -555,7 +555,7 @@ class Group_Of_Labels(persistent.Persistent):
                 # Now delete the label itself
                 self.labels.pop(id)
         except KeyError:
-            print_error('Label id does not exists.')
+            print_error('Label id does not exists. Delete only continuous ranges.')
 
     def protocols_match(self, old_connection, new_connection):
         """ Check that the protocols in both connection id match """
