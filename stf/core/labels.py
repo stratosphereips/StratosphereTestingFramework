@@ -576,6 +576,8 @@ class Group_Of_Labels(persistent.Persistent):
             elif connection_id != "":
                 print_error('Protocols in both connection ids should match. ({} and {})'.format(first_connection, connection_id))
                 return False
+            else:
+                return new_name
         except ValueError:
             pass
 
