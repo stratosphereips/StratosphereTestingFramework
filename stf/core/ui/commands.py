@@ -500,7 +500,7 @@ class Commands(object):
         parser.add_argument('-l', '--list', action="store_true", help="List all existing labels.")
         parser.add_argument('-a', '--add', action="store_true", help="Add a label. Use -c to add to a connection id or -f to add to a group of connections id.")
         parser.add_argument('-c', '--connectionid', metavar="connection_id", help="Together with -a, add a label to the given connection id. You should use -g to specify the id of the group of models.")
-        parser.add_argument('-d', '--delete', metavar="label_id", help="Delete a label given the label id.")
+        parser.add_argument('-d', '--delete', metavar="label_id", help="Delete a label given the label number id. If you use a dash you can delete ranges of label ids. For example: -d 20-30")
         parser.add_argument('-D', '--deleteconnection', metavar="connection_id", help="Give a connection id to delete (4-tuple). You must give the group of model id with -g.")
         parser.add_argument('-g', '--modelgroupid', metavar="modelgroupid", help="Id of the group of models. Used with -a.")
         parser.add_argument('-m', '--migrate', action="store_true", help="Migrate <= 0.1.2alpha labels to the new database.")
