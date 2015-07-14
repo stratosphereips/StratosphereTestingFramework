@@ -329,20 +329,18 @@ class Group_Of_Labels(persistent.Persistent):
                     else:
                         responses.append(False)
             elif key == 'connid':
-                try:
-                    connid = model.get_id()
-                except AttributeError:
-                    print_error('The connid filter should be only used for assigning a label to multiple connections.')
-                if operator == '=':
-                    if value in connid:
-                        responses.append(True)
-                    else:
-                        responses.append(False)
-                elif operator == '!=':
-                    if value not in connid:
-                        responses.append(True)
-                    else:
-                        responses.append(False)
+                conn_vect = model.get_connections()
+                for connid in conn_vect:
+                    if operator == '=':
+                        if value in connid:
+                            responses.append(True)
+                        else:
+                            responses.append(False)
+                    elif operator == '!=':
+                        if value not in connid:
+                            responses.append(True)
+                        else:
+                            responses.append(False)
             else:
                 return False
 
@@ -407,7 +405,7 @@ class Group_Of_Labels(persistent.Persistent):
 
                 for connection in connections:
                     connection_id = connection.get_id()
-                    if self.apply_filter(connection):
+                    if self.apply_filter(label):
                         has_label = self.check_label_existance(group_of_model_id, connection_id)
                         if has_label:
                             print_error('This connection from this dataset was already assigned the label id {}. We did not change it.'.format(has_label))
