@@ -402,31 +402,31 @@ class Group_Of_Labels(persistent.Persistent):
                     elif temp_filter[1] != "=" and temp_filter[1] != "!=":
                         print_error('Adding labels with a filter only supports the type of filter connid= and connid!=')
                         return False
-
                 for connection in connections:
                     connection_id = connection.get_id()
+                    has_label = self.check_label_existance(group_of_model_id, connection_id)
+                    if has_label:
+                        print_error('This connection from this dataset was already assigned the label id {}. We did not change it.'.format(has_label))
+                        continue
+                    # Get next label id
+                    try:
+                        label_id = self.labels[list(self.labels.keys())[-1]].get_id() + 1
+                    except (KeyError, IndexError):
+                        label_id = 1
+                    # Obtain the name
+                    name = general_name + '-' + str(general_name_id)
+                    label = Label(label_id)
+                    label.set_name(name)
+                    label.add_connection(group_of_model_id, connection_id)
                     if self.apply_filter(label):
-                        has_label = self.check_label_existance(group_of_model_id, connection_id)
-                        if has_label:
-                            print_error('This connection from this dataset was already assigned the label id {}. We did not change it.'.format(has_label))
-                            continue
-                        # Get next label id
-                        try:
-                            label_id = self.labels[list(self.labels.keys())[-1]].get_id() + 1
-                        except (KeyError, IndexError):
-                            label_id = 1
-                        # Obtain the name
-                        name = general_name + '-' + str(general_name_id)
-                        label = Label(label_id)
-                        label.set_name(name)
-                        #print_info('Assigning label to connection: {}'.format(connection_id))
-                        label.add_connection(group_of_model_id, connection_id)
                         # Add label id to the model
                         self.add_label_to_model(group_of_model_id, connection_id, name)
                         # add auto note with the label to the model
                         self.add_auto_label_for_connection(group_of_model_id, connection_id, name)
                         self.labels[label_id] = label
                         general_name_id += 1
+                    else:
+                        del label
             else:
                 # This is not necesary, but is a precaution
                 print_error('Aborting the assignment of the label.')
