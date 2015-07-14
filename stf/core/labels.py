@@ -397,9 +397,15 @@ class Group_Of_Labels(persistent.Persistent):
                 # Construct the filter
                 self.construct_filter(filter)
                 # Check we are using the correct filters
-                if self.filter[0][1] != "=" or self.filter[0][0] != "connid":
-                    print_error('Adding labels with a filter only supports the type of filter connid=')
-                    return False
+                print self.filter
+                for temp_filter in self.filter:
+                    if temp_filter[0] != "connid" :
+                        print_error('Adding labels with a filter only supports the type of filter connid= and connid!=')
+                        return False
+                    elif temp_filter[1] != "=" and temp_filter[1] != "!=":
+                        print_error('Adding labels with a filter only supports the type of filter connid= and connid!=')
+                        return False
+
                 for connection in connections:
                     connection_id = connection.get_id()
                     if self.apply_filter(connection):
