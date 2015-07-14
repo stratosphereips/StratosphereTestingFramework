@@ -531,18 +531,29 @@ class Group_Of_Labels(persistent.Persistent):
     def del_label(self, lab_id):
         """ Delete a label """
         try:
-            try:
-                label_id = int(lab_id)
-            except ValueError:
-                print_error('Invalid label id')
-                return False
-            label = self.labels[int(lab_id)]
-            # First delete the label from the model
-            for group_id in label.get_group_of_model_id():
-                for conn_id in label.get_connections(groupofmodelid=group_id):
-                    self.del_label_in_model(group_id, conn_id, label.get_name())
-            # Now delete the label itself
-            self.labels.pop(label_id)
+            if '-' in lab_id:
+                # Probable range
+                try:
+                    first_id = int(lab_id.split('-')[0])
+                    second_id = int(lab_id.split('-')[1])
+                except ValueError:
+                    print_error('Invalid label id')
+                    return False
+            else:
+                try:
+                    first_id = int(lab_id)
+                    second_id = int(lab_id)
+                except ValueError:
+                    print_error('Invalid label id')
+                    return False
+            for id in range(first_id, second_id):
+                label = self.labels[int(id)]
+                # First delete the label from the model
+                for group_id in label.get_group_of_model_id():
+                    for conn_id in label.get_connections(groupofmodelid=group_id):
+                        self.del_label_in_model(group_id, conn_id, label.get_name())
+                # Now delete the label itself
+                self.labels.pop(id)
         except KeyError:
             print_error('Label id does not exists.')
 
