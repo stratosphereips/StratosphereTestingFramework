@@ -570,7 +570,8 @@ class Group_Of_Labels(persistent.Persistent):
             new_name = last_name_without_id + '-' + str(new_id)
             # Check that the protocols match
             first_connection = label.get_connections()[0]
-            if self.protocols_match(first_connection, connection_id):
+            # If we have a connection_id, check that the protocol is ok. (The connection_id can be empty when assigning to multiple connections)
+            if connection_id != "" and self.protocols_match(first_connection, connection_id):
                 return new_name
             else:
                 print_error('Protocols in both connection ids should match. ({} and {})'.format(first_connection, connection_id))
