@@ -573,7 +573,7 @@ class Group_Of_Labels(persistent.Persistent):
             # If we have a connection_id, check that the protocol is ok. (The connection_id can be empty when assigning to multiple connections)
             if connection_id != "" and self.protocols_match(first_connection, connection_id):
                 return new_name
-            else:
+            elif connection_id != "":
                 print_error('Protocols in both connection ids should match. ({} and {})'.format(first_connection, connection_id))
                 return False
         except ValueError:
