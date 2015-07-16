@@ -466,10 +466,11 @@ The argus suite was selected to generate the traffic flows because it is one of 
 - The behavioral models are constructed from the models_constructors.py file. In that file you can see the details of the behavioral models. 
 - Trimming the amount of flows in a connection. Since **stf** stores all the flows on each connection, it may be possible that the amount of data stored in the database for a certain connection is too large (more than 25MB per connection object). In this case it is possible to trim the amount of flows in the connections to save space. This operation should be done _after_ the creation of the models, so the behavioral state can have all the letters. An example command is:
 ```
-test: stf > connections -t 0
+test: stf > connections -t 2000
 test: stf >
 ```
 
+This command will trim all the connections to a maximum of 2000 flows each.
 You can check that this was successful by inspecting the connections with ```connections -L```.
 
 - There is a feature in **stf** that allows it to add text automaticaly to the notes of the dataset. This feature is used to insert notes on certain important operations that is good for the researcher to remember. For example, if you trim the amount of flows in the connections, **stf** will add a text in the dataset note with details of this operation.
