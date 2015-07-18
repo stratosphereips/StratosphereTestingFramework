@@ -658,7 +658,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
         else:
             print_error('There is no dataset selected.')
 
-    def del_note(self, group_of_models_id, model_id):
+    def del_note(self, group_of_models_id, model_id): 
         """ Get a model id and delete its note """
         if __datasets__.current:
             group_of_models = self.group_of_models[group_of_models_id]
