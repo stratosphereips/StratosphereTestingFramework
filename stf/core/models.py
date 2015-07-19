@@ -506,7 +506,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
             return False
         # First delete all the the models in the group
         ids_to_delete = []
-        limit = 10
+        limit = 1000
         for model in group.get_models():
             if limit <= 0:
                 break
@@ -522,7 +522,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
         print_info('Deleted {} models inside the group'.format(amount))
 
         # Now delete the model
-        self.group_of_models.pop(id)
+        #self.group_of_models.pop(id)
         # Here we should put all the t1 and t2 of the models in zero somehow????
         print_info('Deleted group of models with id {}'.format(id))
         # Add an auto note
