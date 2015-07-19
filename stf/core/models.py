@@ -506,9 +506,13 @@ class Group_of_Group_of_Models(persistent.Persistent):
             return False
         # First delete all the the models in the group
         ids_to_delete = []
+        limit = 10
         for model in group.get_models():
+            if limit <= 0:
+                break
             model_id = model.get_id()
             ids_to_delete.append(model_id)
+            limit -= 1
 
         # We should delete the models AFTER finding them, if not, for some reason the following model after a match is missed.
         amount = 0
