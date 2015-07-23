@@ -384,19 +384,39 @@ captura-i78zR: stf >
 captura-i78zR: stf > notes -e 1
 captura-i78zR: stf >
 ```
-- Adding a label
+- Adding a label to a specific connection
 ```
-test: stf > labels -a 192.168.1.128-54.208.18.216-80-tcp -g 15-1
+test: stf > labels -a -c 192.168.1.128-54.208.18.216-80-tcp -g 15-1
 [!] Remember that a label should represent a unique behavioral model!
 Please provide a direction. It means 'From' or 'To' the most important IP in the connection: 
 From
 Please provide the main decision. 'Botnet', 'Normal', 'Attack', or 'Background': 
 Normal
+Please provide the layer 3 proto. 'TCP', 'UDP', 'ICMP', 'IGMP', or 'ARP': 
+TCP
 Please provide the main proto in layer 4. 'HTTP', 'HTTPS', 'FTP', 'SSH', 'DNS', 'SMTP', 'P2P', 'Multicast', 'Unknown' or 'None': 
 HTTP
 Please provide optional details for this connection. Up to 30 chars (No - or spaces allowed). Example: 'Encrypted', 'PlainText', 'CustomEncryption', 'soundcound.com', 'microsoft.com', 'netbios': 
 iflscience.com
 [*] Connection has note id 59
+```
+- Adding a label to multiple connections
+```
+test: stf > labels -a -f connid=192.168.1.128 connid=-80-tcp -g 15-1
+[!] Remember that a label should represent a unique behavioral model!
+Please provide a direction. It means 'From' or 'To' the most important IP in the connection: 
+From
+Please provide the main decision. 'Botnet', 'Normal', 'Attack', or 'Background': 
+Normal
+Please provide the layer 3 proto. 'TCP', 'UDP', 'ICMP', 'IGMP', or 'ARP': 
+TCP
+Please provide the main proto in layer 4. 'HTTP', 'HTTPS', 'FTP', 'SSH', 'DNS', 'SMTP', 'P2P', 'Multicast', 'Unknown' or 'None': 
+HTTP
+Please provide optional details for this connection. Up to 30 chars (No - or spaces allowed). Example: 'Encrypted', 'PlainText', 'CustomEncryption', 'soundcound.com', 'microsoft.com', 'netbios': 
+iflscience.com
+[*] Connection has note id 59
+[*] Connection has note id 60
+[*] Connection has note id 61
 ```
 - Looking at the labels (For more information about the labelling process see [labels](doc/labels.md)) 
 ```
@@ -446,10 +466,11 @@ The argus suite was selected to generate the traffic flows because it is one of 
 - The behavioral models are constructed from the models_constructors.py file. In that file you can see the details of the behavioral models. 
 - Trimming the amount of flows in a connection. Since **stf** stores all the flows on each connection, it may be possible that the amount of data stored in the database for a certain connection is too large (more than 25MB per connection object). In this case it is possible to trim the amount of flows in the connections to save space. This operation should be done _after_ the creation of the models, so the behavioral state can have all the letters. An example command is:
 ```
-test: stf > connections -t 0
+test: stf > connections -t 2000
 test: stf >
 ```
 
+This command will trim all the connections to a maximum of 2000 flows each.
 You can check that this was successful by inspecting the connections with ```connections -L```.
 
 - There is a feature in **stf** that allows it to add text automaticaly to the notes of the dataset. This feature is used to insert notes on certain important operations that is good for the researcher to remember. For example, if you trim the amount of flows in the connections, **stf** will add a text in the dataset note with details of this operation.
@@ -463,6 +484,7 @@ You can check that this was successful by inspecting the connections with ```con
 - Show which connections have a label while listing models.
 - You can filter by labelname in the models.
 - You can filter by trainname, testname and distance in the detection_1 module.
+- You can delete labels by range of ids.
 
 ## Modules
 Now stf can import external modules that implement new functionality.
@@ -474,9 +496,14 @@ Now stf can import external modules that implement new functionality.
 
 
 ### TODO
+- Add labels to packets
+- Add labels to the binetflow files and biargus files automatically.
+- When adding a binetflow and leaving, the file is not stored. (yes when creating it)
+- Add "less" printing to the listing of -p of detections
+- The proxy connections (like htbot) maybe be detected by the ratio of in/out bytes of argus
+- argus is not detected when installed as root. Make the link
 - When deleting a dataset, not all the group of models are deleted
 - Put a limit to markov_models: amount of flows, or amount of time or maybe a specific string of letters that should be looked up.
-- Notes are not being stored. At least when working with labels.
 - When deleting a label, delete its note too.
 - Only compare when the upper most protocol matches. TCP with TCP, UDP with UDP, ICMP with ICMP.
 - Add notes to detections

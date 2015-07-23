@@ -506,9 +506,13 @@ class Group_of_Group_of_Models(persistent.Persistent):
             return False
         # First delete all the the models in the group
         ids_to_delete = []
+        limit = 1000
         for model in group.get_models():
+            if limit <= 0:
+                break
             model_id = model.get_id()
             ids_to_delete.append(model_id)
+            limit -= 1
 
         # We should delete the models AFTER finding them, if not, for some reason the following model after a match is missed.
         amount = 0
@@ -518,7 +522,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
         print_info('Deleted {} models inside the group'.format(amount))
 
         # Now delete the model
-        self.group_of_models.pop(id)
+        #self.group_of_models.pop(id)
         # Here we should put all the t1 and t2 of the models in zero somehow????
         print_info('Deleted group of models with id {}'.format(id))
         # Add an auto note
@@ -658,7 +662,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
         else:
             print_error('There is no dataset selected.')
 
-    def del_note(self, group_of_models_id, model_id):
+    def del_note(self, group_of_models_id, model_id): 
         """ Get a model id and delete its note """
         if __datasets__.current:
             group_of_models = self.group_of_models[group_of_models_id]

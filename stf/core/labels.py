@@ -5,10 +5,12 @@ import persistent
 import BTrees.IOBTree
 import os
 import sys
+import re
 
 from stf.common.out import *
 from stf.core.dataset import __datasets__
 from stf.core.models import __groupofgroupofmodels__
+from stf.core.connections import __group_of_group_of_connections__
 from stf.core.notes import   __notes__
 
 
@@ -41,6 +43,10 @@ class Label(persistent.Persistent):
         self.connections.pop(dataset_id)
         self.connections[group_of_models_id] = prev_values
         self._p_changed = 1
+
+    def get_groups_id(self):
+        """ Return the ids of the groups of connections related to this label """
+        return self.connections.keys()
 
     def add_connection(self, group_of_model_id, connection_id):
         """ Receive a group_of_model_id and a connection_id and store them in this label"""
@@ -206,12 +212,151 @@ class Group_Of_Labels(persistent.Persistent):
             print table(header=['Id', 'Label Name', 'Group of Models', 'Connections'], rows=rows)
         return matches
 
-    def list_labels(self):
+    def construct_filter(self, filter):
+        """ Get the filter string and decode all the operations """
+        # If the filter string is empty, delete the filter variable
+        if not filter:
+            try:
+                del self.filter 
+            except:
+                pass
+            return True
+        self.filter = []
+        for part in filter:
+            # Get the key
+            try:
+                key = re.split('\!=|>=|<=|=|<|>', part)[0]
+                value = re.split('\!=|>=|<=|=|<|>', part)[1]
+            except IndexError:
+                # No < or > or = or != in the string. Just stop.
+                break
+            # We should search for <= before <
+            try:
+                part.index('<=')
+                operator = '<='
+                self.filter.append((key, operator, value))
+                continue
+            except ValueError:
+                # Now we search for <
+                try:
+                    part.index('<')
+                    operator = '<'
+                    self.filter.append((key, operator, value))
+                    continue
+                except ValueError:
+                    pass
+            # We should search for >= before >
+            try:
+                part.index('>=')
+                operator = '>='
+                self.filter.append((key, operator, value))
+                continue
+            except ValueError:
+                # Now we search for >
+                try:
+                    part.index('>')
+                    operator = '>'
+                    self.filter.append((key, operator, value))
+                    continue
+                except ValueError:
+                    pass
+            # We should search for != before =
+            try:
+                part.index('!=')
+                operator = '!='
+                self.filter.append((key, operator, value))
+                continue
+            except ValueError:
+                # Now we search for =
+                try:
+                    part.index('=')
+                    operator = '='
+                    self.filter.append((key, operator, value))
+                    continue
+                except ValueError:
+                    pass
+
+    def apply_filter(self, model):
+        """ Use the stored filter to know what we should match"""
+        responses = []
+        try:
+            self.filter
+        except AttributeError:
+            # If we don't have any filter string, just return true and show everything
+            return True
+        # Check each filter
+        for filter in self.filter:
+            key = filter[0]
+            operator = filter[1]
+            value = filter[2]
+            if key == 'name':
+                labelname = model.get_name()
+                if operator == '=':
+                    if value in labelname:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if value not in labelname:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            elif key == 'groupid':
+                groupsid = model.get_groups_id()
+                if operator == '=':
+                    for gid in groupsid:
+                        if value in gid:
+                            responses.append(True)
+                        else:
+                            responses.append(False)
+                elif operator == '!=':
+                    for gid in groupsid:
+                        if value not in gid:
+                            responses.append(True)
+                        else:
+                            responses.append(False)
+            elif key == 'id':
+                id = float(model.get_id())
+                value = float(value)
+                if operator == '=':
+                    if id == value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if id != value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            elif key == 'connid':
+                conn_vect = model.get_connections()
+                for connid in conn_vect:
+                    if operator == '=':
+                        if value in connid:
+                            responses.append(True)
+                        else:
+                            responses.append(False)
+                    elif operator == '!=':
+                        if value not in connid:
+                            responses.append(True)
+                        else:
+                            responses.append(False)
+            else:
+                return False
+
+        for response in responses:
+            if not response:
+                return False
+        return True
+
+    def list_labels(self, filter):
         """ List all the labels """
+        self.construct_filter(filter)
         rows = []
         for label in self.get_labels():
-            for group_of_model_id in label.get_group_of_model_id():
-                rows.append([label.get_id(), label.get_name(), group_of_model_id, label.get_connections(groupofmodelid=group_of_model_id)])
+            if self.apply_filter(label):
+                for group_of_model_id in label.get_group_of_model_id():
+                    rows.append([label.get_id(), label.get_name(), group_of_model_id, label.get_connections(groupofmodelid=group_of_model_id)])
         print table(header=['Id', 'Label Name', 'Group of Model', 'Connection'], rows=rows)
 
     def check_label_existance(self, group_of_model_id, connection_id):
@@ -223,6 +368,72 @@ class Group_Of_Labels(persistent.Persistent):
             return False
         except AttributeError:
             return False
+
+    def add_label_with_filter(self, group_of_model_id, filter):
+        """ Add a label using the filters to a group of connection ids"""
+        if __datasets__.current:
+            dataset_id_standing = __datasets__.current.get_id()
+            dataset_id = group_of_model_id.split('-')[0]
+            if str(dataset_id_standing) != dataset_id:
+                print_error('You should select the dataset you are going to work in. Not another')
+                return False
+            if not __groupofgroupofmodels__.get_group(group_of_model_id):
+                print_error('That group of models does not exist.')
+                return False
+            print_warning('Remember that a label should represent a unique behavioral model!')
+            # Get the base name of the labels
+            temp_general_name = self.decide_a_label_name("") # Connection id is empty because we are not checking the protos. This is used because we need to assign a label to multiple connections id.
+            if temp_general_name:
+                # The general name of the label is the one every connection will share except the final number that will change.
+                # The general_name_id is the final number that will keep changing
+                general_name = '-'.join(temp_general_name.split('-')[0:-1])
+                general_name_id = int(temp_general_name.split('-')[-1])
+                # Get all the connections from the connection model
+                group_of_connections_id = int(group_of_model_id.split('-')[0])
+                group_of_connections = __group_of_group_of_connections__.get_group(group_of_connections_id)
+                connections = group_of_connections.get_connections()
+                # Construct the filter
+                self.construct_filter(filter)
+                # Check we are using the correct filters
+                for temp_filter in self.filter:
+                    if temp_filter[0] != "connid" :
+                        print_error('Adding labels with a filter only supports the type of filter connid= and connid!=')
+                        return False
+                    elif temp_filter[1] != "=" and temp_filter[1] != "!=":
+                        print_error('Adding labels with a filter only supports the type of filter connid= and connid!=')
+                        return False
+                for connection in connections:
+                    connection_id = connection.get_id()
+                    has_label = self.check_label_existance(group_of_model_id, connection_id)
+                    # Get next label id
+                    try:
+                        label_id = self.labels[list(self.labels.keys())[-1]].get_id() + 1
+                    except (KeyError, IndexError):
+                        label_id = 1
+                    # Obtain the name
+                    name = general_name + '-' + str(general_name_id)
+                    label = Label(label_id)
+                    label.set_name(name)
+                    label.add_connection(group_of_model_id, connection_id)
+                    if self.apply_filter(label):
+                        if has_label:
+                            #print_error('This connection from this dataset was already assigned the label id {}. We did not change it.'.format(has_label))
+                            continue
+                        # Add label id to the model
+                        self.add_label_to_model(group_of_model_id, connection_id, name)
+                        # add auto note with the label to the model
+                        self.add_auto_label_for_connection(group_of_model_id, connection_id, name)
+                        self.labels[label_id] = label
+                        general_name_id += 1
+                    else:
+                        del label
+            else:
+                # This is not necesary, but is a precaution
+                print_error('Aborting the assignment of the label.')
+                return False
+        else:
+            print_error('There is no dataset selected.')
+
 
     def add_label(self, group_of_model_id, connection_id):
         """ Add a label """
@@ -272,25 +483,41 @@ class Group_Of_Labels(persistent.Persistent):
         dataset_id = int(group_of_model_id.split('-')[0])
         dataset = __datasets__.get_dataset(dataset_id)
         group = __groupofgroupofmodels__.get_group(group_of_model_id)
-        if group.has_model(connection_id):
-            model = group.get_model(connection_id)
-            return model
+        try:
+            if group.has_model(connection_id):
+                model = group.get_model(connection_id)
+                return model
+        except AttributeError:
+            print_error('The connection does not have a model. Probably deleted.')
+            return False
 
     def add_label_to_model(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label id and a current dataset, add the label id to the model"""
         model = self.get_the_model_of_a_connection(group_of_model_id, connection_id)
-        model.set_label_name(name)
+        try:
+            model.set_label_name(name)
+        except AttributeError:
+            print_error('Non existant label')
+            return False
 
     def del_label_in_model(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label id and a current dataset, del the label id in the model"""
         model = self.get_the_model_of_a_connection(group_of_model_id, connection_id)
-        model.del_label_name(name)
+        try:
+            model.del_label_name(name)
+        except AttributeError:
+            print_error('Non existant label')
+            return False
 
     def add_auto_label_for_connection(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label name and a current dataset, add an auto note"""
         text_to_add = "Added label {}".format(name)
         model = self.get_the_model_of_a_connection( group_of_model_id, connection_id)
-        note_id = model.get_note_id()
+        try:
+            note_id = model.get_note_id()
+        except AttributeError:
+            print_error('Some error trying to read tht note id of the model.')
+            return False
         if not note_id:
             # There was not originaly a note, so we should now store the new created not in the model.
             note_id =__notes__.new_note()
@@ -301,25 +528,47 @@ class Group_Of_Labels(persistent.Persistent):
     def del_label(self, lab_id):
         """ Delete a label """
         try:
-            try:
-                label_id = int(lab_id)
-            except ValueError:
-                print_error('Invalid label id')
-                return False
-            label = self.labels[int(lab_id)]
-            # First delete the label from the model
-            for group_id in label.get_group_of_model_id():
-                for conn_id in label.get_connections(groupofmodelid=group_id):
-                    self.del_label_in_model(group_id, conn_id, label.get_name())
-            # Now delete the label itself
-            self.labels.pop(label_id)
+            if '-' in lab_id:
+                # Probable range
+                try:
+                    first_id = int(lab_id.split('-')[0])
+                    second_id = int(lab_id.split('-')[1])
+                except ValueError:
+                    print_error('Invalid label id')
+                    return False
+            else:
+                try:
+                    first_id = int(lab_id)
+                    second_id = int(lab_id)
+                except ValueError:
+                    print_error('Invalid label id')
+                    return False
+            for id in range(first_id, second_id + 1):
+                label = self.labels[int(id)]
+                # First delete the label from the model
+                for group_id in label.get_group_of_model_id():
+                    for conn_id in label.get_connections(groupofmodelid=group_id):
+                        self.del_label_in_model(group_id, conn_id, label.get_name())
+                # Now delete the label itself
+                self.labels.pop(id)
         except KeyError:
-            print_error('Label id does not exists.')
+            print_error('Label id does not exists. Delete only continuous ranges.')
+
+    def protocols_match(self, old_connection, new_connection):
+        """ Check that the protocols in both connection id match """
+        current_proto = str(old_connection.split('-')[-1])
+        new_proto = str(new_connection.split('-')[-1])
+        if current_proto == new_proto:
+            return True
+        else:
+            return False
 
     def decide_a_label_name(self, connection_id):
+        """ Get a connection id and return a label for it. The connection_id can be empty"""
         # First choose amount the current labels
         print_info('Current Labels')
-        self.list_labels()
+        # List all the labels, i.e. with an empty filter
+        self.list_labels("")
         selection = raw_input('Select a label Id to assign the same label BUT with a new final number to the current connection. Or press Enter to create a new one:')
         try:
             # Get the label selected with an id
@@ -333,7 +582,16 @@ class Group_Of_Labels(persistent.Persistent):
             last_name_without_id = '-'.join(last_name.split('-')[0:-1])
             new_id = last_id + 1
             new_name = last_name_without_id + '-' + str(new_id)
-            return new_name
+            # Check that the protocols match
+            first_connection = label.get_connections()[0]
+            # If we have a connection_id, check that the protocol is ok. (The connection_id can be empty when assigning to multiple connections)
+            if connection_id != "" and self.protocols_match(first_connection, connection_id):
+                return new_name
+            elif connection_id != "":
+                print_error('Protocols in both connection ids should match. ({} and {})'.format(first_connection, connection_id))
+                return False
+            else:
+                return new_name
         except ValueError:
             pass
 
@@ -354,23 +612,17 @@ class Group_Of_Labels(persistent.Persistent):
             print_error('Only those options are available. If you need more, please submit a request')
             return False
         # Main 3 layer proto
-        if 'TCP' in connection_id.upper():
-            proto3 = 'TCP'
-        elif 'UDP' in connection_id.upper():
-            proto3 = 'UDP'
-        elif 'ICMP' in connection_id.upper():
-            proto3 = 'ICMP'
-        elif 'IGMP' in connection_id.upper():
-            proto3 = 'IGMP'
-        elif 'ARP' in connection_id.upper():
-            proto3 = 'ARP'
+        print ("Please provide the layer 3 proto. 'TCP', 'UDP', 'ICMP', 'IGMP', or 'ARP': ")
+        text = raw_input().strip()
+        if 'TCP' in text or 'UDP' in text or 'ICMP' in text or 'IGMP' in text or 'ARP' in text:
+            proto3 = text
         else:
-            print_error('The protocol of the connection could not be detected.')
+            print_error('Only those options are available. If you need more, please submit a request')
             return False
         # Main 4 layer proto
-        print ("Please provide the main proto in layer 4. 'HTTP', 'HTTPS', 'FTP', 'SSH', 'DNS', 'SMTP', 'P2P', 'NTP', 'Multicast', 'Unknown', 'Other', 'Custom', or 'None': ")
+        print ("Please provide the main proto in layer 4. 'HTTP', 'HTTPS', 'FTP', 'SSH', 'DNS', 'SMTP', 'P2P', 'NTP', 'Multicast', 'NetBIOS', 'Unknown', 'Other', 'Custom', or 'None': ")
         text = raw_input().strip()
-        if 'HTTP' in text or 'HTTPS' in text or 'FTP' in text or 'SSH' in text or 'DNS' in text or 'SMTP' in text or 'P2P' in text or 'NTP' in text or 'Multicast' in text or 'Unknown' in text or 'Other' in text or 'Custom' in text or 'None' in text:
+        if 'HTTP' in text or 'HTTPS' in text or 'FTP' in text or 'SSH' in text or 'DNS' in text or 'SMTP' in text or 'P2P' in text or 'NTP' in text or 'Multicast' in text or 'NetBIOS' in text or 'Unknown' in text or 'Other' in text or 'Custom' in text or 'None' in text:
             proto4 = text
         else:
             print_error('Only those options are available. If you need more, please submit a request')
