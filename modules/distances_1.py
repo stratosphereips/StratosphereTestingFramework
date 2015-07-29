@@ -190,6 +190,7 @@ class Detection(persistent.Persistent):
             original_matrix = model_training.get_matrix()
             original_self_prob = model_training.get_self_probability()
             if not original_self_prob:
+                # IS THIS EVER USED???? IF NOT WE SHOULD DELETE IT
                 # Maybe it was the first time that it is generated
                 training_original_prob = model_training.compute_probability(self.training_states)
                 model_training.set_self_probability(training_original_prob)
