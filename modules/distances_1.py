@@ -2,7 +2,7 @@
 # The rest is from the Stratosphere Testing Framework
 # See the file 'LICENSE' for copying permission.
 
-# Compare module. To compare models and obtain a probability of detection
+# Compare module. To compare models and obtain a distance
 
 import persistent
 import BTrees.OOBTree
@@ -124,14 +124,14 @@ class Detection(persistent.Persistent):
             return -1
 
     def detect(self, training_structure_name,  structure_training, model_training_id, testing_structure_name, structure_testing, model_testing_id, amount):
-        """ Perform the detection between the testing model and the training model"""
+        """ Perform the distance between the testing model and the training model"""
         self.set_model_training_id(model_training_id)
         self.set_model_testing_id(model_testing_id)
         self.set_structure_training(structure_training)
         self.set_structure_testing(structure_testing)
         self.set_training_structure_name(training_structure_name)
         self.set_testing_structure_name(testing_structure_name)
-        # Check if we can make the detection based on the protocols.
+        # Check if we can make the distance based on the protocols.
         train_label = self.get_training_label()
         test_label = self.get_testing_label()
         try:
@@ -240,7 +240,7 @@ class Detection(persistent.Persistent):
         # Store the amount used if it is larger than the previous one stored
         if self.get_amount() < final_position:
             self.set_amount(final_position)
-            # Update the final distance of this detection because we compute more letters
+            # Update the final distance of this comparison because we compute more letters
             self.distance = self.dict_of_distances[final_position-1]
         print_info('Letter by letter distance up to {} letters: {}'.format(final_position, red(self.dict_of_distances[final_position-1])))
         # Return the final distance.
@@ -252,17 +252,17 @@ class Detection(persistent.Persistent):
         return self.dict_of_distances[final_position-1]
 
     def check_need_for_regeneration(self):
-        """ Check if the training or testing of this detection changed since we use them """
+        """ Check if the training or testing of this comparison changed since we use them """
         structures = __database__.get_structures()
         try:
             current_training_model_len = len(structures[self.training_structure_name][int(self.model_training_id)].get_state())
         except KeyError:
-            print_warning('Warning! In detection id {}, the training model was deleted. However, this detection can still be used.'.format(self.get_id()))
+            print_warning('Warning! In distance id {}, the training model was deleted. However, this distance can still be used.'.format(self.get_id()))
             return False
         try:
             current_testing_model_len = len(structures[self.testing_structure_name][int(self.model_testing_id)].get_state())
         except KeyError:
-            print_warning('Warning! In detection id {}, the testing model was deleted. However, this detection can still be used.'.format(self.get_id()))
+            print_warning('Warning! In distance id {}, the testing model was deleted. However, this distance can still be used.'.format(self.get_id()))
             return False
 
         if len(self.training_states) != current_training_model_len or len(self.testing_states) != current_testing_model_len:
@@ -272,7 +272,7 @@ class Detection(persistent.Persistent):
 
     def regenerate(self):
         """ Regenerate """
-        print_info('Regenerating detection {}'.format(self.get_id()))
+        print_info('Regenerating distance {}'.format(self.get_id()))
         structures = __database__.get_structures()
         structure_training = structures[self.training_structure_name]
         structure_testing = structures[self.testing_structure_name]
@@ -374,7 +374,7 @@ class Detection(persistent.Persistent):
 ######################
 class Group_of_Detections(Module, persistent.Persistent):
    ### Mandatory variables ###
-    cmd = 'detections_1'
+    cmd = 'distance_1'
     description = 'Detect a testing model using a trainig model. The distance between probabilities is made with division. The Markov Chain matrix is re-built for every letter in the sequence and the original prob of detecting the training is also re-computed for each letter in the sequence.'
     authors = ['Sebastian Garcia']
     # Main dict of objects. The name of the attribute should be "main_dict" in this example
@@ -386,17 +386,17 @@ class Group_of_Detections(Module, persistent.Persistent):
         # Call to our super init
         super(Group_of_Detections, self).__init__()
         # Example of a parameter without arguments
-        self.parser.add_argument('-l', '--list', action='store_true', help='List the detections.')
+        self.parser.add_argument('-l', '--list', action='store_true', help='List the distances.')
         # Example of a parameter with arguments
-        self.parser.add_argument('-n', '--new', action='store_true', help='Create a new detection. You will be prompted to select the trained model and the \'unknown\' model.')
-        self.parser.add_argument('-d', '--delete', metavar='id', help='Delete the detection object with the given id.')
-        self.parser.add_argument('-L', '--letterbyletter', type=int, metavar='id', help='Compare and print the distances between the models letter-by-letter. Give the detection id. Optionally you can use -a to analize a fixed amount of letters. An ascii plot is generated.')
+        self.parser.add_argument('-n', '--new', action='store_true', help='Create a new distance. You will be prompted to select the trained model and the \'unknown\' model.')
+        self.parser.add_argument('-d', '--delete', metavar='id', help='Delete the distance object with the given id.')
+        self.parser.add_argument('-L', '--letterbyletter', type=int, metavar='id', help='Compare and print the distances between the models letter-by-letter. Give the distance id. Optionally you can use -a to analize a fixed amount of letters. An ascii plot is generated.')
         self.parser.add_argument('-a', '--amount', type=int, default=-1, metavar='amount', help='Amount of letters to compare in the letter-by-letter comparison.')
-        self.parser.add_argument('-r', '--regenerate', metavar='regenerate', type=int, help='Regenerate the detection. Used when the original training or testing models changed. Give the detection id.')
+        self.parser.add_argument('-r', '--regenerate', metavar='regenerate', type=int, help='Regenerate the distance. Used when the original training or testing models changed. Give the distance id.')
         self.parser.add_argument('-p', '--print_comparison', metavar='id', type=int, help='Print the values of the letter by letter comparison. No graph.')
         self.parser.add_argument('-c', '--compareall', metavar='structure', help='Compare all the models between themselves in the structure specified. The comparisons are not repeted if the already exists. For example: -a markov_models_1. You can force a maximun amount of letters to compare with -a.')
-        self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the detections. For example for listing. Keywords: testname, trainname, distance, id. Usage: testname=<text> distance<2. The names are partial matching. The operator for distances are <, >, = and !=. The operator for id is = and !=')
-        self.parser.add_argument('-D', '--deleteall', action='store_true', help='Delete all the detection object that matches the -f filter. Must provide a -f filter.')
+        self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the distance. For example for listing. Keywords: testname, trainname, distance, id. Usage: testname=<text> distance<2. The names are partial matching. The operator for distances are <, >, = and !=. The operator for id is = and !=')
+        self.parser.add_argument('-D', '--deleteall', action='store_true', help='Delete all the distance object that matches the -f filter. Must provide a -f filter.')
 
     def get_name(self):
         """ Return the name of the module"""
@@ -574,27 +574,27 @@ class Group_of_Detections(Module, persistent.Persistent):
                 return False
         return True
 
-    def has_detection_id(self, id):
+    def has_distance_id(self, id):
         try:
             return self.main_dict[id]
         except KeyError:
             return False
 
-    def get_detection(self, id):
+    def get_distance(self, id):
         return self.main_dict[id]
 
-    def get_detections(self):
+    def get_distances(self):
         return self.main_dict.values()
 
-    def list_detections(self, filter):
+    def list_distances(self, filter):
         self.construct_filter(filter)
         all_text=' Id | Training | Testing | Distance | Needs Regenerate \n'
-        for detection in self.get_detections():
-            if self.apply_filter(detection):
-                regenerate = detection.check_need_for_regeneration()
-                training_label = detection.get_training_label()
-                testing_label = detection.get_testing_label()
-                all_text += ' {} | {} | {} | {} | {}\n'.format(detection.get_id(), detection.get_training_structure_name() + ': ' + str(detection.get_model_training_id()) + ' (' + training_label + ')', detection.get_testing_structure_name() + ': ' + str(detection.get_model_testing_id()) + ' (' + testing_label + ')', str(detection.get_distance()) + ' ( ' + str(detection.get_amount()) + ' letters )', regenerate)
+        for distance in self.get_distances():
+            if self.apply_filter(distance):
+                regenerate = distance.check_need_for_regeneration()
+                training_label = distance.get_training_label()
+                testing_label = distance.get_testing_label()
+                all_text += ' {} | {} | {} | {} | {}\n'.format(distance.get_id(), distance.get_training_structure_name() + ': ' + str(distance.get_model_training_id()) + ' (' + training_label + ')', distance.get_testing_structure_name() + ': ' + str(distance.get_model_testing_id()) + ' (' + testing_label + ')', str(distance.get_distance()) + ' ( ' + str(distance.get_amount()) + ' letters )', regenerate)
         f = tempfile.NamedTemporaryFile()
         f.write(all_text)
         f.flush()
@@ -603,34 +603,34 @@ class Group_of_Detections(Module, persistent.Persistent):
         sys.stdout = sys.__stdout__ 
         f.close()
 
-    def delete_detection(self, detection_id):
-        """ Delete a detection """
-        if self.has_detection_id(int(detection_id)):
-            self.main_dict.pop(int(detection_id))
+    def delete_distance(self, distance_id):
+        """ Delete a distance """
+        if self.has_distance_id(int(distance_id)):
+            self.main_dict.pop(int(distance_id))
         else:
-            print_error('No such detection available.')
+            print_error('No such distance available.')
 
     def delete_all(self, filter):
         """ Delete all the objects that match the filter """
         ids=[]
         self.construct_filter(filter)
-        for detection in self.get_detections():
-            if self.apply_filter(detection):
-                ids.append(int(detection.get_id()))
+        for distance in self.get_distances():
+            if self.apply_filter(distance):
+                ids.append(int(distance.get_id()))
         # Must first store them and then delete them
         for id in ids:
             self.main_dict.pop(id)
         print_info('Amount of objects deleted: {}'.format(len(ids)))
 
-    def create_new_detection(self, amount):
-        """ Create a new detection. We must select the trained model and the unknown model. The amount is the max amount of letters to compare. """
-        # Generate the new id for this detection
+    def create_new_distance(self, amount):
+        """ Create a new distance. We must select the trained model and the unknown model. The amount is the max amount of letters to compare. """
+        # Generate the new id for this distance
         try:
             new_id = self.main_dict[list(self.main_dict.keys())[-1]].get_id() + 1
         except (KeyError, IndexError):
             new_id = 1
         # Create the new object
-        new_detection = Detection(new_id)
+        new_distance = Detection(new_id)
         # Structures to ignore
         exceptions = ['models', 'database', 'datasets', 'notes', 'connections', 'experiments', 'template_example_module', 'labels']
         # Get the training module
@@ -677,43 +677,43 @@ class Group_of_Detections(Module, persistent.Persistent):
             print '\t',
             print_info(selected_testing_structure[object])
         model_testing_id = raw_input('Id:')
-        # Run the detection rutine
-        if new_detection.detect(training_structure_name, selected_training_structure, model_training_id, training_structure_name, selected_testing_structure, model_testing_id, amount):
-            # Store on DB the new detection only if the comparison was successful.
-            self.main_dict[new_id] = new_detection
-            print_info('New detection created with id {}'.format(new_id))
+        # Run the distance rutine
+        if new_distance.detect(training_structure_name, selected_training_structure, model_training_id, training_structure_name, selected_testing_structure, model_testing_id, amount):
+            # Store on DB the new distance only if the comparison was successful.
+            self.main_dict[new_id] = new_distance
+            print_info('New distance created with id {}'.format(new_id))
 
 
-    def detect_letter_by_letter(self, detection_id, amount):
+    def detect_letter_by_letter(self, distance_id, amount):
         try:
-            detection = self.main_dict[detection_id]
-            detection.detect_letter_by_letter(amount)
+            distance = self.main_dict[distance_id]
+            distance.detect_letter_by_letter(amount)
         except KeyError:
-            print_error('No such detection id exists.')
+            print_error('No such distance id exists.')
             return False
 
-    def regenerate(self, detection_id, filter):
+    def regenerate(self, distance_id, filter):
         """ Regenerate """
         try:
-            detection = self.main_dict[detection_id]
-            detection.regenerate()
+            distance = self.main_dict[distance_id]
+            distance.regenerate()
         except KeyError:
-            print_error('No such detection id exists.')
+            print_error('No such distance id exists.')
 
-    def print_comparison(self, detection_id):
+    def print_comparison(self, distance_id):
         """ Print the comparison letter by letter using the actual values """
         try:
-            detection = self.main_dict[detection_id]
-            detection.print_comparison()
+            distance = self.main_dict[distance_id]
+            distance.print_comparison()
         except KeyError:
-            print_error('No such detection id exists.')
+            print_error('No such distance id exists.')
 
-    def has_detection(self, train_id, test_id, train_structure, test_structure):
-        """ Given a model train id and test id, return if the detection was previously done or not """
+    def has_distance(self, train_id, test_id, train_structure, test_structure):
+        """ Given a model train id and test id, return if the distance was previously done or not """
         response = False
-        for detection in self.get_detections():
-            stored_train_model_id = int(detection.get_model_training_id())
-            stored_test_model_id = int(detection.get_model_testing_id())
+        for distance in self.get_distances():
+            stored_train_model_id = int(distance.get_model_training_id())
+            stored_test_model_id = int(distance.get_model_testing_id())
             if stored_train_model_id == train_id and stored_test_model_id == test_id:
                 response = True
                 break
@@ -732,24 +732,24 @@ class Group_of_Detections(Module, persistent.Persistent):
             # Run this model against the rest
             for test_object in structure:
                 test_model_id = int(structure[test_object].get_id())
-                if not self.has_detection(train_model_id, test_model_id, structure_name, structure_name):
+                if not self.has_distance(train_model_id, test_model_id, structure_name, structure_name):
                     print
                     print('Training model:'),
                     print_info(structure[train_object])
                     print('\tTesting model: '),
                     print_info(structure[test_object])
-                    # Generate the new id for this detection
+                    # Generate the new id for this distance
                     try:
                         new_id = self.main_dict[list(self.main_dict.keys())[-1]].get_id() + 1
                     except (KeyError, IndexError):
                         new_id = 1
                     # Create the new object
-                    new_detection = Detection(new_id)
-                    # Run the detection rutine
-                    if new_detection.detect(structure_name, structure, train_model_id, structure_name, structure, test_model_id, amount):
-                        # Store on DB the new detection only if the comparison was successful
-                        self.main_dict[new_id] = new_detection
-                        print_info('\tNew detection created with id {}'.format(new_id))
+                    new_distance = Detection(new_id)
+                    # Run the distance rutine
+                    if new_distance.detect(structure_name, structure, train_model_id, structure_name, structure, test_model_id, amount):
+                        # Store on DB the new distance only if the comparison was successful
+                        self.main_dict[new_id] = new_distance
+                        print_info('\tNew distance created with id {}'.format(new_id))
 
     # The run method runs every time that this command is used. Mandatory
     def run(self):
@@ -775,11 +775,11 @@ class Group_of_Detections(Module, persistent.Persistent):
 
         # Process the command line and call the methods. Here add your own parameters
         if self.args.list:
-            self.list_detections(self.args.filter)
+            self.list_distances(self.args.filter)
         elif self.args.new:
-            self.create_new_detection(self.args.amount)
+            self.create_new_distance(self.args.amount)
         elif self.args.delete:
-            self.delete_detection(self.args.delete)
+            self.delete_distance(self.args.delete)
         elif self.args.letterbyletter:
             self.detect_letter_by_letter(self.args.letterbyletter, self.args.amount)
         elif self.args.regenerate:
