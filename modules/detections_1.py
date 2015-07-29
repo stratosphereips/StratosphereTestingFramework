@@ -285,9 +285,8 @@ class Detection(persistent.Persistent):
         if not self.dict_of_distances:
             print_warning('Please first run -L to compute the letter by letter distances.')
             return False
-        print_info('\tLetter Index | Training Letter | Testing Letter | Train Prob | Test Prob | Distance Value')
+        all_text='\tLetter Index | Training Letter | Testing Letter | Train Prob | Test Prob | Distance Value\n'
         index = 0
-        #while index < len(self.dict_of_distances) and index < len(self.training_states) and index < len(self.testing_states):
         while index < len(self.dict_of_distances):
             try:
                 test_state = self.testing_states[index]
@@ -299,21 +298,21 @@ class Detection(persistent.Persistent):
                 train_prob = self.train_prob_vector[index]
             except IndexError:
                 train_state = ""
-            print_info('\t\t{}|\t\t{}|\t\t{}|\t\t{} |\t\t{} |\t\t{}'.format(index, train_state, test_state, train_prob, test_prob, self.dict_of_distances[index]))
+            all_text += '\t\t{}|\t\t{}|\t\t{}|\t\t{} |\t\t{} |\t\t{}\n'.format(index, train_state, test_state, train_prob, test_prob, self.dict_of_distances[index])
             index += 1
+        all_text += "\n"
         # Print the matrix
-        print
-        print_info('Train Markov Chain matrix')
+        all_text += 'Train Markov Chain matrix\n'
         model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
         try:
             train_matrix = model_training.get_matrix()
             for line in train_matrix:
-                print line, train_matrix[line]
-            print
+                all_text += str(line) + str(train_matrix[line]) + "\n"
+            all_text += "\n"
         except AttributeError:
             # No matrix
             print_error('No matrix available. Perhaps the model was deleted.')
-        print_info('Test Markov Chain matrix')
+        all_text += 'Test Markov Chain matrix\n'
         model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
         try:
             test_matrix = model_testing.get_matrix()
@@ -321,7 +320,15 @@ class Detection(persistent.Persistent):
             # No matrix
             print_error('No matrix available. Perhaps the model was deleted.')
         for line in test_matrix:
-            print line, test_matrix[line]
+            all_text += str(line) + str(test_matrix[line]) + "\n"
+        # Print with less
+        f = tempfile.NamedTemporaryFile()
+        f.write(all_text)
+        f.flush()
+        p = Popen('less -R ' + f.name, shell=True, stdin=PIPE)
+        p.communicate()
+        sys.stdout = sys.__stdout__ 
+        f.close()
 
 
     def get_training_label(self):
