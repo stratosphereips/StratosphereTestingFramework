@@ -9,6 +9,7 @@ import BTrees.OOBTree
 from subprocess import Popen, PIPE
 import copy
 import re
+import numpy as np
 
 from stf.common.out import *
 from stf.common.abstracts import Module
@@ -201,6 +202,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         self.parser.add_argument('-a', '--generateall', action='store_true', help='Generate the markov chain for all the labels that don\'t have one already')
         self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the markov models. For example for listing. Keywords: name. Usage: name=<text>. Partial matching.')
         self.parser.add_argument('-n', '--numberoffflows', metavar='numberofflows', default="3", help='When creating the markov models, this is the minimum number of flows that the connection should have. Less than this and the connection will be ignored. Be default 3.')
+        self.parser.add_argument('-t', '--train', metavar='markovmodelid', help='Train the distance threshold of this Markov Model. Use -f to give a list of test Markov Models')
 
     # Mandatory Method!
     def get_name(self):
@@ -472,6 +474,80 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 # We dont have it
                 self.create_new_model(label.get_name(), number_of_flows)
 
+    def compute_errors(self, train_label, test_label):
+        """ Get the train and test labels and figure it out the errors """
+        # Is train CC?
+        if 'CC' in 
+        # Is test CC?
+
+    def train(self, model_id_to_train, filter):
+        """ Train the distance threshold of a model """
+        self.construct_filter(filter)
+        train_model = self.get_markov_model(model_id_to_train)
+        print_info('Training model: {}'.format(train_model))
+        print_info('With testing models:')
+        for test_model in self.get_markov_models():
+            # Apply the filter and avoid training with itself
+            try:
+                test_model_id = test_model.get_id()
+                train_model_id = train_model.get_id()
+            except AttributeError:
+                print_error('No such id available')
+                return False
+            if self.apply_filter(test_model) and test_model_id != train_model_id:
+                print '\t',
+                print test_model
+                # For each threshold to train
+                # Now we go from 1.1 to 2
+                exit_threshold_for = False
+                for threshold in np.arange(1.1,2.1,0.1):
+                    # Store the original matrix and prob for later
+                    original_matrix = train_model.get_matrix()
+                    original_self_prob = test_model.get_self_probability()
+                    # For each test state
+                    index = 0
+                    while index < len(test_model.get_state()):
+                        # Get the states so far
+                        train_sequence = train_model.get_state()[0:index+1]
+                        test_sequence = test_model.get_state()[0:index+1]
+                        #print train_sequence
+                        #print test_sequence
+                        # Prob of the states so far
+                        train_prob = float(train_model.compute_probability(train_sequence))
+                        test_prob = float(train_model.compute_probability(test_sequence))
+                        #print train_prob
+                        #print test_prob
+                        # Compute distance
+                        if train_prob < test_prob:
+                            try:
+                                distance = train_prob / test_prob
+                            except ZeroDivisionError:
+                                distance = -1
+                        elif train_prob > test_prob:
+                            try:
+                                distance = test_prob / train_prob
+                            except ZeroDivisionError:
+                                distance = -1
+                        elif train_prob == test_prob:
+                            distance = 1
+                        # Is distance < threshold?
+                        if index > 2 and distance < threshold and distance > 0:
+                            print '\t\tTraining with threshold: {}'.format(threshold)
+                            print '\t\t\tDistance {}'.format(distance)
+                            # Compute the errors: TP, TN, FP, FN
+                            self.compute_errors(train_model.get_label().get_name(), test_model.get_label().get_name())
+                            exit_threshold_for = False
+                            break
+                        # Add index
+                        index += 1
+                        # Put a limit in the amount of letters by now
+                        if index > 100:
+                            break
+                    if exit_threshold_for:
+                        break
+
+                    # Get the prob of the training model 
+                    # Get the distance up to this test states with the training model
 
 
     # The run method runs every time that this command is used
@@ -508,6 +584,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             self.printstate(self.args.printstate)
         elif self.args.regenerate:
             self.regenerate(self.args.regenerate)
+        elif self.args.train:
+            self.train(int(self.args.train), self.args.filter)
         elif self.args.generateall:
             self.generate_all_models(self.args.numberofflows)
         else:
