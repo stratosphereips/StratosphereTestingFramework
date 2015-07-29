@@ -133,7 +133,11 @@ class Dataset(persistent.Persistent):
         pcap_file_name = self.get_file_type('pcap').get_name()
         pcap_file_name_without_extension = '.'.join(pcap_file_name.split('.')[:-1]) 
         biargus_file_name = pcap_file_name_without_extension + '.biargus'
-        argus_path = Popen('bash -i -c "type argus"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
+        try:
+            argus_path = Popen('bash -i -c "type argus"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
+        except IndexError:
+            print_error('argus is not installed. We can not generate the flow files. Download and install from http://qosient.com/argus/dev/argus-clients-latest.tar.gz and http://qosient.com/argus/dev/argus-latest.tar.gz')
+            return False
         if argus_path:
             # If an .biargus file already exist, we must delete it because argus appends the output
             (data, error) = Popen('rm -rf '+biargus_file_name, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate()
