@@ -141,7 +141,9 @@ class Markov_Model(persistent.Persistent):
                     #print_info('\tTransition [{}:{}]: {} -> Prob:{:.10f}. CumProb: {}'.format(i-1, i,vector, temp_prob, probability))
                 else:
                     # Here is our trick. If two letters are not in the matrix... ignore the transition.
-                    temp_prob = -2.3
+                    # The temp_prob is the penalty we assign if we can't find the transition
+                    #temp_prob = -2.3
+                    temp_prob = -4.6 # Which is approx 0.01 probability
                     probability = probability + temp_prob # logs should be +
                     if '#' not in vector:
                         ignored += 1
