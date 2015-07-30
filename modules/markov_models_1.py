@@ -10,6 +10,7 @@ from subprocess import Popen, PIPE
 import copy
 import re
 import numpy as np
+import tempfile
 
 from stf.common.out import *
 from stf.common.abstracts import Module
@@ -337,8 +338,10 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
 
     def list_markov_models(self, filter):
         self.construct_filter(filter)
-        print_info('First Order Markov Models')
-        rows = []
+        #print_info('First Order Markov Models')
+        all_text = 'First Order Markov Models\n'
+        all_text += ' Id  | State Len | # Conn | Label \t\t\t\t       | Needs Regen? | Thres | First 100 Letters in State\n'
+        #rows = []
         for markov_model in self.get_markov_models():
             if self.apply_filter(markov_model):
                 label = markov_model.get_label()
@@ -352,8 +355,18 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 # Do we need to regenerate this mc?
                 if current_connections == markov_model.get_connections():
                     needs_regenerate = False
-                rows.append([ markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate, markov_model.get_threshold(), markov_model.get_state()[0:100]])
-        print(table(header=['Id', 'State Len', '# Conn', 'Label', 'Needs Regen?', 'Thres.', 'First 100 Letters in State'], rows=rows))
+                #rows.append([ markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate, markov_model.get_threshold(), markov_model.get_state()[0:100]])
+                all_text += '{: < 5} | {: > 5} | {} | {:50} | {} | {:3} | {}\n'.format(markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate, markov_model.get_threshold(), markov_model.get_state()[0:100])
+        #print(table(header=['Id', 'State Len', '# Conn', 'Label', 'Needs Regen?', 'Thres.', 'First 100 Letters in State'], rows=rows))
+
+        # Print with less
+        f = tempfile.NamedTemporaryFile()
+        f.write(all_text)
+        f.flush()
+        p = Popen('less -R ' + f.name, shell=True, stdin=PIPE)
+        p.communicate()
+        sys.stdout = sys.__stdout__ 
+        f.close()
 
     def create_new_model(self, label_name, number_of_flows):
         """ Given a label name create a new markov chain object"""
