@@ -534,59 +534,60 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         """ Get the errors and compute the metrics """
         metrics = {}
         # The order is important, because later we sort based on the order. More important to take a decision should be up
+        # The fallback to inf or -inf depends if the metric is _good_ up or _good_ down. Should be the opposite.
         try:
             metrics['FMeasure1'] = 2 * TP / ((2 * TP) + FP + FN)
         except ZeroDivisionError:
-            metrics['FMeasure1'] = -1
+            metrics['FMeasure1'] = float('-Inf')
         try:
             metrics['FPR'] = FP / (FP + TN) 
         except ZeroDivisionError:
-            metrics['FPR'] = -1
+            metrics['FPR'] = float('Inf')
         try:
             metrics['TPR'] = TP / (TP + FN)
         except ZeroDivisionError:
-            metrics['TPR'] = -1
+            metrics['TPR'] = float('-Inf')
         try:
             metrics['FNR'] = FN / (TP + FN)
         except ZeroDivisionError:
-            metrics['FNR'] = -1
+            metrics['FNR'] = float('Inf')
         try:
             metrics['TNR'] = TN / (TN + FP)
         except ZeroDivisionError:
-            metrics['TNR'] = -1
+            metrics['TNR'] = float('-Inf')
         try:
             metrics['Precision'] = TP / (TP + FN)
         except ZeroDivisionError:
-            metrics['Precision'] = -1
+            metrics['Precision'] = float('-Inf')
         try:
             # False discovery rate
             metrics['FDR'] = FP / (TP + FP)
         except ZeroDivisionError:
-            metrics['FDR'] = -1
+            metrics['FDR'] = float('Inf')
         try:
             # Negative Predictive Value
             metrics['NPV'] = TN / (TN + FN)
         except ZeroDivisionError:
-            metrics['NPV'] = -1
+            metrics['NPV'] = float('-Inf')
         try:
             metrics['Accuracy'] = (TP + TN) / (TP + TN + FP + FN)
         except ZeroDivisionError:
-            metrics['Accuracy'] = -1
+            metrics['Accuracy'] = float('-Inf')
         try:
             # Positive likelihood ratio
             metrics['PLR'] = metrics['TPR'] / metrics['FPR']
         except ZeroDivisionError:
-            metrics['PLR'] = -1
+            metrics['PLR'] = float('-Inf')
         try:
             # Negative likelihood ratio
             metrics['NLR'] = metrics['FNR'] / metrics['TNR']
         except ZeroDivisionError:
-            metrics['NLR'] = -1
+            metrics['NLR'] = float('-Inf')
         try:
             # Diagnostic odds ratio
             metrics['DOR'] = metrics['PLR'] / metrics['NLR']
         except ZeroDivisionError:
-            metrics['DOR'] = -1
+            metrics['DOR'] = float('-Inf')
         # Store the sums
         metrics['TP'] = TP
         metrics['TN'] = TN
@@ -721,13 +722,10 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             # Compute the metrics
             metrics = self.compute_error_metrics(sum_errors)
             final_errors_metrics[threshold] = metrics 
-        # Sort according to the fmeasure. This is tricky. We can do it because we forced the FMeasure1 to be the first component of the dictionary, that is why x[1] works. see the function compute_error_metrics()
+        # Sort according to hierarchy shown
         sorted_metrics = sorted(final_errors_metrics.items(), key=lambda x: (x[1]['FMeasure1'], -x[1]['FPR'], x[1]['TPR'], x[1]['TP'], x[1]['TN'], -x[1]['FP'], -x[1]['FN'], x[1]['Precision'], -x[0]), reverse=True)
-        # Now sort it acording to the threshold value (lower first)
-        # The selection criteria of the final threshld is the Fmeasure1 now. If you change it for other measure, you MUST make sure that the dict final_errors_metrics is sorted for THAT creteria, otherwise there could
-        # be the problem that the criteria that you selected is not sorted and therefore we can not look up for all the 'same' values like we do in the next for...
         criteria='FMeasure1'
-        best_criteria = -1
+        best_criteria = float('-Inf')
         # We can have multiple 'best' so find them all
         for threshold in sorted_metrics:
             current_criteria = threshold[1][criteria]
