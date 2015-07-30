@@ -533,11 +533,6 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         FP = sum_errors['FP']
         """ Get the errors and compute the metrics """
         metrics = {}
-        # Store the sums
-        metrics['TP'] = TP
-        metrics['TN'] = TN
-        metrics['FN'] = FN
-        metrics['FP'] = FP
         # The order is important, because later we sort based on the order. More important to take a decision should be up
         try:
             metrics['FMeasure1'] = 2 * TP / ((2 * TP) + FP + FN)
@@ -551,6 +546,10 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             metrics['TPR'] = TP / (TP + FN)
         except ZeroDivisionError:
             metrics['TPR'] = -1
+        # Store the TP
+        metrics['TP'] = TP
+        # Store the TN
+        metrics['TN'] = TN
         try:
             metrics['FNR'] = FN / (TP + FN)
         except ZeroDivisionError:
@@ -592,6 +591,10 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             metrics['DOR'] = metrics['PLR'] / metrics['NLR']
         except ZeroDivisionError:
             metrics['DOR'] = -1
+        # Store the FN
+        metrics['FN'] = FN
+        # Store the FP
+        metrics['FP'] = FP
         return metrics
 
     def sum_up_errors(self, vector):
@@ -613,6 +616,9 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         """ Train the distance threshold of a model """
         self.construct_filter(filter)
         train_model = self.get_markov_model(model_id_to_train)
+        if not train_model:
+            print_error('No such id available')
+            return False
         print_info('Best Thresholds for trained model: {}'.format(train_model))
         # To store the training data
         thresholds_train = {}
