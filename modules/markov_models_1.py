@@ -475,25 +475,29 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 self.create_new_model(label.get_name(), number_of_flows)
 
     def compute_errors(self, train_label, test_label):
-        positive_labels = ['Botnet', 'Malware']
-        negative_labels = ['Normal']
         """ Get the train and test labels and figure it out the errors. A TP is when we detect CC not Botnet."""
         errors = {}
         errors['TP'] = 0.0
         errors['TN'] = 0.0
         errors['FN'] = 0.0
         errors['FP'] = 0.0
-        #if positive_label in train_label and positive_label in test_label:
-        if (set(positive_labels) & set(train_label)) and (set(positive_labels) & set(test_label)):
+        # So we can work with multiple positives and negative labels
+        if 'Botnet' in train_label or 'Malware' in train_label:
+            train_label_positive = True
+        elif 'Normal' in train_label:
+            train_label_positive = False
+        if 'Botnet' in test_label or 'Malware' in test_label:
+            test_label_positive = True
+        elif 'Normal' in test_label:
+            test_label_positive = False
+
+        if train_label_positive and test_label_positive:
             errors['TP'] += 1
-        #elif positive_label in train_label and negative_label in test_label:
-        elif (set(positive_labels) & set(train_label)) and (set(negative_labels) & set(test_label)):
+        elif train_label_positive and not test_label_positive:
             errors['FP'] += 1
-        #elif negative_label in train_label and negative_label in test_label:
-        elif (set(negative_labels) & set(train_label)) and (set(negative_labels) & set(test_label)):
+        elif not train_label_positive and not test_label_positive:
             errors['TN'] += 1
-        #elif negative_label in train_label and positive_label in test_label:
-        elif (set(negative_labels) & set(train_label)) and (set(positive_labels) & set(test_label)):
+        elif not train_label_positive and test_label_positive:
             errors['FN'] += 1
         return errors
 
