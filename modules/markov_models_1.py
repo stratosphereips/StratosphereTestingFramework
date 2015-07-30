@@ -565,6 +565,11 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         except ZeroDivisionError:
             metrics['FDR'] = float('Inf')
         try:
+            # Positive Predicted Value
+            metrics['PPV'] = TP / (TP + FP)
+        except ZeroDivisionError:
+            metrics['PPV'] = float('-Inf')
+        try:
             # Negative Predictive Value
             metrics['NPV'] = TN / (TN + FN)
         except ZeroDivisionError:
@@ -723,7 +728,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             metrics = self.compute_error_metrics(sum_errors)
             final_errors_metrics[threshold] = metrics 
         # Sort according to hierarchy shown
-        sorted_metrics = sorted(final_errors_metrics.items(), key=lambda x: (x[1]['FMeasure1'], -x[1]['FPR'], x[1]['TPR'], x[1]['TP'], x[1]['TN'], -x[1]['FP'], -x[1]['FN'], x[1]['Precision'], -x[0]), reverse=True)
+        sorted_metrics = sorted(final_errors_metrics.items(), key=lambda x: (x[1]['FMeasure1'], -x[1]['FPR'], x[1]['TPR'], x[1]['TP'], x[1]['TN'], -x[1]['FP'], -x[1]['FN'], x[1]['PPV'], x[1]['NPV'], x[1]['Precision'], -x[0]), reverse=True)
         criteria='FMeasure1'
         best_criteria = float('-Inf')
         # We can have multiple 'best' so find them all
@@ -731,7 +736,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             current_criteria = threshold[1][criteria]
             # Only  print the best FM1s
             if current_criteria >= best_criteria:
-                print '\tThreshold {}: FM1:{:.3f}, FPR:{:.3f}, TPR:{:.3f}, TNR:{:.3f}, FNR:{:.3f}, Prec:{:.3f}, TP:{}, FP:{}, TN:{}, FN:{}'.format(threshold[0], threshold[1]['FMeasure1'], threshold[1]['FPR'], threshold[1]['TPR'], threshold[1]['TNR'], threshold[1]['FNR'], threshold[1]['Precision'], threshold[1]['TP'], threshold[1]['FP'], threshold[1]['TN'], threshold[1]['FN'])
+                print '\tThreshold {}: FM1:{:.3f}, FPR:{:.3f}, TPR:{:.3f}, TNR:{:.3f}, FNR:{:.3f}, PPV:{:.3f}, NPV:{:.3f}, Prec:{:.3f}, TP:{}, FP:{}, TN:{}, FN:{}'.format(threshold[0], threshold[1]['FMeasure1'], threshold[1]['FPR'], threshold[1]['TPR'], threshold[1]['TNR'], threshold[1]['FNR'], threshold[1]['PPV'], threshold[1]['NPV'], threshold[1]['Precision'], threshold[1]['TP'], threshold[1]['FP'], threshold[1]['TN'], threshold[1]['FN'])
                 best_criteria = current_criteria
         # Store the trained threshold for this model
         try:
