@@ -34,6 +34,16 @@ class Markov_Model(persistent.Persistent):
         self.state = ""
         self.label_id = -1
         self.connections = BTrees.OOBTree.BTree()
+        self.trained_threshold = -1
+
+    def get_threshold(self):
+        try:
+            return self.trained_threshold
+        except AttributeError:
+            return False
+
+    def set_threshold(self, threshold):
+        self.trained_threshold = threshold
 
     def get_id(self):
         return self.mm_id
@@ -341,8 +351,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 # Do we need to regenerate this mc?
                 if current_connections == markov_model.get_connections():
                     needs_regenerate = False
-                rows.append([ markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate, markov_model.get_state()[0:100]])
-        print(table(header=['Id', 'State Len', '# Connections', 'Label', 'Needs Regenerate', 'First 100 Letters in State'], rows=rows))
+                rows.append([ markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate, markov_model.get_threshold(), markov_model.get_state()[0:100]])
+        print(table(header=['Id', 'State Len', '# Conn', 'Label', 'Needs Regen?', 'Thres.', 'First 100 Letters in State'], rows=rows))
 
     def create_new_model(self, label_name, number_of_flows):
         """ Given a label name create a new markov chain object"""
@@ -501,14 +511,19 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             errors['FN'] += 1
         return errors
 
-    def compute_error_metrics(self, errors):
-        """ Given the errors, compute the performance metrics """
-        TP = errors['TP']
-        TN = errors['TN']
-        FN = errors['FN']
-        FP = errors['FP']
+    def compute_error_metrics(self, sum_errors):
+        """ Given the sum up errors, compute the performance metrics """
+        TP = sum_errors['TP']
+        TN = sum_errors['TN']
+        FN = sum_errors['FN']
+        FP = sum_errors['FP']
         """ Get the errors and compute the metrics """
         metrics = {}
+        # Store the sums
+        metrics['TP'] = TP
+        metrics['TN'] = TN
+        metrics['FN'] = FN
+        metrics['FP'] = FP
         # The order is important, because later we sort based on the order. More important to take a decision should be up
         try:
             metrics['FMeasure1'] = 2 * TP / ((2 * TP) + FP + FN)
@@ -584,8 +599,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         """ Train the distance threshold of a model """
         self.construct_filter(filter)
         train_model = self.get_markov_model(model_id_to_train)
-        print_info('Training model: {}'.format(train_model))
-        print_info('With testing models:')
+        print_info('Best Thresholds for trained model: {}'.format(train_model))
         # To store the training data
         thresholds_train = {}
         for test_model in self.get_markov_models():
@@ -618,7 +632,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 # train_vector = [test model id, distance, N flow that matched, errors, errors metrics]
                 train_vector = {}
                 train_vector['ModelId'] = test_model_id
-                print '\t', test_model
+                #print '\t', test_model
                 # For each threshold to train
                 # Now we go from 1.1 to 2
                 exit_threshold_for = False
@@ -652,7 +666,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                         if index > 2 and distance < threshold and distance > 0:
                             # Compute the errors: TP, TN, FP, FN
                             errors = self.compute_errors(train_label, test_label)
-                            print '\t\tTraining with threshold: {}. Distance: {}. Errors: {}'.format(threshold, distance, errors)
+                            #print '\t\tTraining with threshold: {}. Distance: {}. Errors: {}'.format(threshold, distance, errors)
                             # Store the info
                             train_vector['Distance'] = distance
                             train_vector['IndexFlow'] = index
@@ -681,19 +695,30 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         # Compute the error metrics for each threshold
         final_errors_metrics = {}
         for threshold in thresholds_train:
-            #print 'Threshold: {}'.format(threshold)
-            # Sum up together all the errors for this threshold
+            # 1st sum up together all the errors for this threshold
             sum_errors = self.sum_up_errors(thresholds_train[threshold])
             # Compute the metrics
             metrics = self.compute_error_metrics(sum_errors)
-            final_errors_metrics[threshold] = metrics
+            final_errors_metrics[threshold] = metrics 
             #print metrics
 
         sorted_metrics = sorted(final_errors_metrics.items(), key=lambda x: x[1], reverse=True)
+        best_fm1 = -1
         for threshold in sorted_metrics:
-            print 'Threshold: {}'.format(threshold[0])
-            print '\t',
-            print threshold[1]
+            FM1 = threshold[1]['FMeasure1']
+            # Only  print the best FM1s
+            if FM1 >= best_fm1:
+                print '\tThreshold {}: FM1:{:.3f}, FPR:{:.3f}, TPR:{:.3f}, Prec:{:.3f}, TP:{}, FP:{}, TN:{}, FN:{}'.format(threshold[0], threshold[1]['FMeasure1'], threshold[1]['FPR'], threshold[1]['TPR'], threshold[1]['Precision'], threshold[1]['TP'], threshold[1]['FP'], threshold[1]['TN'], threshold[1]['FN'])
+                #print '\t',
+                #print threshold[1]
+                best_fm1 = FM1
+        # Store the trained threshold for this model
+        try:
+            train_model.set_threshold(sorted_metrics[0][0])
+            print '\tSelected: {}'.format(sorted_metrics[0][0])
+        except IndexError:
+            train_model.set_threshold(-1)
+            print '\tSelected: None. No other models matched.'
 
     # The run method runs every time that this command is used
     def run(self):
