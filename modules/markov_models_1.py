@@ -474,20 +474,26 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 # We dont have it
                 self.create_new_model(label.get_name(), number_of_flows)
 
-    def compute_errors(self, train_label, test_label, positive_label='CC', negative_label='Normal'):
+    def compute_errors(self, train_label, test_label):
+        positive_labels = ['Botnet', 'Malware']
+        negative_labels = ['Normal']
         """ Get the train and test labels and figure it out the errors. A TP is when we detect CC not Botnet."""
         errors = {}
         errors['TP'] = 0.0
         errors['TN'] = 0.0
         errors['FN'] = 0.0
         errors['FP'] = 0.0
-        if positive_label in train_label and positive_label in test_label:
+        #if positive_label in train_label and positive_label in test_label:
+        if (set(positive_labels) & set(train_label)) and (set(positive_labels) & set(test_label)):
             errors['TP'] += 1
-        elif positive_label in train_label and negative_label in test_label:
+        #elif positive_label in train_label and negative_label in test_label:
+        elif (set(positive_labels) & set(train_label)) and (set(negative_labels) & set(test_label)):
             errors['FP'] += 1
-        elif negative_label in train_label and negative_label in test_label:
+        #elif negative_label in train_label and negative_label in test_label:
+        elif (set(negative_labels) & set(train_label)) and (set(negative_labels) & set(test_label)):
             errors['TN'] += 1
-        elif negative_label in train_label and positive_label in test_label:
+        #elif negative_label in train_label and positive_label in test_label:
+        elif (set(negative_labels) & set(train_label)) and (set(positive_labels) & set(test_label)):
             errors['FN'] += 1
         return errors
 
@@ -631,7 +637,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                             #errors = self.compute_errors(train_model.get_label().get_name(), test_model.get_label().get_name())
                             train_label = train_model.get_label().get_name()
                             test_label = test_model.get_label().get_name()
-                            errors = self.compute_errors(train_label, test_label, positive_label='Botnet')
+                            errors = self.compute_errors(train_label, test_label)
                             print '\t\tTraining with threshold: {}. Distance: {}. Errors: {}'.format(threshold, distance, errors)
                             # Store the info
                             train_vector['Distance'] = distance
