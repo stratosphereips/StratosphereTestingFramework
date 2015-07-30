@@ -722,10 +722,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             metrics = self.compute_error_metrics(sum_errors)
             final_errors_metrics[threshold] = metrics 
         # Sort according to the fmeasure. This is tricky. We can do it because we forced the FMeasure1 to be the first component of the dictionary, that is why x[1] works. see the function compute_error_metrics()
-        #sorted_metrics = sorted(final_errors_metrics.items(), key=lambda x: x[1], reverse=True)
-        sorted_metrics = sorted(final_errors_metrics.items(), key=lambda x: (x[1]['FMeasure1'], -x[1]['FPR'], x[1]['TPR'], x[1]['TP'], x[1]['TN'], -x[1]['FP'], -x[1]['FN'], x[1]['Precision']), reverse=True)
+        sorted_metrics = sorted(final_errors_metrics.items(), key=lambda x: (x[1]['FMeasure1'], -x[1]['FPR'], x[1]['TPR'], x[1]['TP'], x[1]['TN'], -x[1]['FP'], -x[1]['FN'], x[1]['Precision'], -x[0]), reverse=True)
         # Now sort it acording to the threshold value (lower first)
-        sorted_metrics = sorted(dict(sorted_metrics).items())
         # The selection criteria of the final threshld is the Fmeasure1 now. If you change it for other measure, you MUST make sure that the dict final_errors_metrics is sorted for THAT creteria, otherwise there could
         # be the problem that the criteria that you selected is not sorted and therefore we can not look up for all the 'same' values like we do in the next for...
         criteria='FMeasure1'
