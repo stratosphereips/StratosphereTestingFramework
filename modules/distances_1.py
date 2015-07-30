@@ -595,7 +595,7 @@ class Group_of_Detections(Module, persistent.Persistent):
                 regenerate = distance.check_need_for_regeneration()
                 training_label = distance.get_training_label()
                 testing_label = distance.get_testing_label()
-                all_text += ' {:<4} | {:74} | {:74} | {:8.3f} ({:>5}) | {}\n'.format(distance.get_id(), distance.get_training_structure_name() + ': ' + str(distance.get_model_training_id()) + ' (' + training_label + ')', distance.get_testing_structure_name() + ': ' + str(distance.get_model_testing_id()) + ' (' + testing_label + ')', distance.get_distance(), distance.get_amount(), regenerate)
+                all_text += ' {:<4} | {:75} | {:75} | {:8.3f} ({:>5}) | {}\n'.format(distance.get_id(), distance.get_training_structure_name() + ': ' + str(distance.get_model_training_id()) + ' (' + training_label + ')', distance.get_testing_structure_name() + ': ' + str(distance.get_model_testing_id()) + ' (' + testing_label + ')', distance.get_distance(), distance.get_amount(), regenerate)
         f = tempfile.NamedTemporaryFile()
         f.write(all_text)
         f.flush()
