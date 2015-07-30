@@ -213,7 +213,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         self.parser.add_argument('-a', '--generateall', action='store_true', help='Generate the markov chain for all the labels that don\'t have one already')
         self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the markov models. For example for listing. Keywords: name. Usage: name=<text>. Partial matching.')
         self.parser.add_argument('-n', '--numberoffflows', metavar='numberofflows', default="3", help='When creating the markov models, this is the minimum number of flows that the connection should have. Less than this and the connection will be ignored. Be default 3.')
-        self.parser.add_argument('-t', '--train', metavar='markovmodelid', help='Train the distance threshold of this Markov Model. Use -f to give a list of test Markov Models')
+        self.parser.add_argument('-t', '--train', metavar='markovmodelid', help='Train the distance threshold for this Markov Model Id. Use -f to filter the list of Markov Models to use in the training. The special word \'all\' forces to train all the models.')
         self.parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Make the train process more verbose, printing the details of the models matched.')
 
     # Mandatory Method!
@@ -782,7 +782,12 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         elif self.args.regenerate:
             self.regenerate(self.args.regenerate)
         elif self.args.train:
-            self.train(int(self.args.train), self.args.filter, self.args.verbose)
+            if self.args.train == 'all':
+                for model in self.get_markov_models():
+                    id = model.get_id()
+                    self.train(id, self.args.filter, self.args.verbose)
+            else:
+                self.train(int(self.args.train), self.args.filter, self.args.verbose)
         elif self.args.generateall:
             self.generate_all_models(self.args.numberofflows)
         else:
