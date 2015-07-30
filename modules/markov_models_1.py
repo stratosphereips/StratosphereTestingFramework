@@ -465,7 +465,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         # Create the MM itself
         markov_model.create(markov_model.get_state())
         print_info('Markov model {} regenerated.'.format(markov_model_id))
-
+####
     def generate_all_models(self, number_of_flows):
         """ Read all the labels and generate all the markov models if they dont already have one """
         labels = __group_of_labels__.get_labels()
@@ -589,14 +589,31 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         # To store the training data
         thresholds_train = {}
         for test_model in self.get_markov_models():
-            # Apply the filter and avoid training with itself
+            # Check that the models exist
             try:
                 test_model_id = test_model.get_id()
                 train_model_id = train_model.get_id()
             except AttributeError:
                 print_error('No such id available')
                 return False
-            if self.apply_filter(test_model) and test_model_id != train_model_id:
+
+
+            # Get the labels from the models
+            train_label = train_model.get_label().get_name()
+            test_label = test_model.get_label().get_name()
+            # Get the protocols for the labels
+            try:
+                train_protocol = train_label.split('-')[2]
+            except IndexError:
+                # The label is not complete, maybe because now is "Deleted". Ignore
+                return False
+            try:
+                test_protocol = test_label.split('-')[2]
+            except IndexError:
+                # The label is not complete, maybe because now is "Deleted". Ignore
+                return False
+            # Apply the filter and avoid training with itself and only if the protocols match
+            if self.apply_filter(test_model) and test_model_id != train_model_id and train_protocol == test_protocol:
                 # Store info about this particular test training. Later stored within the threshold vector
                 # train_vector = [test model id, distance, N flow that matched, errors, errors metrics]
                 train_vector = {}
@@ -615,13 +632,9 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                         # Get the states so far
                         train_sequence = train_model.get_state()[0:index+1]
                         test_sequence = test_model.get_state()[0:index+1]
-                        #print train_sequence
-                        #print test_sequence
                         # Prob of the states so far
                         train_prob = float(train_model.compute_probability(train_sequence))
                         test_prob = float(train_model.compute_probability(test_sequence))
-                        #print train_prob
-                        #print test_prob
                         # Compute distance
                         if train_prob < test_prob:
                             try:
@@ -638,9 +651,6 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                         # Is distance < threshold? We found a good match.
                         if index > 2 and distance < threshold and distance > 0:
                             # Compute the errors: TP, TN, FP, FN
-                            #errors = self.compute_errors(train_model.get_label().get_name(), test_model.get_label().get_name())
-                            train_label = train_model.get_label().get_name()
-                            test_label = test_model.get_label().get_name()
                             errors = self.compute_errors(train_label, test_label)
                             print '\t\tTraining with threshold: {}. Distance: {}. Errors: {}'.format(threshold, distance, errors)
                             # Store the info
