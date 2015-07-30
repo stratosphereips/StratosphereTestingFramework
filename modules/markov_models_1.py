@@ -648,6 +648,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                         # Get the states so far
                         train_sequence = train_model.get_state()[0:index+1]
                         test_sequence = test_model.get_state()[0:index+1]
+                        # First re-create the matrix only for this sequence
+                        train_model.create(train_sequence)
                         # Prob of the states so far
                         train_prob = float(train_model.compute_probability(train_sequence))
                         test_prob = float(train_model.compute_probability(test_sequence))
