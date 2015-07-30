@@ -356,7 +356,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 if current_connections == markov_model.get_connections():
                     needs_regenerate = False
                 #rows.append([ markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate, markov_model.get_threshold(), markov_model.get_state()[0:100]])
-                all_text += '{: < 5} | {: > 5} | {} | {:50} | {} | {:3} | {}\n'.format(markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate, markov_model.get_threshold(), markov_model.get_state()[0:100])
+                all_text += '{: < 5} | {: > 7} | {} | {:50} | {} | {:3} | {}\n'.format(markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate, markov_model.get_threshold(), markov_model.get_state()[0:100])
         #print(table(header=['Id', 'State Len', '# Conn', 'Label', 'Needs Regen?', 'Thres.', 'First 100 Letters in State'], rows=rows))
 
         # Print with less
