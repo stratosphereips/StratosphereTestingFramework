@@ -705,25 +705,29 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             # Compute the metrics
             metrics = self.compute_error_metrics(sum_errors)
             final_errors_metrics[threshold] = metrics 
-            #print metrics
-
+        # Sort according to the fmeasure. This is tricky. We can do it because we forced the FMeasure1 to be the first component of the dictionary, that is why x[1] works. see the function compute_error_metrics()
         sorted_metrics = sorted(final_errors_metrics.items(), key=lambda x: x[1], reverse=True)
-        best_fm1 = -1
+        # Now sort it acording to the threshold value (lower first)
+        sorted_metrics = sorted(dict(sorted_metrics).items())
+        # The selection criteria of the final threshld is the Fmeasure1 now. If you change it for other measure, you MUST make sure that the dict final_errors_metrics is sorted for THAT creteria, otherwise there could
+        # be the problem that the criteria that you selected is not sorted and therefore we can not look up for all the 'same' values like we do in the next for...
+        criteria='FMeasure1'
+        best_criteria = -1
+        # We can have multiple 'best' so find them all
         for threshold in sorted_metrics:
-            FM1 = threshold[1]['FMeasure1']
+            current_criteria = threshold[1][criteria]
             # Only  print the best FM1s
-            if FM1 >= best_fm1:
+            if current_criteria >= best_criteria:
                 print '\tThreshold {}: FM1:{:.3f}, FPR:{:.3f}, TPR:{:.3f}, Prec:{:.3f}, TP:{}, FP:{}, TN:{}, FN:{}'.format(threshold[0], threshold[1]['FMeasure1'], threshold[1]['FPR'], threshold[1]['TPR'], threshold[1]['Precision'], threshold[1]['TP'], threshold[1]['FP'], threshold[1]['TN'], threshold[1]['FN'])
-                #print '\t',
-                #print threshold[1]
-                best_fm1 = FM1
+                best_criteria = current_criteria
         # Store the trained threshold for this model
         try:
             train_model.set_threshold(sorted_metrics[0][0])
-            print '\tSelected: {}'.format(sorted_metrics[0][0])
+            print '\tSelected: {}'.format(red(sorted_metrics[0][0]))
         except IndexError:
             train_model.set_threshold(-1)
             print '\tSelected: None. No other models matched.'
+
 
     # The run method runs every time that this command is used
     def run(self):
