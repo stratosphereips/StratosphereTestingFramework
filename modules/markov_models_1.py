@@ -474,11 +474,101 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 # We dont have it
                 self.create_new_model(label.get_name(), number_of_flows)
 
-    def compute_errors(self, train_label, test_label):
-        """ Get the train and test labels and figure it out the errors """
-        # Is train CC?
-        if 'CC' in 
-        # Is test CC?
+    def compute_errors(self, train_label, test_label, positive_label='CC', negative_label='Normal'):
+        """ Get the train and test labels and figure it out the errors. A TP is when we detect CC not Botnet."""
+        errors = {}
+        errors['TP'] = 0.0
+        errors['TN'] = 0.0
+        errors['FN'] = 0.0
+        errors['FP'] = 0.0
+        if positive_label in train_label and positive_label in test_label:
+            errors['TP'] += 1
+        elif positive_label in train_label and negative_label in test_label:
+            errors['FP'] += 1
+        elif negative_label in train_label and negative_label in test_label:
+            errors['TN'] += 1
+        elif negative_label in train_label and positive_label in test_label:
+            errors['FN'] += 1
+        return errors
+
+    def compute_error_metrics(self, errors):
+        """ Given the errors, compute the performance metrics """
+        TP = errors['TP']
+        TN = errors['TN']
+        FN = errors['FN']
+        FP = errors['FP']
+        """ Get the errors and compute the metrics """
+        metrics = {}
+        # The order is important, because later we sort based on the order. More important to take a decision should be up
+        try:
+            metrics['FMeasure1'] = 2 * TP / ((2 * TP) + FP + FN)
+        except ZeroDivisionError:
+            metrics['FMeasure1'] = -1
+        try:
+            metrics['FPR'] = FP / (FP + TN) 
+        except ZeroDivisionError:
+            metrics['FPR'] = -1
+        try:
+            metrics['TPR'] = TP / (TP + FN)
+        except ZeroDivisionError:
+            metrics['TPR'] = -1
+        try:
+            metrics['FNR'] = FN / (TP + FN)
+        except ZeroDivisionError:
+            metrics['FNR'] = -1
+        try:
+            metrics['TNR'] = TN / (TN + FP)
+        except ZeroDivisionError:
+            metrics['TNR'] = -1
+        try:
+            metrics['Precision'] = TP / (TP + FN)
+        except ZeroDivisionError:
+            metrics['Precision'] = -1
+        try:
+            # False discovery rate
+            metrics['FDR'] = FP / (TP + FP)
+        except ZeroDivisionError:
+            metrics['FDR'] = -1
+        try:
+            # Negative Predictive Value
+            metrics['NPV'] = TN / (TN + FN)
+        except ZeroDivisionError:
+            metrics['NPV'] = -1
+        try:
+            metrics['Accuracy'] = (TP + TN) / (TP + TN + FP + FN)
+        except ZeroDivisionError:
+            metrics['Accuracy'] = -1
+        try:
+            # Positive likelihood ratio
+            metrics['PLR'] = metrics['TPR'] / metrics['FPR']
+        except ZeroDivisionError:
+            metrics['PLR'] = -1
+        try:
+            # Negative likelihood ratio
+            metrics['NLR'] = metrics['FNR'] / metrics['TNR']
+        except ZeroDivisionError:
+            metrics['NLR'] = -1
+        try:
+            # Diagnostic odds ratio
+            metrics['DOR'] = metrics['PLR'] / metrics['NLR']
+        except ZeroDivisionError:
+            metrics['DOR'] = -1
+        return metrics
+
+    def sum_up_errors(self, vector):
+        """ Given a vector of values, sum up the errors """
+        sum_errors = {}
+        sum_errors['TP'] = 0.0
+        sum_errors['TN'] = 0.0
+        sum_errors['FN'] = 0.0
+        sum_errors['FP'] = 0.0
+        for i in vector:
+            errors = i['Errors']
+            sum_errors['TP'] += errors['TP']
+            sum_errors['TN'] += errors['TN']
+            sum_errors['FN'] += errors['FN']
+            sum_errors['FP'] += errors['FP']
+        return sum_errors
 
     def train(self, model_id_to_train, filter):
         """ Train the distance threshold of a model """
@@ -486,6 +576,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         train_model = self.get_markov_model(model_id_to_train)
         print_info('Training model: {}'.format(train_model))
         print_info('With testing models:')
+        # To store the training data
+        thresholds_train = {}
         for test_model in self.get_markov_models():
             # Apply the filter and avoid training with itself
             try:
@@ -495,8 +587,11 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 print_error('No such id available')
                 return False
             if self.apply_filter(test_model) and test_model_id != train_model_id:
-                print '\t',
-                print test_model
+                # Store info about this particular test training. Later stored within the threshold vector
+                # train_vector = [test model id, distance, N flow that matched, errors, errors metrics]
+                train_vector = {}
+                train_vector['ModelId'] = test_model_id
+                print '\t', test_model
                 # For each threshold to train
                 # Now we go from 1.1 to 2
                 exit_threshold_for = False
@@ -530,25 +625,55 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                                 distance = -1
                         elif train_prob == test_prob:
                             distance = 1
-                        # Is distance < threshold?
+                        # Is distance < threshold? We found a good match.
                         if index > 2 and distance < threshold and distance > 0:
-                            print '\t\tTraining with threshold: {}'.format(threshold)
-                            print '\t\t\tDistance {}'.format(distance)
                             # Compute the errors: TP, TN, FP, FN
-                            self.compute_errors(train_model.get_label().get_name(), test_model.get_label().get_name())
+                            #errors = self.compute_errors(train_model.get_label().get_name(), test_model.get_label().get_name())
+                            train_label = train_model.get_label().get_name()
+                            test_label = test_model.get_label().get_name()
+                            errors = self.compute_errors(train_label, test_label, positive_label='Botnet')
+                            print '\t\tTraining with threshold: {}. Distance: {}. Errors: {}'.format(threshold, distance, errors)
+                            # Store the info
+                            train_vector['Distance'] = distance
+                            train_vector['IndexFlow'] = index
+                            train_vector['Errors'] = errors
+                            # Get the old vector for this threshold
+                            try:
+                                prev_threshold = thresholds_train[threshold]
+                            except KeyError:
+                                # First time for this threshold
+                                thresholds_train[threshold] = []
+                                prev_threshold = thresholds_train[threshold]
+                            # Store this train vector in the threshold vectors
+                            prev_threshold.append(train_vector)
+                            thresholds_train[threshold] = prev_threshold
+                            # Tell the threshold for to exit
                             exit_threshold_for = False
+                            # Exit the test chain of state evaluation
                             break
-                        # Add index
+                        # Next letter
                         index += 1
-                        # Put a limit in the amount of letters by now
+                        # Put a limit in the amount of letters by now. VERIFY THIS
                         if index > 100:
                             break
                     if exit_threshold_for:
                         break
+        # Compute the error metrics for each threshold
+        final_errors_metrics = {}
+        for threshold in thresholds_train:
+            #print 'Threshold: {}'.format(threshold)
+            # Sum up together all the errors for this threshold
+            sum_errors = self.sum_up_errors(thresholds_train[threshold])
+            # Compute the metrics
+            metrics = self.compute_error_metrics(sum_errors)
+            final_errors_metrics[threshold] = metrics
+            #print metrics
 
-                    # Get the prob of the training model 
-                    # Get the distance up to this test states with the training model
-
+        sorted_metrics = sorted(final_errors_metrics.items(), key=lambda x: x[1], reverse=True)
+        for threshold in sorted_metrics:
+            print 'Threshold: {}'.format(threshold[0])
+            print '\t',
+            print threshold[1]
 
     # The run method runs every time that this command is used
     def run(self):
