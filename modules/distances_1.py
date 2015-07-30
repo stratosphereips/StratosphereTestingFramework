@@ -589,13 +589,13 @@ class Group_of_Detections(Module, persistent.Persistent):
 
     def list_distances(self, filter):
         self.construct_filter(filter)
-        all_text=' Id | Training | Testing | Distance | Needs Regenerate \n'
+        all_text=' Id | Training | Testing | Distance (amount of letters)| Needs Regenerate \n'
         for distance in self.get_distances():
             if self.apply_filter(distance):
                 regenerate = distance.check_need_for_regeneration()
                 training_label = distance.get_training_label()
                 testing_label = distance.get_testing_label()
-                all_text += ' {} | {} | {} | {} | {}\n'.format(distance.get_id(), distance.get_training_structure_name() + ': ' + str(distance.get_model_training_id()) + ' (' + training_label + ')', distance.get_testing_structure_name() + ': ' + str(distance.get_model_testing_id()) + ' (' + testing_label + ')', str(distance.get_distance()) + ' ( ' + str(distance.get_amount()) + ' letters )', regenerate)
+                all_text += ' {:<4} | {:70} | {:70} | {:8.3f} ({:>5}) | {}\n'.format(distance.get_id(), distance.get_training_structure_name() + ': ' + str(distance.get_model_training_id()) + ' (' + training_label + ')', distance.get_testing_structure_name() + ': ' + str(distance.get_model_testing_id()) + ' (' + testing_label + ')', distance.get_distance(), distance.get_amount(), regenerate)
         f = tempfile.NamedTemporaryFile()
         f.write(all_text)
         f.flush()
