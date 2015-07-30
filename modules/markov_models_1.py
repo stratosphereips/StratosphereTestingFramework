@@ -728,7 +728,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             metrics = self.compute_error_metrics(sum_errors)
             final_errors_metrics[threshold] = metrics 
         # Sort according to hierarchy shown
-        sorted_metrics = sorted(final_errors_metrics.items(), key=lambda x: (x[1]['FMeasure1'], -x[1]['FPR'], x[1]['TPR'], x[1]['TP'], x[1]['TN'], -x[1]['FP'], -x[1]['FN'], x[1]['PPV'], x[1]['NPV'], x[1]['Precision'], -x[0]), reverse=True)
+        sorted_metrics = sorted(final_errors_metrics.items(), key=lambda x: (x[1]['FMeasure1'], -x[1]['FPR'], x[1]['TPR'], x[1]['PPV'], x[1]['NPV'], x[1]['TP'], x[1]['TN'], -x[1]['FP'], -x[1]['FN'], x[1]['Precision'], -x[0]), reverse=True)
         criteria='FMeasure1'
         best_criteria = float('-Inf')
         # We can have multiple 'best' so find them all
