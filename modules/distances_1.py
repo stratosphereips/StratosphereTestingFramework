@@ -286,7 +286,7 @@ class Detection(persistent.Persistent):
         if not self.dict_of_distances:
             print_warning('Please first run -L to compute the letter by letter distances.')
             return False
-        all_text='\tLetter Index | Training Letter | Testing Letter | Train Prob | Test Prob | Distance Value\n'
+        all_text='Letter Index | Training Letter | Testing Letter | Train Prob | Test Prob | Distance Value\n'
         index = 0
         while index < len(self.dict_of_distances):
             try:
@@ -299,7 +299,7 @@ class Detection(persistent.Persistent):
                 train_prob = self.train_prob_vector[index]
             except IndexError:
                 train_state = ""
-            all_text += '\t\t{}|\t\t{}|\t\t{}|\t\t{} |\t\t{} |\t\t{}\n'.format(index, train_state, test_state, train_prob, test_prob, self.dict_of_distances[index])
+            all_text += '{:4} | {:2} | {:2} | {:10.3f} | {:10.3f} | {:7.3f}\n'.format(index, train_state, test_state, train_prob, test_prob, self.dict_of_distances[index])
             index += 1
         all_text += "\n"
         # Print the matrix
