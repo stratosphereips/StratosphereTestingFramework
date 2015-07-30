@@ -213,6 +213,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the markov models. For example for listing. Keywords: name. Usage: name=<text>. Partial matching.')
         self.parser.add_argument('-n', '--numberoffflows', metavar='numberofflows', default="3", help='When creating the markov models, this is the minimum number of flows that the connection should have. Less than this and the connection will be ignored. Be default 3.')
         self.parser.add_argument('-t', '--train', metavar='markovmodelid', help='Train the distance threshold of this Markov Model. Use -f to give a list of test Markov Models')
+        self.parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Make the train process more verbose, printing the details of the models matched.')
 
     # Mandatory Method!
     def get_name(self):
@@ -595,7 +596,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             sum_errors['FP'] += errors['FP']
         return sum_errors
 
-    def train(self, model_id_to_train, filter):
+    def train(self, model_id_to_train, filter, verbose):
         """ Train the distance threshold of a model """
         self.construct_filter(filter)
         train_model = self.get_markov_model(model_id_to_train)
@@ -632,7 +633,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 # train_vector = [test model id, distance, N flow that matched, errors, errors metrics]
                 train_vector = {}
                 train_vector['ModelId'] = test_model_id
-                #print '\t', test_model
+                if verbose:
+                        print '\t', test_model
                 # For each threshold to train
                 # Now we go from 1.1 to 2
                 exit_threshold_for = False
@@ -666,7 +668,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                         if index > 2 and distance < threshold and distance > 0:
                             # Compute the errors: TP, TN, FP, FN
                             errors = self.compute_errors(train_label, test_label)
-                            #print '\t\tTraining with threshold: {}. Distance: {}. Errors: {}'.format(threshold, distance, errors)
+                            if verbose:
+                                print '\t\tTraining with threshold: {}. Distance: {}. Errors: {}'.format(threshold, distance, errors)
                             # Store the info
                             train_vector['Distance'] = distance
                             train_vector['IndexFlow'] = index
@@ -755,7 +758,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         elif self.args.regenerate:
             self.regenerate(self.args.regenerate)
         elif self.args.train:
-            self.train(int(self.args.train), self.args.filter)
+            self.train(int(self.args.train), self.args.filter, self.args.verbose)
         elif self.args.generateall:
             self.generate_all_models(self.args.numberofflows)
         else:
