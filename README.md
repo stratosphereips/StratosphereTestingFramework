@@ -496,6 +496,7 @@ Now stf can import external modules that implement new functionality.
 
 
 ### TODO
+- The filters of connections seem to have a bug. If you do name=192.168.1.1- name!=-192.168.1.1- , you will still have some of the later shown.
 - Add labels to packets
 - Add labels to the binetflow files and biargus files automatically.
 - When adding a binetflow and leaving, the file is not stored. (yes when creating it)
