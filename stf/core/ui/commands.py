@@ -12,7 +12,7 @@ import transaction
 
 from stf.common.out import *
 from stf.core.dataset import __datasets__
-from stf.core.experiment import __experiments__
+#from stf.core.experiment import __experiments__
 from stf.core.database import __database__
 from stf.core.connections import __group_of_group_of_connections__
 from stf.core.models_constructors import __modelsconstructors__
@@ -27,9 +27,9 @@ class Commands(object):
         # Map commands to their related functions.
         self.commands = dict(
             help=dict(obj=self.cmd_help, description="Show this help message"),
-            info=dict(obj=self.cmd_info, description="Show information on the opened experiment"),
+            #info=dict(obj=self.cmd_info, description="Show information on the opened experiment"),
             clear=dict(obj=self.cmd_clear, description="Clear the console"),
-            experiments=dict(obj=self.cmd_experiments, description="List or switch to existing experiments"),
+            #experiments=dict(obj=self.cmd_experiments, description="List or switch to existing experiments"),
             datasets=dict(obj=self.cmd_datasets, description="Manage the datasets"),
             connections=dict(obj=self.cmd_connections, description="Manage the connections. A dataset should be selected first."),
             models=dict(obj=self.cmd_models, description="Manage the models. A dataset should be selected first."),
@@ -79,17 +79,17 @@ class Commands(object):
     # INFO
     #
     # This command returns information on the open experiment.
-    def cmd_info(self, *args):
-        if __experiments__.is_set() and __experiments__.current:
-            print_info('Information about the current experiment')
-            print(table(
-                ['Name', 'Value'],
-                [
-                    ('Name', __experiments__.current.get_name()),
-                ]
-            ))
-        else:
-            print_info('There is no current experiment')
+    #def cmd_info(self, *args):
+    #    if __experiments__.is_set() and __experiments__.current:
+    #        print_info('Information about the current experiment')
+    #        print(table(
+    #            ['Name', 'Value'],
+    #            [
+    #                ('Name', __experiments__.current.get_name()),
+    #            ]
+    #        ))
+    #    else:
+    #        print_info('There is no current experiment')
 
     ##
     # NOTES
@@ -423,39 +423,39 @@ class Commands(object):
     #
     # This command retrieves a list of all experiments.
     # You can also switch to a different experiments.
-    def cmd_experiments(self, *args):
-        parser = argparse.ArgumentParser(prog="experiments", description="Manage experiments", epilog="Manage experiments")
-        group = parser.add_mutually_exclusive_group()
-        group.add_argument('-l', '--list', action="store_true", help="List all existing experiments")
-        group.add_argument('-s', '--switch', metavar='experiment_name', help="Switch to the specified experiment")
-        group.add_argument('-c', '--create', metavar='experiment_name', help="Create a new experiment")
-        group.add_argument('-d', '--delete', metavar='experiment_id', help="Delete an experiment")
-
-        try:
-            args = parser.parse_args(args)
-        except:
-            return
-
-        # Subcomand to list
-        if args.list:
-            __experiments__.list_all()
-
-        # Subcomand to switch
-        elif args.switch:
-            __experiments__.switch_to(args.switch)
-
+    #def cmd_experiments(self, *args):
+        #parser = argparse.ArgumentParser(prog="experiments", description="Manage experiments", epilog="Manage experiments")
+        #group = parser.add_mutually_exclusive_group()
+        #group.add_argument('-l', '--list', action="store_true", help="List all existing experiments")
+        #group.add_argument('-s', '--switch', metavar='experiment_name', help="Switch to the specified experiment")
+        #group.add_argument('-c', '--create', metavar='experiment_name', help="Create a new experiment")
+        #group.add_argument('-d', '--delete', metavar='experiment_id', help="Delete an experiment")
+#
+        #try:
+            #args = parser.parse_args(args)
+        #except:
+            #return
+#
+        ## Subcomand to list
+        #if args.list:
+            #__experiments__.list_all()
+#
+        ## Subcomand to switch
+        #elif args.switch:
+            #__experiments__.switch_to(args.switch)
+#
         # Subcomand to create
-        elif args.create:
-            __experiments__.create(args.create)
-            __database__.root._p_changed = True
-
-        # Subcomand to delete
-        elif args.delete:
-            __experiments__.delete(args.delete)
-            __database__.root._p_changed = True
-
-        else:
-            parser.print_usage()
+        #elif args.create:
+            #__experiments__.create(args.create)
+            #__database__.root._p_changed = True
+#
+        ## Subcomand to delete
+        #elif args.delete:
+            #__experiments__.delete(args.delete)
+            #__database__.root._p_changed = True
+#
+        #else:
+            #parser.print_usage()
 
 
     ##
