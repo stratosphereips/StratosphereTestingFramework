@@ -72,11 +72,14 @@ class Dataset(persistent.Persistent):
 
     def del_file(self,fileid):
         """ Delete a file from the dataset"""
-        print_info('File {} with id {} deleted from dataset {}'.format(self.files[fileid].get_name(), self.files[fileid].get_id(), self.get_name() ))
-        self.files.pop(fileid)
-        # If this was the last file in the dataset, delete the dataset
-        if len(self.files) == 0:
-            __datasets__.delete(__datasets__.current.get_id())
+        try:
+            print_info('File {} with id {} deleted from dataset {}'.format(self.files[fileid].get_name(), self.files[fileid].get_id(), self.get_name() ))
+            self.files.pop(fileid)
+            # If this was the last file in the dataset, delete the dataset
+            if len(self.files) == 0:
+                __datasets__.delete(__datasets__.current.get_id())
+        except KeyError:
+            print_error('No such file id.')
 
 
     def add_file(self,filename):

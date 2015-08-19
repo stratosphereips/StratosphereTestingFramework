@@ -468,6 +468,8 @@ class Commands(object):
         group.add_argument('-r', '--revert', action="store_true", help="Revert the connection of the database to the state before the last pack")
         group.add_argument('-p', '--pack', action="store_true", help="Pack the database")
         group.add_argument('-c', '--commit', action="store_true", help="Commit the changes")
+        group.add_argument('-l', '--list', action="store_true", help="List the structures in the db.")
+        group.add_argument('-d', '--delete', metavar="structurename", help="Delete the given structure from the db. Specify the complete name.")
 
         try:
             args = parser.parse_args(args)
@@ -477,6 +479,14 @@ class Commands(object):
         # Subcomand to get info
         if args.info:
             __database__.info()
+
+        # Subcomand to delete a structures
+        elif args.delete:
+            __database__.delete_structure(args.delete)
+
+        # Subcomand to list the structures
+        elif args.list:
+            __database__.list_structures()
 
         # Subcomand to revert the database
         elif args.revert:
