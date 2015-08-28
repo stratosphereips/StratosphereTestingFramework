@@ -56,7 +56,11 @@ class File(persistent.Persistent):
             return ''
 
     def compute_size(self):
-        size = os.path.getsize(self.get_name())
+        try:
+            size = os.path.getsize(self.get_name())
+        except OSError:
+            print_error('The pcap file is not available in your disk.')
+            return False
         self.size = size
 
     def get_id(self):
