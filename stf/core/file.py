@@ -29,11 +29,10 @@ class File(persistent.Persistent):
         try:
             size = self.size
         except (AttributeError, TypeError):
-            self.compute_size()
-        if self.size:
-            return str(self.size / 1024.0 / 1024.0)+' MB'
-        else:
-            return -1
+            if not self.compute_size():
+                # We can't even compute the size
+                return "No data"
+        return str(self.size / 1024.0 / 1024.0)+' MB'
 
     def get_size(self):
         try:
