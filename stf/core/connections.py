@@ -868,6 +868,7 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
                 group.delete_connection_by_id(connection_id)
             except ValueError:
                 print_error('The id should be an int.')
+                return False
         else:
             # This is not necesary to work, but is a nice precaution
             print_error('There is no dataset selected.')
