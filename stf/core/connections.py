@@ -863,8 +863,11 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
     def delete_a_connection_from_the_group_by_id(self, group_id, connection_id):
         """ Delete a unique connection id from a connection group """
         if __datasets__.current:
-            group = self.get_group(int(group_id))
-            group.delete_connection_by_id(connection_id)
+            try:
+                group = self.get_group(int(group_id))
+                group.delete_connection_by_id(connection_id)
+            except ValueError:
+                print_error('The id should be an int.')
         else:
             # This is not necesary to work, but is a nice precaution
             print_error('There is no dataset selected.')
