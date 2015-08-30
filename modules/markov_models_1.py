@@ -435,7 +435,11 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             return False
         print_info('Markov Chain ID {}'.format(markov_model_id))
         print_info('Label')
-        label_name = __group_of_labels__.get_label_name_by_id(markov_model.get_label_id())
+        try:
+            label_name = __group_of_labels__.get_label_name_by_id(markov_model.get_label_id())
+        except AttributeError:
+            print_error('The id does not exists.')
+            return False
         print '\t', 
         print_info(label_name)
         state = markov_model.get_state()
