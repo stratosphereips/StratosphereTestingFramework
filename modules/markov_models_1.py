@@ -213,7 +213,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         self.parser.add_argument('-a', '--generateall', action='store_true', help='Generate the markov chain for all the labels that don\'t have one already')
         self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the markov models. For example for listing. Keywords: name. Usage: name=<text>. Partial matching.')
         self.parser.add_argument('-n', '--numberoffflows', metavar='numberofflows', default="3", help='When creating the markov models, this is the minimum number of flows that the connection should have. Less than this and the connection will be ignored. Be default 3.')
-        self.parser.add_argument('-t', '--train', metavar='markovmodelid', help='Train the distance threshold for this Markov Model Id. Use -f to filter the list of Markov Models to use in the training. The special word \'all\' forces to train all the models.')
+        self.parser.add_argument('-t', '--train', metavar='markovmodelid', help='Train the distance threshold for this Markov Model Id. Use -f to filter the list of Markov Models to use in the training. If you specify as Markov Model Id to train the special word \'all\', all the models are trained.')
+        self.parser.add_argument('-i', '--train_ids', metavar='train_ids', default="", help='Specify the Ids of the models used for training the model given by -t. Comma separated. If you used -f, then don\'t use -i')
         self.parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Make the train process more verbose, printing the details of the models matched.')
 
     # Mandatory Method!
@@ -325,6 +326,19 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                         responses.append(False)
                 elif operator == '!=':
                     if value not in labelname:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            elif key == 'id':
+                id = int(model.get_id())
+                value = int(value)
+                if operator == '=':
+                    if value == id:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if value != id:
                         responses.append(True)
                     else:
                         responses.append(False)
@@ -619,14 +633,18 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             sum_errors['FP'] += errors['FP']
         return sum_errors
 
-    def train(self, model_id_to_train, filter, verbose):
-        """ Train the distance threshold of a model """
-        self.construct_filter(filter)
+    def train(self, model_id_to_train, filter, test_ids, verbose):
+        """ Train the distance threshold of a model. The models to train with can be determined by the filter or by a list of comma separated ids """
+        if filter and test_ids == "":
+            self.construct_filter(filter)
+            test_models_ids = []
+        elif test_ids != "" and not filter:
+            test_models_ids = map(int, test_ids.split(','))
         train_model = self.get_markov_model(model_id_to_train)
         if not train_model:
-            print_error('No such id available')
+            print_error('No such model id available')
             return False
-        print_info('Best Thresholds for trained model: {}'.format(train_model))
+        print_info('Best Thresholds for trained model: {}. Letters used for training: {}'.format(train_model, 100)) # The 100 is hardcoded. See the number below.
         # To store the training data
         thresholds_train = {}
         for test_model in self.get_markov_models():
@@ -637,8 +655,6 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             except AttributeError:
                 print_error('No such id available')
                 return False
-
-
             # Get the labels from the models
             train_label = train_model.get_label().get_name()
             test_label = test_model.get_label().get_name()
@@ -654,7 +670,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 # The label is not complete, maybe because now is "Deleted". Ignore
                 return False
             # Apply the filter and avoid training with itself and only if the protocols match
-            if self.apply_filter(test_model) and test_model_id != train_model_id and train_protocol == test_protocol:
+            if ( (filter != "" and self.apply_filter(test_model)) or (test_models_ids != "" and test_model_id in test_models_ids)) and test_model_id != train_model_id and train_protocol == test_protocol:
+                print_info('Training with model {}'.format(test_model))
                 # Store info about this particular test training. Later stored within the threshold vector
                 # train_vector = [test model id, distance, N flow that matched, errors, errors metrics]
                 train_vector = {}
@@ -793,9 +810,9 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             if self.args.train == 'all':
                 for model in self.get_markov_models():
                     id = model.get_id()
-                    self.train(id, self.args.filter, self.args.verbose)
+                    self.train(id, self.args.filter, self.args.train_ids, self.args.verbose)
             else:
-                self.train(int(self.args.train), self.args.filter, self.args.verbose)
+                self.train(int(self.args.train), self.args.filter, self.args.train_ids, self.args.verbose)
         elif self.args.generateall:
             self.generate_all_models(self.args.numberofflows)
         else:
