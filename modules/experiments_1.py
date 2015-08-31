@@ -16,8 +16,7 @@ from stf.core.connections import  __group_of_group_of_connections__
 from stf.core.models_constructors import __modelsconstructors__ 
 from stf.core.labels import __group_of_labels__
 from stf.core.database import __database__
-
-
+#from modules import __group_of_markov_models_1__ 
 
 
 #################
@@ -72,8 +71,10 @@ class Group_of_Experiments(Module, persistent.Persistent):
         self.parser.add_argument('-l', '--list', action='store_true', help='List the Experiments.')
         # Example of a parameter with arguments
         self.parser.add_argument('-p', '--printstate', metavar='experiment_id', help='Print some info about the experiment.')
-        self.parser.add_argument('-n', '--new', action='store_true', help='Create a new experiment. Use -r to assign training models. Use -t to select a testing experiment.')
+        self.parser.add_argument('-n', '--new', action='store_true', help='Create a new experiment. Use -m to assign the models to use for detection. Use -t to select a testing dataset.')
         self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete an experiment given the id.')
+        self.parser.add_argument('-m', '--models_ids', metavar='models_ids', help='Ids of the models (e.g. Markov Models) to be used when creating a new experiment with -n. Comma separated.')
+        self.parser.add_argument('-t', '--testing_id', metavar='testing_id', help='Dataset id to be used as testing when creating a new experiment with -n.')
 
     def get_name(self):
         """ Return the name of the module"""
@@ -104,7 +105,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
             rows.append([ object.get_id(), object.get_description() ])
         print(table(header=['Id', 'Description'], rows=rows))
 
-    def create_new_experiment(self):
+    def create_new_experiment(self, models_ids, testing_id):
         """ Create a new experiment """
         # Generate the new id
         try:
@@ -112,12 +113,51 @@ class Group_of_Experiments(Module, persistent.Persistent):
         except (KeyError, IndexError):
             new_id = 1
         # Create the new object
-        new_object = Experiment(new_id)
+        new_experiment = Experiment(new_id)
         # Set the description
         desc = raw_input("Description: ")
-        new_object.set_description(desc)
+        new_experiment.set_description(desc)
         # Store on DB
-        self.main_dict[new_id] = new_object
+        self.main_dict[new_id] = new_experiment
+        # Methodology
+        # 1. We receive the markov_models ids for the training, and the id of the dataset of the tetsing. (We may not have markov models for the testing. A binetflow file and labels are enough)
+        # 2. From each training id we extract
+        #   - connection-group-id
+        #   - label
+        #   - connection id (4-tuple)
+        #   - dataset_id
+        # 3. Train the thresholds of the training models between themselves
+        # 4 Start the testing
+        #   - Read the testing binetflow file
+        #   - Create the labels_dict (IPs are key, data is another dict with time slots as key, data is label)
+        #   - Create the results_dict (time slots are key, then all the errors and performance metrics in a vector)
+        #   - For each flow
+        #       - Extract its 4-tuple.
+        #       - Extract its ground-truth label.
+        #       - Extract its datetime. 
+        #       - If the flow is outside the last time slot or if the netflow file finished
+        #           - Compute the errors (TP, TN, FN, FP) for all the IPs in this time slot.
+        #           - Compute the performance metrics in this time slot.
+        #           - Compute the performance metrics so far (average?)
+        #           - Store the results in the results_dict
+        #           - Move to the next time slot
+        #       - Compute the letter for this flow.
+        #       - Get the 4-tuple object.
+        #       - Store this letter in its 4-tuple.
+        #       - Compute the distance of the chain of states from this 4-tuple so far, with all the training models. Don't store a new distance object.
+        #       - Decide upon a winner model.
+        #       - Obtain the label of the winner model.
+        #       - From the labels_dict, search the IP, search the current time slot and extract the current label.
+        #       - See if we should change the current label. If so, change it.
+        #   - When the netflow file finishes
+        #       - Select the combination of training models that had the better performance metrics for this testing dataset.
+        #       - Print the winner performance metric and the winner combination of models.
+
+        # Train the models
+        print_info('Models for detection: {}'.format(models_ids))
+        for model_id in models_ids.split(','):
+            print_info('\tTraining model {}'.format(model_id))
+            __group_of_markov_models_1__.train(model_id, "", models_ids, verbose)
 
     def delete_experiment(self, id):
         """ Deletes an experiment """
@@ -156,7 +196,11 @@ class Group_of_Experiments(Module, persistent.Persistent):
         if self.args.list:
             self.list_experiments()
         elif self.args.new:
-            self.create_new_experiment()
+            try:
+                self.create_new_experiment(self.args.models_ids, self.args.testing_id)
+            except AttributeError:
+                print_error('You should provide both the ids of the models to use for detection (with -m) and the testing dataset id (with -t).')
+                return False
         elif self.args.delete:
             self.delete_experiment(int(self.args.delete))
         else:
