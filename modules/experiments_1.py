@@ -16,7 +16,7 @@ from stf.core.connections import  __group_of_group_of_connections__
 from stf.core.models_constructors import __modelsconstructors__ 
 from stf.core.labels import __group_of_labels__
 from stf.core.database import __database__
-#from modules import __group_of_markov_models_1__ 
+from modules.markov_models_1 import __group_of_markov_models__
 
 
 #################
@@ -74,7 +74,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
         self.parser.add_argument('-n', '--new', action='store_true', help='Create a new experiment. Use -m to assign the models to use for detection. Use -t to select a testing dataset.')
         self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete an experiment given the id.')
         self.parser.add_argument('-m', '--models_ids', metavar='models_ids', help='Ids of the models (e.g. Markov Models) to be used when creating a new experiment with -n. Comma separated.')
-        self.parser.add_argument('-t', '--testing_id', metavar='testing_id', help='Dataset id to be used as testing when creating a new experiment with -n.')
+        self.parser.add_argument('-t', '--testing_id', metavar='testing_id', type=int, help='Dataset id to be used as testing when creating a new experiment with -n.')
 
     def get_name(self):
         """ Return the name of the module"""
@@ -155,9 +155,18 @@ class Group_of_Experiments(Module, persistent.Persistent):
 
         # Train the models
         print_info('Models for detection: {}'.format(models_ids))
-        for model_id in models_ids.split(','):
+        group_mm = __group_of_markov_models__
+        group_mm.run() 
+        for model_id in map(int, models_ids.split(',')):
             print_info('\tTraining model {}'.format(model_id))
-            __group_of_markov_models_1__.train(model_id, "", models_ids, verbose)
+            group_mm.train(model_id, "", models_ids, True)
+        # Start the testing
+        # Get the binetflow file
+        test_dataset = __datasets__.get_dataset(testing_id)
+        print test_dataset.list_files()
+
+
+
 
     def delete_experiment(self, id):
         """ Deletes an experiment """
@@ -197,10 +206,12 @@ class Group_of_Experiments(Module, persistent.Persistent):
             self.list_experiments()
         elif self.args.new:
             try:
-                self.create_new_experiment(self.args.models_ids, self.args.testing_id)
+                models_ids = self.args.models_ids
+                testing_id = self.args.testing_id
             except AttributeError:
                 print_error('You should provide both the ids of the models to use for detection (with -m) and the testing dataset id (with -t).')
                 return False
+            self.create_new_experiment(models_ids, testing_id)
         elif self.args.delete:
             self.delete_experiment(int(self.args.delete))
         else:
