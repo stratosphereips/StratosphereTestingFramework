@@ -485,6 +485,7 @@ You can check that this was successful by inspecting the connections with ```con
 - You can filter by labelname in the models.
 - You can filter by trainname, testname and distance in the detection_1 module.
 - You can delete labels by range of ids.
+- Only compare models when the upper most protocol matche. TCP with TCP, UDP with UDP, ICMP with ICMP.
 
 ## Modules
 Now stf can import external modules that implement new functionality.
@@ -496,7 +497,8 @@ Now stf can import external modules that implement new functionality.
 
 
 ### TODO
-- The filters of connections seem to have a bug. If you do name=192.168.1.1- name!=-192.168.1.1- , you will still have some of the later shown.
+- Delete all the labels from one group-id
+- Solve how to train the models globally and for a given experiment.
 - Add labels to packets
 - Add labels to the binetflow files and biargus files automatically.
 - When adding a binetflow and leaving, the file is not stored. (yes when creating it)
@@ -506,8 +508,7 @@ Now stf can import external modules that implement new functionality.
 - When deleting a dataset, not all the group of models are deleted
 - Put a limit to markov_models: amount of flows, or amount of time or maybe a specific string of letters that should be looked up.
 - When deleting a label, delete its note too.
-- Only compare when the upper most protocol matches. TCP with TCP, UDP with UDP, ICMP with ICMP.
-- Add notes to detections
+- Add notes to distances
 - Live analysis
 - Fix argus timeout
 - Concurrency in db?
