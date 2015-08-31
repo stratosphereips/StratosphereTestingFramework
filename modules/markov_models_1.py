@@ -774,7 +774,11 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         if self.args.list:
             self.list_markov_models(self.args.filter)
         elif self.args.generate:
-            self.create_new_model(self.args.generate, self.args.numberofflows)
+            try:
+                self.create_new_model(self.args.generate, self.args.numberofflows)
+            except AttributeError:
+                numberofflows = 3
+                self.create_new_model(self.args.generate, numberofflows)
         elif self.args.printmatrix:
             self.print_matrix(self.args.printmatrix)
         elif self.args.simulate:
