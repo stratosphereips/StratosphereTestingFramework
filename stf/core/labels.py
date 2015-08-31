@@ -665,7 +665,7 @@ class Group_Of_Labels(persistent.Persistent):
         return name
 
     def delete_connection(self, group_of_model_id, connection_id):
-        """ Get a group_of_model_id, connection id, find and delete it from the label """
+        """ Get a group_of_model_id, connection id, find its label and delete it"""
         for label in self.get_labels():
             if label.has_connection(group_of_model_id, connection_id):
                 ################??????
@@ -676,7 +676,7 @@ class Group_Of_Labels(persistent.Persistent):
                 # If the label does not have any more connections, we should also delete the label
                 if len(label.get_connections()) == 0:
                     self.labels.pop(label.get_id())
-                print_info('Connection {} in group of models id {} deleted.'.format(connection_id, group_of_model_id))
+                print_info('Label of the connection {} in group of models id {} deleted.'.format(connection_id, group_of_model_id))
                 return True
 
     def migrate_old_labels(self):
