@@ -22,9 +22,6 @@ from stf.core.database import __database__
 
 
 
-
-
-
 #################
 #################
 #################
@@ -819,4 +816,5 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             print_error('At least one of the parameter is required in this module')
             self.usage()
 
-__group_of_markov_models__ = Group_of_Markov_Models_1()
+__group_of_markov_models_1__ = Group_of_Markov_Models_1()
+
