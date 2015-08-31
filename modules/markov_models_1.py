@@ -349,10 +349,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
 
     def list_markov_models(self, filter):
         self.construct_filter(filter)
-        #print_info('First Order Markov Models')
         all_text = 'First Order Markov Models\n'
         all_text += ' Id  | State Len | # Conn | Label \t\t\t\t       | Needs Regen? | Thres | First 100 Letters in State\n'
-        #rows = []
         for markov_model in self.get_markov_models():
             if self.apply_filter(markov_model):
                 label = markov_model.get_label()
@@ -366,10 +364,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 # Do we need to regenerate this mc?
                 if current_connections == markov_model.get_connections():
                     needs_regenerate = False
-                #rows.append([ markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate, markov_model.get_threshold(), markov_model.get_state()[0:100]])
                 all_text += '{: < 5} | {: > 7} | {} | {:50} | {} | {:3} | {}\n'.format(markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate, markov_model.get_threshold(), markov_model.get_state()[0:100])
-        #print(table(header=['Id', 'State Len', '# Conn', 'Label', 'Needs Regen?', 'Thres.', 'First 100 Letters in State'], rows=rows))
-
         # Print with less
         f = tempfile.NamedTemporaryFile()
         f.write(all_text)
@@ -632,14 +627,18 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
 
     def train(self, model_id_to_train, filter, test_ids, verbose):
         """ Train the distance threshold of a model. The models to train with can be determined by the filter or by a list of comma separated ids """
+        # Create the filter and the list of ids
         if filter and test_ids == "":
             self.construct_filter(filter)
             test_models_ids = []
         elif test_ids != "" and not filter:
             test_models_ids = map(int, test_ids.split(','))
         train_model = self.get_markov_model(model_id_to_train)
-        if not train_model:
-            print_error('No such model id available')
+        # Check that the train model id exists
+        try:
+            train_model_id = train_model.get_id()
+        except AttributeError:
+            print_error('No such training id is available')
             return False
         print_info('Best Thresholds for trained model: {}. Letters used for training: {}'.format(train_model, 100)) # The 100 is hardcoded. See the number below.
         # To store the training data
@@ -648,9 +647,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             # Check that the models exist
             try:
                 test_model_id = test_model.get_id()
-                train_model_id = train_model.get_id()
             except AttributeError:
-                print_error('No such id available')
+                print_error('No such testing id is available')
                 return False
             # Get the labels from the models
             train_label = train_model.get_label().get_name()
@@ -812,9 +810,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 self.train(int(self.args.train), self.args.filter, self.args.train_ids, self.args.verbose)
         elif self.args.generateall:
             self.generate_all_models(self.args.numberofflows)
-        else:
-            print_error('At least one of the parameter is required in this module')
-            self.usage()
+        #else:
+        #    print_error('At least one of the parameter is required in this module')
+        #    self.usage()
 
-__group_of_markov_models_1__ = Group_of_Markov_Models_1()
-
+__group_of_markov_models__ = Group_of_Markov_Models_1()
