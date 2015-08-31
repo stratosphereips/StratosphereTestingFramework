@@ -117,10 +117,7 @@ class Dataset(persistent.Persistent):
     def list_files(self):
         rows = []
         for file in self.files.values():
-                #rows.append([file.get_short_name(), file.get_id() , file.get_modificationtime(), file.get_size_in_megabytes(), file.get_duration(), file.get_type()])
                 rows.append([file.get_short_name(), file.get_id() , file.get_modificationtime(), file.get_size_in_megabytes(), file.get_type()])
-
-        #print(table(header=['File Name', 'Id', 'Creation Time', 'Size', 'Duration', 'Type'], rows=rows))
         print(table(header=['File Name', 'Id', 'Creation Time', 'Size', 'Type'], rows=rows))
 
     def info_about_file(self,file_id):
