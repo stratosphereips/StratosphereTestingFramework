@@ -18,9 +18,9 @@ from stf.core.labels import __group_of_labels__
 from stf.core.database import __database__
 from modules.markov_models_1 import __group_of_markov_models__
 
-
-
-
+from datetime import datetime
+from datetime import timedelta
+import time
 
 
 ######################
@@ -50,8 +50,35 @@ class Tuple(object):
         return 'Tuple: {}, Amount of flows: {}'.format(self.id, self.amount_of_flows)
     
     def __repr__(self):
-        return('Tuple id: {}, Label:{}, Datetime: {}'.format(self.get_id(), self.ground_truth_label, self.datetime))
+        return('Id: {}, Label:{}, Datetime: {}'.format(self.get_id(), self.ground_truth_label, self.datetime))
 
+
+
+######################
+######################
+######################
+class TimeSlot(persistent.Persistent):
+    """ Class to work with the time slots of results from the testing """
+    def __init__(self, time, width):
+        self.init_time = time 
+        self.finish_time = self.init_time + timedelta(seconds=width)
+        self.ip_dict = {}
+        self.time_slot_width = width
+
+    def add_label_for_ip(self, ip, label):
+        """ Get an ip and a label, and decide if it should be changed, assigned or what """
+        return True
+
+    def close(self):
+        """ Close the slot """
+        #  - Compute the errors (TP, TN, FN, FP) for all the IPs in this time slot.
+        #  - Compute the performance metrics in this time slot.
+        #  - Compute the performance metrics so far (average?)
+        #  - Store the results in the results_dict
+        pass
+
+    def __repr__(self):
+        return ('TimeSlot start: {}, ends: {}'.format(self.init_time, self.finish_time))
 
 
 
@@ -66,6 +93,10 @@ class Experiment(persistent.Persistent):
         self.description = description
         # Dict of tuples in this experiment during testing
         self.tuples = {}
+        # The vect of time slots
+        self.time_slots = []
+        self.time_slot_width = 300.0 # Now we hardcoded 300 seconds (5 mins), but it should be selected by the user
+        print_info('Using the default model constructor for the testing netflow. If you need, change it.')
 
     def get_id(self):
         return self.id
@@ -93,48 +124,94 @@ class Experiment(persistent.Persistent):
         # Train the models
         print_info('Models for detection: {}'.format(self.models_ids))
         group_mm = __group_of_markov_models__
+        # This is necessary to get the models correctly from outside the class
         group_mm.run() 
+        # Convert the str to int
         self.models_ids = map(int, self.models_ids.split(','))
         for model_id in self.models_ids:
             print_info('\tTraining model {}'.format(model_id))
             group_mm.train(model_id, "", self.models_ids, True)
-        # Start the testing
-        # Get the binetflow file
+        # Methodology 2. Train the thresholds of the training models between themselves
+        # Methodology 3. Start the testing
+        # Methodology 3.1. Get the binetflow file
         test_dataset = __datasets__.get_dataset(self.testing_id)
         self.file_obj = test_dataset.get_file(1)
-        # Create the dictionary for holding the labels info (IPs are key, data is another dict with time slots as key, data is label)
+        # Methodology 3.2. Create the dictionary for holding the labels info (IPs are key, data is another dict with time slots as key, data is label)
         self.labels_dict = {}
-        # Create the dictionary for holding the IP info (time slots are key, then all the errors and performance metrics in a vector)
+        # Methodology 3.3. Create the dictionary for holding the IP info (time slots are key, then all the errors and performance metrics in a vector)
         self.results_dict = {}
         print_info('Testing with the netflow file: {}'.format(self.file_obj.get_name()))
-        # Process the netflow file for testing
+        # Methodology 3.2. Process the netflow file for testing
         self.process_netflow_for_testing()
+
+    def get_time_slot(self, column_values):
+        """ Get the columns values and return the correct time slot object. Also closes the old time slot """
+        starttime = datetime.strptime(column_values['StartTime'], '%Y/%m/%d %H:%M:%S.%f') 
+        # Find the slot for this flow (theoretically it works with unordered flows)
+        for slot in reversed(self.time_slots):
+            if starttime >= slot.init_time and starttime <= slot.finish_time:
+                return slot
+        # Methodology 4.4. The first flow case and the case where the flow should be in a new flow because it is outside the last slot. All in one!
+        new_slot = TimeSlot(starttime, self.time_slot_width)
+        #print_info('New Slot Time: {}'.format(datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')))
+        # Add it
+        self.time_slots.append(new_slot)
+        if self.time_slots:
+            # We created a slot because the flow is outside the width, so we should close the previous time slot
+            # Closethe last slot
+            self.time_slots[-1].close()
+        return new_slot
 
     def process_netflow_for_testing(self):
         """ Get a netflow file and process it for testing """
         file = open(self.file_obj.get_name(), 'r')
+        # Remove the header
         header_line = file.readline().strip()
         # Find the separation character
         self.find_separator(header_line)
         # Extract the columns names
         self.find_columns_names(header_line)
-        # For each line
         line = file.readline().strip()
+        # Methodology 4. For each flow
+        print_info('Time: {}'.format(datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')))
+        group_group_of_models = __groupofgroupofmodels__ 
+        # The constructor of models can change. Now we hardcode -1, but warning!
+        group_id = str(self.testing_id) + '-1'
+        group_of_models = group_group_of_models.get_group(group_id)
         while line:
             # Extract the column values
             column_values = self.extract_columns_values(line)
-            # Find (or create) the tuple object
+            # Methodology 4.1. Extract its 4-tuple. Find (or create) the tuple object
             tuple = self.get_tuple(column_values)
-            # Add the data to this connection
+            # Methodology 4.2. Add all the relevant data to this tupple
             tuple.add_new_flow(column_values)
+            #print 'Tuple: {}'.format(tuple)
+            # Methodology 4.3. Get the correct time slot
+            time_slot = self.get_time_slot(column_values)
+            #print 'Assigned to time slot: {}'.format(time_slot)
+            # Methodology 4.4 Get the letter for this flow.
+            model = group_of_models.get_model(tuple.get_id())
+            state_so_far = model.get_state()[0:tuple.amount_of_flows]
+            # HERE
             # Read next line
             line = file.readline().strip()
         # Close the file
         file.close()
+        print_info('Time: {}'.format(datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')))
         # Print something about all the tuples
         print 'Total amount of tuples: {}'.format(len(self.tuples))
-        for tuple in self.tuples:
-            print self.tuples[tuple].get_summary()
+        print 'Total time slots: {}'.format(len(self.time_slots))
+
+        #       - Store this letter in its 4-tuple.
+        #       - Compute the distance of the chain of states from this 4-tuple so far, with all the training models. Don't store a new distance object.
+        #       - Decide upon a winner model.
+        #       - Obtain the label of the winner model.
+        #       - From the labels_dict, search the IP, search the current time slot and extract the current label.
+        #       - See if we should change the current label. If so, change it.
+        #   - When the netflow file finishes
+        #       - compute the results of the last time slot
+        #       - Select the combination of training models that had the better performance metrics for this testing dataset.
+        #       - Print the winner performance metric and the winner combination of models.
 
     def get_tuple(self, column_values):
         """ Get the values and return the correct tuple for them """
@@ -309,6 +386,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
         desc = raw_input("Description: ")
         # Create the new object
         new_experiment = Experiment(new_id, desc)
+        # Methodology 1. We receive the markov_models ids for the training, and the id of the dataset of the tetsing. (We may not have markov models for the testing. A binetflow file and labels are enough)
         # Add info
         new_experiment.add_models_ids(models_ids)
         new_experiment.add_testing_id(testing_id)
@@ -317,39 +395,6 @@ class Group_of_Experiments(Module, persistent.Persistent):
         # Run it
         new_experiment.run()
 
-        # Methodology
-        # 1. We receive the markov_models ids for the training, and the id of the dataset of the tetsing. (We may not have markov models for the testing. A binetflow file and labels are enough)
-        # 2. From each training id we extract
-        #   - connection-group-id
-        #   - label
-        #   - connection id (4-tuple)
-        #   - dataset_id
-        # 3. Train the thresholds of the training models between themselves
-        # 4 Start the testing
-        #   - Read the testing binetflow file
-        #   - Create the labels_dict (IPs are key, data is another dict with time slots as key, data is label)
-        #   - Create the results_dict (time slots are key, then all the errors and performance metrics in a vector)
-        #   - For each flow
-        #       - Extract its 4-tuple.
-        #       - Extract its ground-truth label.
-        #       - Extract its datetime. 
-        #       - If the flow is outside the last time slot or if the netflow file finished
-        #           - Compute the errors (TP, TN, FN, FP) for all the IPs in this time slot.
-        #           - Compute the performance metrics in this time slot.
-        #           - Compute the performance metrics so far (average?)
-        #           - Store the results in the results_dict
-        #           - Move to the next time slot
-        #       - Compute the letter for this flow.
-        #       - Get the 4-tuple object.
-        #       - Store this letter in its 4-tuple.
-        #       - Compute the distance of the chain of states from this 4-tuple so far, with all the training models. Don't store a new distance object.
-        #       - Decide upon a winner model.
-        #       - Obtain the label of the winner model.
-        #       - From the labels_dict, search the IP, search the current time slot and extract the current label.
-        #       - See if we should change the current label. If so, change it.
-        #   - When the netflow file finishes
-        #       - Select the combination of training models that had the better performance metrics for this testing dataset.
-        #       - Print the winner performance metric and the winner combination of models.
 
 
     def delete_experiment(self, id):
