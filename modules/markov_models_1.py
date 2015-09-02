@@ -631,8 +631,14 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         if filter and test_ids == "":
             self.construct_filter(filter)
             test_models_ids = []
+        # If we don't have a filter, maybe the user specified a list of models ids to match
         elif test_ids != "" and not filter:
-            test_models_ids = map(int, test_ids.split(','))
+            # When calling directly markov_model is a string
+            if type(test_ids) == str:
+                test_models_ids = map(int, test_ids.split(','))
+            # When calling this function from other modules, can be a vector
+            else:
+                test_models_ids = map(int, test_ids)
         train_model = self.get_markov_model(model_id_to_train)
         # Check that the train model id exists
         try:
