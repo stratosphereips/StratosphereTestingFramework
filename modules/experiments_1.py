@@ -50,6 +50,39 @@ class Experiment(persistent.Persistent):
 
 
 
+
+######################
+######################
+######################
+class Tuple(object):
+    """ The class to simply handle tuples """
+    def __init__(self,tuple4):
+        self.id = tuple4
+        self.ground_truth_label = ""
+        self.datetime = ""
+        self.amount_of_flows = 0
+
+    def add_new_flow(self, column_values):
+        """ Add new stuff about the flow in this tuple """
+        # The ground truth label should be taken from the label object
+        self.ground_truth_label = column_values['Label']
+        #self.ground_truth_label = "To Be Defined"
+        self.datetime = column_values['StartTime']
+        self.amount_of_flows =+ 1
+        print 'Total flows so far: {}'.format(self.amount_of_flows)
+
+    def get_id(self):
+        return self.id
+
+    def get_summary(self):
+        """ A summary of what happened in this tuple """
+        return 'Amount of flows: {}'.format(self.amount_of_flows)
+    
+    def __repr__(self):
+        return('Tuple id: {}, Label:{}, Datetime: {}'.format(self.get_id(), self.ground_truth_label, self.datetime))
+
+
+
 ######################
 ######################
 ######################
@@ -61,6 +94,8 @@ class Group_of_Experiments(Module, persistent.Persistent):
     authors = ['Sebastian Garcia']
     # Main dict of objects. The name of the attribute should be "main_dict" in this example
     main_dict = BTrees.OOBTree.BTree()
+    # Dict of tuples in this experiment during testing
+    tuples = {}
     ### End of Mandatory variables ###
 
     ### Mandatory Methods Don't change ###
@@ -157,13 +192,163 @@ class Group_of_Experiments(Module, persistent.Persistent):
         print_info('Models for detection: {}'.format(models_ids))
         group_mm = __group_of_markov_models__
         group_mm.run() 
-        for model_id in map(int, models_ids.split(',')):
+        models_ids = map(int, models_ids.split(','))
+        for model_id in models_ids:
             print_info('\tTraining model {}'.format(model_id))
             group_mm.train(model_id, "", models_ids, True)
         # Start the testing
         # Get the binetflow file
         test_dataset = __datasets__.get_dataset(testing_id)
-        print test_dataset.list_files()
+        file = test_dataset.get_file(1)
+        # Create the dictionary for holding the labels info (IPs are key, data is another dict with time slots as key, data is label)
+        self.labels_dict = {}
+        # Create the dictionary for holding the IP info (time slots are key, then all the errors and performance metrics in a vector)
+        self.results_dict = {}
+        print_info('Testing with the netflow file: {}'.format(file.get_name()))
+        # Process the netflow file for testing
+        self.process_netflow_for_testing(file, models_ids)
+
+    def process_netflow_for_testing(self, file_obj, models_ids):
+        """ Get a netflow file and process it for testing """
+        file = open(file_obj.get_name(), 'r')
+        header_line = file.readline().strip()
+        # Find the separation character
+        self.find_separator(header_line)
+        # Extract the columns names
+        self.find_columns_names(header_line)
+        # For each line
+        line = file.readline().strip()
+        while line:
+            # Extract the column values
+            column_values = self.extract_columns_values(line)
+            # Find (or create) the tuple object
+            tuple = self.get_tuple(column_values)
+            # Add the data to this connection
+            tuple.add_new_flow(column_values)
+            # Read next line
+            line = file.readline().strip()
+            raw_input()
+        # Close the file
+        file.close()
+        # Print something about all the tuples
+        print len(self.tuples)
+        for tuple in self.tuples:
+            print self.tuples[tuple].get_summary()
+
+    def get_tuple(self, column_values):
+        """ Get the values and return the correct tuple for them """
+        tuple4 = column_values['SrcAddr']+'-'+column_values['DstAddr']+'-'+column_values['Dport']+'-'+column_values['Proto']
+        print tuple4
+        try:
+            tuple = self.tuples[tuple4]
+            print 'yes'
+            # We already have this connection
+        except KeyError:
+            # First time for this connection
+            print 'no'
+            tuple = Tuple(tuple4)
+            self.tuples[tuple4] = tuple
+        return tuple
+
+    def find_columns_names(self, line):
+        """ Usually the columns in a binetflow file are 
+        StartTime,Dur,Proto,SrcAddr,Sport,Dir,DstAddr,Dport,State,sTos,dTos,TotPkts,TotBytes,SrcBytes,srcUdata,dstUdata,Label
+        """
+        self.columns_names = line.split(self.line_separator)
+            
+    def find_separator(self, line):
+        count_commas = len(line.split(','))
+        count_spaces = len(line.split(' '))
+        if count_commas >= count_spaces:
+            self.line_separator = ','
+        elif count_spaces > count_commas:
+            self.line_separator = ' '
+        else:
+            self.line_separator = ','
+
+    def extract_columns_values(self, line):
+        """ Given a line text of a flow, extract the values for each column """
+        column_values = {}
+        i = 0
+        original_values = line.split(self.line_separator)
+        temp_values = original_values
+        if len(temp_values) > len(self.columns_names):
+            # If there is only one occurrence of the separator char, then try to recover...
+
+            # Find the index of srcudata
+            srcudata_index_starts = 0
+            for values in temp_values:
+                if 's[' in values:
+                    break
+                else:
+                    srcudata_index_starts += 1 
+
+            # Find the index of dstudata
+            dstudata_index_starts = 0
+            for values in temp_values:
+                if 'd[' in values:
+                    break
+                else:
+                    dstudata_index_starts += 1 
+           
+            # Get all the src data
+            srcudata_index_ends = dstudata_index_starts
+            temp_srcudata = temp_values[srcudata_index_starts:srcudata_index_ends]
+            srcudata = ''
+            for i in temp_srcudata:
+                srcudata = srcudata + i
+
+            # Get all the dst data. The end is one before the last field. That we know is the label.
+            dstudata_index_ends = len(temp_values) - 1
+            temp_dstudata = temp_values[dstudata_index_starts:dstudata_index_ends]
+            dstudata = ''
+            for j in temp_dstudata:
+                dstudata = dstudata + j
+
+            label = temp_values[-1]
+            
+            end_of_good_data = srcudata_index_starts 
+            # Rewrite temp_values
+            temp_values = temp_values[0:end_of_good_data]
+            temp_values.append(srcudata)
+            temp_values.append(dstudata)
+            temp_values.append(label)
+
+        index = 0
+        try:
+            for value in temp_values:
+                column_values[self.columns_names[index]] = value
+                index += 1
+        except IndexError:
+            # Even with our fix, some data still has problems. Usually it means that there is no src data being sent, so we can not find the start of the data.
+            print_error('There was some error reading the data inside a flow. Most surely it includes the field separator of the flows. We will keep the flow, but not its data.')
+            # Just get the normal flow fields
+            index = 0
+            for value in temp_values:
+                if index <= 13:
+                    column_values[self.columns_names[index]] = value
+                    index += 1
+                else:
+                    break
+            column_values['srcUdata'] = 'Deleted because of inconsistencies'
+            column_values['dstUdata'] = 'Deleted because of inconsistencies'
+            column_values['Label'] = original_values[-1]
+        return column_values
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
