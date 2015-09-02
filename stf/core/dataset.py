@@ -46,6 +46,13 @@ class Dataset(persistent.Persistent):
     def get_files(self):
         """ Return the vector of files of the dataset"""
         return self.files.values()
+    
+    def get_file(self, id):
+        """ Return a file object given its id """
+        try:
+            return self.files[int(id)]
+        except KeyError:
+            print_error('No such file id')
 
     def get_id(self):
         return self.id
