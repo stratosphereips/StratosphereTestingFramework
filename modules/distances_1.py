@@ -684,7 +684,6 @@ class Group_of_Detections(Module, persistent.Persistent):
             self.main_dict[new_id] = new_distance
             print_info('New distance created with id {}'.format(new_id))
 
-
     def detect_letter_by_letter(self, distance_id, amount):
         try:
             distance = self.main_dict[distance_id]
