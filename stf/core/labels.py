@@ -156,7 +156,7 @@ class Group_Of_Labels(persistent.Persistent):
             return False
 
     def get_label_name_by_id(self, label_id):
-        """ Get the name of the label by its id"""
+        """ Get the name of the label by its id """
         label = self.get_label_by_id(label_id)
         return label.get_name()
 
@@ -173,7 +173,7 @@ class Group_Of_Labels(persistent.Persistent):
             datasets = label.get_group_of_model_id()
             for dataset in datasets:
                 if label.has_connection(dataset, connection_id):
-                    print_info('Found in label: {}'.format(label.get_name()))
+                    #print_info('Found in label: {}'.format(label.get_name()))
                     return label.get_id()
 
     def search_label_name(self, name, verbose = True, exact = 1):
