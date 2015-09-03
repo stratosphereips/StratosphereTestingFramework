@@ -233,6 +233,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         """ Search a markov model by label id """
         for markov_model in self.get_markov_models():
             if markov_model.get_label_id() == id:
+                # Shouldn't this be the model returned?
                 return True
         return False
 
