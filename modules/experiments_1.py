@@ -50,6 +50,9 @@ class Tuple(object):
                 tuples.append(tuple)
         return tuples
 
+    def get_state_len_so_far(self):
+        return len(self.state_so_far)
+
     def set_state_so_far(self, state):
         self.state_so_far = state
 
@@ -93,11 +96,14 @@ class TimeSlot(persistent.Persistent):
         self.ip_dict = {}
         self.time_slot_width = width
         # Initialize
-        self.errors = {}
-        self.errors['TP'] = 0
-        self.errors['TN'] = 0
-        self.errors['FN'] = 0
-        self.errors['FP'] = 0
+        self.acc_errors = {}
+        self.acc_errors['TP'] = 0.0
+        self.acc_errors['TN'] = 0.0
+        self.acc_errors['FN'] = 0.0
+        self.acc_errors['FP'] = 0.0
+        # Errors NN means that the ground truth label is unknown, so it is not Positive nor Negative and we can not report an error.
+        self.acc_errors['NN'] = 0.0
+        # Errors NN means that the ground truth label is unknown, so it is not Positive nor Negative and we can not report an error.
         self.performance_metrics = {}
         self.performance_metrics['TPR'] = -1
         self.performance_metrics['FPR'] = -1
@@ -107,36 +113,80 @@ class TimeSlot(persistent.Persistent):
         self.performance_metrics['Precision'] = -1
         self.performance_metrics['Accuracy'] = -1
         self.performance_metrics['FMeasure1'] = -1
-        self.performance_metrics[''] = -1
-        self.performance_metrics[''] = -1
         self.results_dict = {}
 
-    def compute_errors(self, train_label, test_label):
-        """ Get the train and test labels and figure it out the errors. A TP is when we detect CC not Botnet."""
-        errors = {}
-        errors['TP'] = 0.0
-        errors['TN'] = 0.0
-        errors['FN'] = 0.0
-        errors['FP'] = 0.0
-        # So we can work with multiple positives and negative labels
-        if 'Botnet' in train_label or 'Malware' in train_label:
-            train_label_positive = True
-        elif 'Normal' in train_label:
-            train_label_positive = False
-        if 'Botnet' in test_label or 'Malware' in test_label:
-            test_label_positive = True
-        elif 'Normal' in test_label:
-            test_label_positive = False
+    def compute_performance_metrics(self):
+        """ Compute performance metrics """
+        try:
+            self.performance_metrics['TPR'] = ( self.acc_errors['TP'] ) / float(self.acc_errors['TP'] + self.acc_errors['FN'])
+        except ZeroDivisionError:
+            self.performance_metrics['TPR'] = -1
 
-        if train_label_positive and test_label_positive:
-            errors['TP'] += 1
-        elif train_label_positive and not test_label_positive:
-            errors['FP'] += 1
-        elif not train_label_positive and not test_label_positive:
-            errors['TN'] += 1
-        elif not train_label_positive and test_label_positive:
-            errors['FN'] += 1
-        return errors
+        try:
+            self.performance_metrics['TNR'] = ( self.acc_errors['TN'] ) / float( self.acc_errors['TN'] + self.acc_errors['FP'] )
+        except ZeroDivisionError:
+            self.performance_metrics['TNR'] = -1
+
+        try:
+            self.performance_metrics['FPR'] = ( self.acc_errors['FP'] ) / float( self.acc_errors['TN'] + self.acc_errors['FP'] )
+        except ZeroDivisionError:
+            self.performance_metrics['FPR'] = -1
+
+        try:
+            self.performance_metrics['FNR'] = ( self.acc_errors['FN'] ) / float(self.acc_errors['TP'] + self.acc_errors['FN'])
+        except ZeroDivisionError:
+            self.performance_metrics['FNR'] = -1
+
+        try:
+            self.performance_metrics['Precision'] = ( self.acc_errors['TP'] ) / float(self.acc_errors['TP'] + self.acc_errors['FP'])
+        except ZeroDivisionError:
+            self.performance_metrics['Precision'] = -1
+
+        try:
+            self.performance_metrics['Accuracy'] = ( self.acc_errors['TP'] + self.acc_errors['TN'] ) / float( self.acc_errors['TP'] + self.acc_errors['TN'] + self.acc_errors['FP'] + self.acc_errors['FN'] )
+        except ZeroDivisionError:
+            self.performance_metrics['Accuracy'] = -1
+
+        try:
+            self.performance_metrics['ErrorRate'] = ( self.acc_errors['FN'] + self.acc_errors['FP'] ) / float( self.acc_errors['TP'] + self.acc_errors['TN'] + self.acc_errors['FP'] + self.acc_errors['FN'] )
+        except ZeroDivisionError:
+            self.performance_metrics['ErrorRate'] = -1
+
+        self.beta = 1.0
+        # With beta=1 F-Measure is also Fscore
+        try:
+            self.performance_metrics['FMeasure1'] = ( ( (self.beta * self.beta) + 1 ) * self.performance_metrics['Precision'] * self.performance_metrics['TPR']  ) / float( ( self.beta * self.beta * self.performance_metrics['Precision'] ) + self.performance_metrics['TPR'])
+        except ZeroDivisionError:
+            self.performance_metrics['FMeasure1'] = -1
+
+    def compute_errors(self, predicted_label, ground_truth_label):
+        """ Get the predicted and ground truth labels and figure it out the errors. Both current errors for this time slot and accumulated errors in all time slots."""
+        # So we can work with multiple positives and negative labels
+        if 'Botnet' in predicted_label or 'Malware' in predicted_label or 'CC' in predicted_label:
+            predicted_label_positive = True
+        elif 'Normal' in predicted_label:
+            predicted_label_positive = False
+        if 'Botnet' in ground_truth_label or 'Malware' in ground_truth_label or 'CC' in ground_truth_label:
+            ground_truth_label_positive = True
+        elif 'Normal' in ground_truth_label:
+            ground_truth_label_positive = False
+        # Now catch the NN errors
+        elif 'Background' in ground_truth_label or ground_truth_label == '':
+            self.acc_errors['NN'] += 1
+            return 'NN'
+        # Compute the actual errors
+        if predicted_label_positive and ground_truth_label_positive:
+            self.acc_errors['TP'] += 1
+            return 'TP'
+        elif predicted_label_positive and not ground_truth_label_positive:
+            self.acc_errors['FP'] += 1
+            return 'FP'
+        elif not predicted_label_positive and not ground_truth_label_positive:
+            self.acc_errors['TN'] += 1
+            return 'TN'
+        elif not predicted_label_positive and ground_truth_label_positive:
+            self.acc_errors['FN'] += 1
+            return 'FN'
 
     def add_src_ip(self, ip):
         """ Add the src ip to the time slot """
@@ -152,7 +202,7 @@ class TimeSlot(persistent.Persistent):
             # Only update if the original label is normal or background. So don't change a botnet/cc/attack/malware ground_truth_label. Also don't assign the same GTL again
             if current and 'normal' not in current.lower() and 'background' not in current.lower() and current != ground_truth_label:
                     self.ip_dict[ip]['ground_truth_label'] = ground_truth_label
-                    print '\tAssigning GTL to ip {}: {}'.format(ip, ground_truth_label)
+                    #print '\tAssigning GTL to ip {}: {}'.format(ip, ground_truth_label)
         except KeyError:
             # First time
             self.ip_dict[ip]['ground_truth_label'] = ground_truth_label
@@ -179,14 +229,19 @@ class TimeSlot(persistent.Persistent):
                 ground_truth_label = self.ip_dict[ip]['ground_truth_label']
             except KeyError:
                 ground_truth_label = ''
-            print_info('IP: {}, GTL: {}, PL: {}'.format(ip, ground_truth_label, predicted_label))
-        #  - Compute the performance metrics in this time slot.
-        #  - Compute the performance metrics so far (average?)
-        #  - Store the results in the results_dict
+            # Compute errors for this ip (and also accumulated)
+            ip_error = self.compute_errors(predicted_label, ground_truth_label)
+            print_info('IP: {:16},Ground Truth: {:30}, Predicted: {:30}. Error: {}'.format(ip, ground_truth_label, predicted_label, ip_error))
+        # Compute performance metrics in this time slot
+        self.compute_performance_metrics()
+        print_info(cyan('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(self.performance_metrics['FMeasure1'], self.performance_metrics['FPR'],self.performance_metrics['TPR'], self.performance_metrics['TNR'], self.performance_metrics['FNR'], self.performance_metrics['ErrorRate'], self.performance_metrics['Precision'], self.performance_metrics['Accuracy'])))
 
-    def results(self):
-        """ return results """
-        return self.results_dict
+    def get_performance_metrics(self):
+        """ return accumulated errors """
+        return self.performance_metrics
+
+    def get_errors(self):
+        return self.acc_errors
 
     def __repr__(self):
         return ('TimeSlot start: {}, ends: {}'.format(self.init_time, self.finish_time))
@@ -208,6 +263,24 @@ class Experiment(persistent.Persistent):
         self.time_slots = []
         self.time_slot_width = 300.0 # Now we hardcoded 300 seconds (5 mins), but it should be selected by the user
         print_info('Using the default model constructor for the testing netflow. If you need, change it.')
+        self.total_errors = {}
+        self.total_errors['TP'] = 0.0
+        self.total_errors['TN'] = 0.0
+        self.total_errors['FN'] = 0.0
+        self.total_errors['FP'] = 0.0
+        # NN is when the ground truth label is not determined
+        self.total_errors['NN'] = 0.0
+        self.total_performance_metrics = {}
+        self.total_performance_metrics['TPR'] = -1
+        self.total_performance_metrics['FPR'] = -1
+        self.total_performance_metrics['TNR'] = -1
+        self.total_performance_metrics['FNR'] = -1
+        self.total_performance_metrics['ErrorRate'] = -1
+        self.total_performance_metrics['Precision'] = -1
+        self.total_performance_metrics['Accuracy'] = -1
+        self.total_performance_metrics['FMeasure1'] = -1
+        # Max amount of letters to use per tuple
+        self.max_amount_to_check = 100
 
     def get_id(self):
         return self.id
@@ -268,14 +341,62 @@ class Experiment(persistent.Persistent):
         if self.time_slots:
             # We created a slot because the flow is outside the width, so we should close the previous time slot
             # Close the last slot
-            print 'Closing slot {}'.format(self.time_slots[-1])
+            print 'Closing slot {}. (Time: {})'.format(self.time_slots[-1], datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S'))
             self.time_slots[-1].close()
-            print 'Results'
-            print self.time_slots[-1].results()
+            # Store the errors in the experiment
+            self.add_errors(self.time_slots[-1].get_errors())
         # Add it
         self.time_slots.append(new_slot)
-        raw_input()
+        #raw_input()
         return new_slot
+
+    def add_errors(self, errors):
+        """ Get the errors of the last tuple and add them to the experiments errors """
+        self.total_errors['TP'] += errors['TP']
+        self.total_errors['TN'] += errors['TN']
+        self.total_errors['FN'] += errors['FN']
+        self.total_errors['FP'] += errors['FP']
+        self.total_errors['NN'] += errors['NN']
+
+    def get_total_errors(self):
+        return self.total_errors
+
+    def compute_total_performance_metrics(self):
+        """ Compute the total performance metrics """
+        try:
+            self.total_performance_metrics['TPR'] = ( self.total_errors['TP'] ) / float(self.total_errors['TP'] + self.total_errors['FN'])
+        except ZeroDivisionError:
+            self.total_performance_metrics['TPR'] = -1
+        try:
+            self.total_performance_metrics['TNR'] = ( self.total_errors['TN'] ) / float( self.total_errors['TN'] + self.total_errors['FP'] )
+        except ZeroDivisionError:
+            self.total_performance_metrics['TNR'] = -1
+        try:
+            self.total_performance_metrics['FPR'] = ( self.total_errors['FP'] ) / float( self.total_errors['TN'] + self.total_errors['FP'] )
+        except ZeroDivisionError:
+            self.total_performance_metrics['FPR'] = -1
+        try:
+            self.total_performance_metrics['FNR'] = ( self.total_errors['FN'] ) / float(self.total_errors['TP'] + self.total_errors['FN'])
+        except ZeroDivisionError:
+            self.total_performance_metrics['FNR'] = -1
+        try:
+            self.total_performance_metrics['Precision'] = ( self.total_errors['TP'] ) / float(self.total_errors['TP'] + self.total_errors['FP'])
+        except ZeroDivisionError:
+            self.total_performance_metrics['Precision'] = -1
+        try:
+            self.total_performance_metrics['Accuracy'] = ( self.total_errors['TP'] + self.total_errors['TN'] ) / float( self.total_errors['TP'] + self.total_errors['TN'] + self.total_errors['FP'] + self.total_errors['FN'] )
+        except ZeroDivisionError:
+            self.total_performance_metrics['Accuracy'] = -1
+        try:
+            self.total_performance_metrics['ErrorRate'] = ( self.total_errors['FN'] + self.total_errors['FP'] ) / float( self.total_errors['TP'] + self.total_errors['TN'] + self.total_errors['FP'] + self.total_errors['FN'] )
+        except ZeroDivisionError:
+            self.total_performance_metrics['ErrorRate'] = -1
+        self.beta = 1.0
+        # With beta=1 F-Measure is also Fscore
+        try:
+            self.total_performance_metrics['FMeasure1'] = ( ( (self.beta * self.beta) + 1 ) * self.total_performance_metrics['Precision'] * self.total_performance_metrics['TPR']  ) / float( ( self.beta * self.beta * self.total_performance_metrics['Precision'] ) + self.total_performance_metrics['TPR'])
+        except ZeroDivisionError:
+            self.total_performance_metrics['FMeasure1'] = -1
 
     def process_netflow_for_testing(self):
         """ Get a netflow file and process it for testing """
@@ -288,12 +409,12 @@ class Experiment(persistent.Persistent):
         self.find_columns_names(header_line)
         line = file.readline().strip()
         # Methodology 4. For each flow
-        print_info('Time: {}'.format(datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')))
+        start_time = datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+        print_info('Start Time: {}'.format(startime))
         group_group_of_models = __groupofgroupofmodels__ 
         # The constructor of models can change. Now we hardcode -1, but warning!
         group_id = str(self.testing_id) + '-1'
         group_of_models = group_group_of_models.get_group(group_id)
-        max_amount_to_check = 100
         # To store the winner train model
         new_distance = Detection(1) # The id is fake because we are not going to store the object
         winner_model_id = -1
@@ -337,22 +458,23 @@ class Experiment(persistent.Persistent):
             model = group_of_models.get_model(tuple.get_id())
             test_state_so_far = model.get_state()[0:tuple.amount_of_flows]
 
-            # Store the state so far in the tuple
-            # Now we are cutting the max lenght, because the process is tooooo slow
-            #tuple.set_state_so_far(test_state_so_far[0:max_amount_to_check])
+            # Store the state so far in the tuple. Now we are cutting the max lenght, because the process is tooooo slow
+            tuple.set_state_so_far(test_state_so_far[0:self.max_amount_to_check])
+            SEE ABOUT THE threshold of the models, it seems that we match anything!
             # This is an issue. Right now I wont stop comparing after a max amount, but I should check this. The other idea is to only compare the states IN THIS timeslot and forget about the preivous ones...
             # If the tuple IN THIS TIME SLOT has already more than the max amount of flows to check, so ignore the new flows.
-            #if len(tuple.get_state_so_far()) >= max_amount_to_check:
+            #if len(tuple.get_state_so_far()) >= self.max_amount_to_check:
             #    line = file.readline().strip()
             #    continue
 
-            print '\tTuple: {}'.format(tuple)
+            #print '\tTuple: {}'.format(tuple)
             #print '\t\t\tStateSF: {} (0:100)'.format(test_state_so_far[0:100])
             #print_info('\t\tSetting the ground truth label for IP {}: {}'.format(tuple.get_src_ip(), tuple.get_ground_truth_label()))
             # Methodology 4.5 Compute the distance of the chain of states from this 4-tuple so far, with all the training models. Don't store a new distance object.
             # For each traininig model
             for model_training_id in self.models_ids:
-                train_sequence = training_models[model_training_id]['model_training'].get_state()[0:len(test_state_so_far)]
+                # Letters for the train model
+                train_sequence = training_models[model_training_id]['model_training'].get_state()[0:tuple.get_state_len_so_far()]
                 #print_info('Trai Seq: {}'.format(train_sequence))
                 #print_info('Test Seq: {}'.format(test_state_so_far))
                 # First re-create the matrix only for this sequence
@@ -361,7 +483,7 @@ class Experiment(persistent.Persistent):
                 training_original_prob = training_models[model_training_id]['model_training'].compute_probability(train_sequence)
                 #print_info('\tTrain prob: {}'.format(training_original_prob))
                 # Now obtain the probability for testing
-                test_prob = training_models[model_training_id]['model_training'].compute_probability(test_state_so_far)
+                test_prob = training_models[model_training_id]['model_training'].compute_probability(tuple.get_state_so_far())
                 #print_info('\tTest prob: {}'.format(test_prob))
                 if training_original_prob < test_prob:
                     try:
@@ -393,17 +515,21 @@ class Experiment(persistent.Persistent):
             line = file.readline().strip()
         # Close the file
         file.close()
-        print_info('Time: {}'.format(datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')))
         # Methodology 7 Compute the results of the last time slot
         self.time_slots[-1].close()
+        print
+        finish_time = datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+        print_info('Finish Time: {} (Duration: {})'.format(finish_time, finish_time - start_time))
         # Print something about all the tuples
-        print 'Total amount of tuples: {}'.format(len(self.tuples))
-        print 'Total time slots: {}'.format(len(self.time_slots))
-        # Methodology 7.1 Print performance metric
-        for slot in self.time_slots:
-            print slot
-            print slot.results()
-
+        print_info('Total amount of tuples: {}'.format(len(self.tuples)))
+        print_info('Total time slots: {}'.format(len(self.time_slots)))
+        # Methodology 7.1 Compute the performance metrics so far
+        self.compute_total_performance_metrics()
+        # Methodology 7.2 Print the total errors
+        print_info('Total Errors: {}'.format(self.get_total_errors()))
+        # Methodology 7.2 Print performance metric
+        print_info('Total Performance Metrics:')
+        print_info('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(self.total_performance_metrics['FMeasure1'], self.total_performance_metrics['FPR'],self.total_performance_metrics['TPR'], self.total_performance_metrics['TNR'], self.total_performance_metrics['FNR'], self.total_performance_metrics['ErrorRate'], self.total_performance_metrics['Precision'], self.total_performance_metrics['Accuracy']))
 
     def get_tuple(self, column_values):
         """ Get the values and return the correct tuple for them """
