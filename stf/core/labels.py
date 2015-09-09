@@ -183,24 +183,29 @@ class Group_Of_Labels(persistent.Persistent):
         for label in self.get_labels():
             # Take the name of the label except the last id
             temp_name = '-'.join(label.get_name().split('-')[0:-1])
-            # Exact 2 is a complete match with the given string. Original label has the id truncated
+            # Exact 1 is a complete match with the given string. Original label has the last id and - char truncated
             if exact == 1:
                 if str(name) == temp_name:
                     matches.append(label.get_name())
                     rows.append([label.get_id(), label.get_name(), label.get_group_of_model_id(), label.get_connections()])
-            # Exact 2 is a complete match with the given string. Original label has the id truncaed
+            # Exact 2 is a match without the last id. Original label has the id truncaed
             elif exact == 2:
                 # Exact without the last id
+                #try:
                 lastpart = name.split('-')[-1]
-                try:
-                    lastpart = int(lastpart)
+                if lastpart == type(int):
+                    print 'Lastpart: {}'.format(lastpart)
                     # New name without the last int
                     shortname = '-'.join(name.split('-')[0:-1])
-                    if str(shortname) == temp_name:
-                        matches.append(label.get_name())
-                        rows.append([label.get_id(), label.get_name(), label.get_group_of_model_id(), label.get_connections()])
-                except ValueError:
-                    matches.append(False)
+                else:
+                    shortname = name
+                print 'Shortname: {}'.format(shortname)
+                print 'temp_name: {}'.format(temp_name)
+                if str(shortname) == temp_name:
+                    matches.append(label.get_name())
+                    rows.append([label.get_id(), label.get_name(), label.get_group_of_model_id(), label.get_connections()])
+                #except ValueError:
+                #    matches.append(False)
             # Exact 3 is any partial match with the given string. Original label has the id truncaed
             elif exact == 3:
                 if str(name).lower() in temp_name.lower():
@@ -210,6 +215,8 @@ class Group_Of_Labels(persistent.Persistent):
         if matches and verbose:
             print_info('Labels matching the search criteria')
             print table(header=['Id', 'Label Name', 'Group of Models', 'Connections'], rows=rows)
+        # Return the matches list without the all the Falses. So we can use the variable later in ifs
+        #return filter(lambda x: x != False, matches)
         return matches
 
     def construct_filter(self, filter):
@@ -640,7 +647,8 @@ class Group_Of_Labels(persistent.Persistent):
 
         # Separator id
         # Search for labels with this 'name' so far
-        matches = self.search_label_name(name_so_far, verbose=True, exact = 3)
+        #matches = self.search_label_name(name_so_far, verbose=True, exact = 3)
+        matches = self.search_label_name(name_so_far, verbose=True, exact=2)
         if matches:
             print_info("There are other labels with a similar name. You can enter 'NEW' to create a new label with this name and a new id. Or you can input the label ID to add this connection to that label. Any other input will stop the creation of the label to let you inspect the content of the labels.")
             text = raw_input().strip()
