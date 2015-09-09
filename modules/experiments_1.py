@@ -37,9 +37,24 @@ class Tuple(object):
         self.src_ip = tuple4.split('-')[0]
         # The ground truth label is assigned only once, because it will not change for the same tuple
         self.ground_truth_label_id = __group_of_labels__.search_connection_in_label(tuple4)
-        self.ground_truth_label = __group_of_labels__.get_label_name_by_id(self.ground_truth_label_id)
-        HERE WE CAN NOT GET THE GROUND TRUTH LABEL
-        print tuple4, self.ground_truth_label, self.ground_truth_label_id
+        # It could be that the tuple does not have a ground truth label
+        if self.ground_truth_label_id:
+            self.ground_truth_label = __group_of_labels__.get_label_name_by_id(self.ground_truth_label_id)
+        self.state_so_far = ""
+
+    def get_tuples_with_ip(self, ip):
+        """ Return all the tuples with this src ip """
+        tuples = []
+        for tuple in self.tuples:
+            if tuple.get_src_ip() == ip:
+                tuples.append(tuple)
+        return tuples
+
+    def set_state_so_far(self, state):
+        self.state_so_far = state
+
+    def get_state_so_far(self):
+        return self.state_so_far
 
     def get_src_ip(self):
         return self.src_ip
@@ -62,7 +77,7 @@ class Tuple(object):
         return 'Tuple: {}, Amount of flows: {}'.format(self.id, self.amount_of_flows)
     
     def __repr__(self):
-        return('Id: {}, Label:{}, Datetime: {}'.format(self.get_id(), self.ground_truth_label, self.datetime))
+        return('Id: {}, Label:{}, Starttime: {}'.format(self.get_id(), self.ground_truth_label, self.datetime))
 
 
 
@@ -94,6 +109,7 @@ class TimeSlot(persistent.Persistent):
         self.performance_metrics['FMeasure1'] = -1
         self.performance_metrics[''] = -1
         self.performance_metrics[''] = -1
+        self.results_dict = {}
 
     def compute_errors(self, train_label, test_label):
         """ Get the train and test labels and figure it out the errors. A TP is when we detect CC not Botnet."""
@@ -122,36 +138,55 @@ class TimeSlot(persistent.Persistent):
             errors['FN'] += 1
         return errors
 
+    def add_src_ip(self, ip):
+        """ Add the src ip to the time slot """
+        try:
+            dict = self.ip_dict[ip]
+        except KeyError:
+            self.ip_dict[ip] = {}
+
     def set_ground_truth_label_for_ip(self, ip, ground_truth_label):
         """ The logic to select which ground_truth_label is assigned to an IP. Because we can have multiple labels because of multiple tuples for the same ip """
         try:
             current = self.ip_dict[ip]['ground_truth_label']
-            if current:
-                # Only update if the original label is normal or background. So don't change a botnet/cc/attack/malware ground_truth_label
-                if ('normal' not in current.lower() and 'background' not in current.lower()):
+            # Only update if the original label is normal or background. So don't change a botnet/cc/attack/malware ground_truth_label. Also don't assign the same GTL again
+            if current and 'normal' not in current.lower() and 'background' not in current.lower() and current != ground_truth_label:
                     self.ip_dict[ip]['ground_truth_label'] = ground_truth_label
+                    print '\tAssigning GTL to ip {}: {}'.format(ip, ground_truth_label)
         except KeyError:
             # First time
-            self.ip_dict[ip] = {} 
             self.ip_dict[ip]['ground_truth_label'] = ground_truth_label
+            #print '\tAssigning first time GTL to ip {}: {}'.format(ip, ground_truth_label)
 
     def set_predicted_label_for_ip(self, ip, new_predicted_label):
-        self.ip_dict[ip]['predicted_label'] = new_predicted_label
+        try:
+            self.ip_dict[ip]['predicted_label'] = new_predicted_label
+            #print_warning('\tAssigning predicted label {} to IP {}'.format(new_predicted_label, ip))
+        except KeyError:
+            # First time
+            self.ip_dict[ip]['predicted_label'] = new_predicted_label
+            #print_warning('\tAssigning predicted label {} to IP {}'.format(new_predicted_label, ip))
 
     def close(self):
         """ Close the slot """
         #  - Compute the errors (TP, TN, FN, FP) for all the IPs in this time slot.
         for ip in self.ip_dict:
-            predicted_label = self.ip_dict[ip]
-            #ground_truth_label = 
+            try:
+                predicted_label = self.ip_dict[ip]['predicted_label']
+            except KeyError:
+                predicted_label = ''
+            try:
+                ground_truth_label = self.ip_dict[ip]['ground_truth_label']
+            except KeyError:
+                ground_truth_label = ''
+            print_info('IP: {}, GTL: {}, PL: {}'.format(ip, ground_truth_label, predicted_label))
         #  - Compute the performance metrics in this time slot.
         #  - Compute the performance metrics so far (average?)
         #  - Store the results in the results_dict
-        pass
 
     def results(self):
         """ return results """
-        return self.results
+        return self.results_dict
 
     def __repr__(self):
         return ('TimeSlot start: {}, ends: {}'.format(self.init_time, self.finish_time))
@@ -209,14 +244,14 @@ class Experiment(persistent.Persistent):
             print_error('Could not split the models ids with ,')
             return False
         for model_id in self.models_ids:
-            print_info('\tTraining model {}'.format(model_id))
+            print_warning('Training model {}'.format(model_id))
             group_mm.train(model_id, "", self.models_ids, True)
         # Methodology 2. Train the thresholds of the training models between themselves
         # Methodology 3. Start the testing
         # Methodology 3.1. Get the binetflow file
         test_dataset = __datasets__.get_dataset(self.testing_id)
         self.file_obj = test_dataset.get_file(1)
-        print_info('Testing with the netflow file: {}'.format(self.file_obj.get_name()))
+        print_info('\nTesting with the netflow file: {}'.format(self.file_obj.get_name()))
         # Methodology 3.3. Process the netflow file for testing
         self.process_netflow_for_testing()
 
@@ -230,12 +265,16 @@ class Experiment(persistent.Persistent):
         # Methodology 4.4. The first flow case and the case where the flow should be in a new flow because it is outside the last slot. All in one!
         new_slot = TimeSlot(starttime, self.time_slot_width)
         #print_info('New Slot Time: {}'.format(datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')))
-        # Add it
-        self.time_slots.append(new_slot)
         if self.time_slots:
             # We created a slot because the flow is outside the width, so we should close the previous time slot
-            # Closethe last slot
+            # Close the last slot
+            print 'Closing slot {}'.format(self.time_slots[-1])
             self.time_slots[-1].close()
+            print 'Results'
+            print self.time_slots[-1].results()
+        # Add it
+        self.time_slots.append(new_slot)
+        raw_input()
         return new_slot
 
     def process_netflow_for_testing(self):
@@ -269,31 +308,47 @@ class Experiment(persistent.Persistent):
             training_models[model_training_id] = {}
             training_models[model_training_id]['traininig_structure_name'] = training_structure_name
             training_models[model_training_id]['traininig_structure'] = training_structure
-            training_models[model_training_id]['model_training'] = training_structure[int(model_training_id)]
+            try:
+                training_models[model_training_id]['model_training'] = training_structure[int(model_training_id)]
+            except:
+                print_error('The training model id should be the id in the selected model structure. For example: markov_chains_1')
+                return False
             training_models[model_training_id]['original_matrix'] = training_models[model_training_id]['model_training'].get_matrix()
             training_models[model_training_id]['original_self_prob'] = training_models[model_training_id]['model_training'].get_self_probability()
             training_models[model_training_id]['label'] = training_models[model_training_id]['model_training'].get_label().get_name()
             training_models[model_training_id]['threshold'] = training_models[model_training_id]['model_training'].get_threshold()
         while line:
-            #print_warning('Netflow: {}'.format(line))
+            #print_warning('Netflow: {}'.format(line.split('s[')[0]))
             # Extract the column values
             column_values = self.extract_columns_values(line)
             # Methodology 4.1. Extract its 4-tuple. Find (or create) the tuple object
             tuple = self.get_tuple(column_values)
             # Methodology 4.2. Add all the relevant data to this tupple
             tuple.add_new_flow(column_values)
-            #print 'Tuple: {}'.format(tuple)
             # Methodology 4.3. Get the correct time slot
             time_slot = self.get_time_slot(column_values)
-            # Assign the ground truth label, only once for ip for time slot
-            time_slot.set_ground_truth_label_for_ip(tuple.get_src_ip(), tuple.get_ground_truth_label())
+            # Add this src IP to the list of the time_slot
+            time_slot.add_src_ip(tuple.get_src_ip())
+            # Assign the ground truth label if we have one, only once for ip for time slot
+            if tuple.get_ground_truth_label():
+                time_slot.set_ground_truth_label_for_ip(tuple.get_src_ip(), tuple.get_ground_truth_label())
             #print 'Assigned to time slot: {}'.format(time_slot)
             # Methodology 4.4 Get the letter for this flow.
             model = group_of_models.get_model(tuple.get_id())
             test_state_so_far = model.get_state()[0:tuple.amount_of_flows]
-            if len(test_state_so_far) >= max_amount_to_check:
-                line = file.readline().strip()
-                continue
+
+            # Store the state so far in the tuple
+            # Now we are cutting the max lenght, because the process is tooooo slow
+            #tuple.set_state_so_far(test_state_so_far[0:max_amount_to_check])
+            # This is an issue. Right now I wont stop comparing after a max amount, but I should check this. The other idea is to only compare the states IN THIS timeslot and forget about the preivous ones...
+            # If the tuple IN THIS TIME SLOT has already more than the max amount of flows to check, so ignore the new flows.
+            #if len(tuple.get_state_so_far()) >= max_amount_to_check:
+            #    line = file.readline().strip()
+            #    continue
+
+            print '\tTuple: {}'.format(tuple)
+            #print '\t\t\tStateSF: {} (0:100)'.format(test_state_so_far[0:100])
+            #print_info('\t\tSetting the ground truth label for IP {}: {}'.format(tuple.get_src_ip(), tuple.get_ground_truth_label()))
             # Methodology 4.5 Compute the distance of the chain of states from this 4-tuple so far, with all the training models. Don't store a new distance object.
             # For each traininig model
             for model_training_id in self.models_ids:
@@ -320,7 +375,7 @@ class Experiment(persistent.Persistent):
                         prob_distance = -1
                 elif training_original_prob == test_prob:
                     prob_distance = 1
-                #print_info('Distance to model {} : {}'.format(train_model_id, prob_distance))
+                #print_info('Distance to model {} : {}'.format(model_training_id, prob_distance))
                 # Methodology 4.6. Decide upon a winner model.
                 # Is the probability just computed for this model lower than the threshold for that same model?
                 if prob_distance >= 1 and prob_distance <= training_models[model_training_id]['threshold']:
@@ -333,9 +388,8 @@ class Experiment(persistent.Persistent):
             #    print_info('Winner model: {} ({}) with distance {}'.format(winner_model_id, training_models[winner_model_id]['label'], winner_model_distance))
             # Methodology 4.7. Extract the label and assign it
             time_slot.set_predicted_label_for_ip(tuple.get_src_ip(), training_models[model_training_id]['label'])
-
+            #print_info('\t\tSetting the predicted label for IP {}: {}'.format(tuple.get_src_ip(), training_models[model_training_id]['label']))
             # Read next line
-            #raw_input()
             line = file.readline().strip()
         # Close the file
         file.close()
