@@ -410,7 +410,7 @@ class Experiment(persistent.Persistent):
         line = file.readline().strip()
         # Methodology 4. For each flow
         start_time = datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
-        print_info('Start Time: {}'.format(startime))
+        print_info('Start Time: {}'.format(start_time))
         group_group_of_models = __groupofgroupofmodels__ 
         # The constructor of models can change. Now we hardcode -1, but warning!
         group_id = str(self.testing_id) + '-1'
@@ -458,9 +458,8 @@ class Experiment(persistent.Persistent):
             model = group_of_models.get_model(tuple.get_id())
             test_state_so_far = model.get_state()[0:tuple.amount_of_flows]
 
-            # Store the state so far in the tuple. Now we are cutting the max lenght, because the process is tooooo slow
+            # IMPORTANT: Store the state so far in the tuple. Now we are cutting the max lenght, because the process is tooooo slow
             tuple.set_state_so_far(test_state_so_far[0:self.max_amount_to_check])
-            SEE ABOUT THE threshold of the models, it seems that we match anything!
             # This is an issue. Right now I wont stop comparing after a max amount, but I should check this. The other idea is to only compare the states IN THIS timeslot and forget about the preivous ones...
             # If the tuple IN THIS TIME SLOT has already more than the max amount of flows to check, so ignore the new flows.
             #if len(tuple.get_state_so_far()) >= self.max_amount_to_check:
@@ -500,6 +499,7 @@ class Experiment(persistent.Persistent):
                 #print_info('Distance to model {} : {}'.format(model_training_id, prob_distance))
                 # Methodology 4.6. Decide upon a winner model.
                 # Is the probability just computed for this model lower than the threshold for that same model?
+                print 'prob distance: {}, threshold of model: {}'.format(prob_distance, training_models[model_training_id]['threshold'])
                 if prob_distance >= 1 and prob_distance <= training_models[model_training_id]['threshold']:
                     # The model is a candidate
                     if prob_distance < winner_model_distance:
