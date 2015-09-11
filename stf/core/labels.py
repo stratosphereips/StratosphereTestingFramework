@@ -6,6 +6,9 @@ import BTrees.IOBTree
 import os
 import sys
 import re
+from subprocess import Popen
+from subprocess import PIPE
+import tempfile
 
 from stf.common.out import *
 from stf.core.dataset import __datasets__
@@ -359,12 +362,18 @@ class Group_Of_Labels(persistent.Persistent):
     def list_labels(self, filter):
         """ List all the labels """
         self.construct_filter(filter)
-        rows = []
+        all_text='Id | Label Name | Group of Model | Connection \n'
         for label in self.get_labels():
             if self.apply_filter(label):
                 for group_of_model_id in label.get_group_of_model_id():
-                    rows.append([label.get_id(), label.get_name(), group_of_model_id, label.get_connections(groupofmodelid=group_of_model_id)])
-        print table(header=['Id', 'Label Name', 'Group of Model', 'Connection'], rows=rows)
+                    all_text = all_text + ' | ' + str(label.get_id()) + ' | ' + label.get_name() + ' | ' + str(group_of_model_id) + ' | ' + str(label.get_connections(groupofmodelid=group_of_model_id)) + '\n'
+        f = tempfile.NamedTemporaryFile()
+        f.write(all_text)
+        f.flush()
+        p = Popen('less -R ' + f.name, shell=True, stdin=PIPE)
+        p.communicate()
+        sys.stdout = sys.__stdout__ 
+        f.close()
 
     def check_label_existance(self, group_of_model_id, connection_id):
         """ Get a dataset id and connection id and check if we already have a label for them """
