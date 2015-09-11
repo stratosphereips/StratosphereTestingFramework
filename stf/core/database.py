@@ -101,8 +101,9 @@ class Database:
             return False
 
     def list(self):
-        for structure in self.root:
-            print_info('Amount of {} in the DB so far: {}'.format(structure, len(self.root[structure])))
+        #for structure in self.root:
+        #    print_info('Amount of {} in the DB so far: {}'.format(structure, len(self.root[structure])))
+        pass
 
     def delete_structure(self, structure_name):
         """ Delete a structure from the db """
