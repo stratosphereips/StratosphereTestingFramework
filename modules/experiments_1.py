@@ -44,6 +44,9 @@ class Tuple(object):
             self.ground_truth_label = __group_of_labels__.get_label_name_by_id(self.ground_truth_label_id)
         self.state_so_far = ""
         self.min_state_len = 0
+        
+    def get_min_state_len(self, len):
+        return self.min_state_len 
 
     def set_min_state_len(self, len):
         """ Get a len, and tell this tuple that it should start its state from there """
@@ -184,6 +187,8 @@ class TimeSlot(persistent.Persistent):
         elif 'Background' in ground_truth_label or ground_truth_label == '':
             self.acc_errors['NN'] += 1
             return 'NN'
+        print ground_truth_label
+        #HERE See here
         # Compute the actual errors
         if predicted_label_positive and ground_truth_label_positive:
             self.acc_errors['TP'] += 1
@@ -245,8 +250,20 @@ class TimeSlot(persistent.Persistent):
             self.ip_dict[ip]['predicted_labels'].append((new_predicted_label, num_state))
             print '\tAssigning first time predicted label to ip {}: {} (after {} letters)'.format(ip, new_predicted_label, num_state)
 
+    def get_num_letters_for_label(self, label, ip):
+        try:
+            for data in self.ip_dict[ip]['predicted_labels']:
+                pred_label = data[0]
+                num_letters = data[1]
+                if pred_label == label:
+                    return num_letters
+        except KeyError:
+            #print_error('There is no predicted label for this ip {}'.format(ip))
+            return -1
+
     def get_predicted_label(self, ip):
         try:
+            # The last assigned label (-1) is the final one
             return self.ip_dict[ip]['predicted_labels'][-1][0]
         except KeyError:
             #print_error('There is no predicted label for this ip {}'.format(ip))
@@ -257,13 +274,16 @@ class TimeSlot(persistent.Persistent):
         #  - Compute the errors (TP, TN, FN, FP) for all the IPs in this time slot.
         for ip in self.ip_dict:
             predicted_label = self.get_predicted_label(ip)
+            num_letters = self.get_num_letters_for_label(predicted_label, ip)
             try:
                 ground_truth_label = self.ip_dict[ip]['ground_truth_label']
             except KeyError:
                 ground_truth_label = ''
             # Compute errors for this ip (and also accumulated)
             ip_error = self.compute_errors(predicted_label, ground_truth_label)
-            print_info('IP: {:16},Ground Truth: {:30}, Predicted: {:30}. Error: {}'.format(ip, ground_truth_label, predicted_label, ip_error))
+            print_info('IP: {:16},Ground Truth: {:30}, Predicted: {:30} (at {} letters). Error: {}'.format(ip, ground_truth_label, predicted_label, num_letters, ip_error))
+            #The amount of letters when is detected, should be substracted from the amount it was detected previously????
+            # HERE
         # Compute performance metrics in this time slot
         self.compute_performance_metrics()
         print_info(cyan('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(self.performance_metrics['FMeasure1'], self.performance_metrics['FPR'],self.performance_metrics['TPR'], self.performance_metrics['TNR'], self.performance_metrics['FNR'], self.performance_metrics['ErrorRate'], self.performance_metrics['Precision'], self.performance_metrics['Accuracy'])))
@@ -599,6 +619,7 @@ class Experiment(persistent.Persistent):
             len = self.tuples[tuple4].get_state_len_so_far()
             # Not tell it that the next time slot show start from this len. That is we 'move' the start of the letters to where it finished in the last time slot that matched.
             self.tuples[tuple4].set_min_state_len(len)
+            print '\tMatched tuple {}. Min len moved to {}. Was {}'.format(tuple4, len, self.tuples[tuple4].set_min_state_len(len))
 
     def get_tuple(self, tuple4):
         """ Get the values and return the correct tuple for them """
