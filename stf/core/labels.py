@@ -582,7 +582,7 @@ class Group_Of_Labels(persistent.Persistent):
     def decide_a_label_name(self, connection_id):
         """ Get a connection id and return a label for it. The connection_id can be empty"""
         # First choose amount the current labels
-        print_info('Current Labels')
+        #print_info('Current Labels')
         # List all the labels, i.e. with an empty filter
         # self.list_labels("")
         selection = raw_input('Select a label Id to assign the same label BUT with a new final number to the current connection. Or press Enter to create a new one:')
