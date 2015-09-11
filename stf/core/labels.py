@@ -584,7 +584,7 @@ class Group_Of_Labels(persistent.Persistent):
         # First choose amount the current labels
         print_info('Current Labels')
         # List all the labels, i.e. with an empty filter
-        self.list_labels("")
+        # self.list_labels("")
         selection = raw_input('Select a label Id to assign the same label BUT with a new final number to the current connection. Or press Enter to create a new one:')
         try:
             # Get the label selected with an id
