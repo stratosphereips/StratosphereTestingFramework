@@ -135,8 +135,6 @@ class File(persistent.Persistent):
         # Always return true
         return True
 
-
-
     def get_capinfos(self):
         """ Get info with capinfos"""
         if self.capinfo == False and self.get_type() == 'pcap':
@@ -207,7 +205,6 @@ class File(persistent.Persistent):
             self.md5 = tshark_data = Popen('md5sum '+self.get_name()+' | awk \'{print $1}\'', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0]
             return self.md5
 
-
     def info(self):
         rows = []
         print_info('Information of file name {} with id {}'.format(self.get_short_name(), self.get_id()))
@@ -244,3 +241,5 @@ class File(persistent.Persistent):
 
         print(table(header=['Key', 'Value'], rows=rows))
 
+    def __repr__(self):
+        return('File id: {}. Name: {}. Type: {}'.format(self.get_id(), self.get_name(), self.get_type()))
