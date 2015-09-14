@@ -436,12 +436,16 @@ class Experiment(persistent.Persistent):
             return False
         for model_id in self.models_ids:
             print_warning('Training model {}'.format(model_id))
-            group_mm.train(model_id, "", self.models_ids, True)
+            group_mm.train(model_id, "", self.models_ids, False)
         # Methodology 2. Train the thresholds of the training models between themselves
         # Methodology 3. Start the testing
         # Methodology 3.1. Get the binetflow file
         test_dataset = __datasets__.get_dataset(self.testing_id)
-        self.file_obj = test_dataset.get_file(1)
+        try:
+            self.file_obj = test_dataset.get_file_type('binetflow')
+        except AttributeError:
+            print_error('That testing dataset does no seem to exist.')
+            return False
         print_info('\nTesting with the netflow file: {}'.format(self.file_obj.get_name()))
         # Methodology 3.3. Process the netflow file for testing
         self.process_netflow_for_testing()
@@ -574,9 +578,13 @@ class Experiment(persistent.Persistent):
                 #print_info('\t\tSetting the ground truth label for IP {}: {}'.format(tuple.get_src_ip(), tuple.get_ground_truth_label()))
             # Methodology 4.4 Get the letter for this flow. i.e. find the model we have stored for this test tuple.
             model = group_of_models.get_model(tuple.get_id())
-            # Take the letters from the test model, but not all of them, just the ones inside this time slot. This way we 'move' the letters used from time windows to time windows, but only if there was a model match.
-            # Store the state so far in the tuple. Now we are cutting the original state. Min is the amount defined if this tuple had already matched before. Max is just the amount of flows recived so far.
-            tuple.set_state_so_far(model.get_state()[tuple.get_min_state_len():tuple.get_max_state_len()])
+            if model:
+                # Take the letters from the test model, but not all of them, just the ones inside this time slot. This way we 'move' the letters used from time windows to time windows, but only if there was a model match.
+                # Store the state so far in the tuple. Now we are cutting the original state. Min is the amount defined if this tuple had already matched before. Max is just the amount of flows recived so far.
+                tuple.set_state_so_far(model.get_state()[tuple.get_min_state_len():tuple.get_max_state_len()])
+            else:
+                print_error('No model for this tuple!!!')
+                return False
             #print 'Test state so far: {}'.format(tuple.get_state_so_far())
             #print '\tTuple: {}'.format(tuple)
             # Reset the winner variables.
