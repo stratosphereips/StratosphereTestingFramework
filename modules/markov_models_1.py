@@ -658,8 +658,12 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 print_error('No such testing id is available')
                 return False
             # Get the labels from the models
-            train_label = train_model.get_label().get_name()
-            test_label = test_model.get_label().get_name()
+            try:
+                train_label = train_model.get_label().get_name()
+                test_label = test_model.get_label().get_name()
+            except AttributeError:
+                # The model was deleted. Ignore this and continue
+                continue
             # Get the protocols for the labels
             try:
                 train_protocol = train_label.split('-')[2]
