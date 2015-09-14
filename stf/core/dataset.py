@@ -38,7 +38,7 @@ class Dataset(persistent.Persistent):
 
     def get_file_type(self,type):
         """ Return the file with type x in this dataset"""
-        for file in __datasets__.current.get_files():
+        for file in self.get_files():
             if file.get_type() == type:
                 return file
         return False
