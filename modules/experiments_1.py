@@ -436,7 +436,9 @@ class Experiment(persistent.Persistent):
             return False
         for model_id in self.models_ids:
             print_warning('Training model {}'.format(model_id))
-            group_mm.train(model_id, "", self.models_ids, False)
+            if not group_mm.train(model_id, "", self.models_ids, False):
+                print_error('The model {} could not be trained.'.format(model_id))
+                return False
         # Methodology 2. Train the thresholds of the training models between themselves
         # Methodology 3. Start the testing
         # Methodology 3.1. Get the binetflow file
@@ -559,7 +561,7 @@ class Experiment(persistent.Persistent):
             training_models[model_training_id]['label'] = training_models[model_training_id]['model_training'].get_label().get_name()
             training_models[model_training_id]['threshold'] = training_models[model_training_id]['model_training'].get_threshold()
         while line:
-            #print_warning('Netflow: {}'.format(line.split('s[')[0]))
+            print_warning('Netflow: {}'.format(line.split('s[')[0]))
             # Extract the column values
             column_values = self.extract_columns_values(line)
             # Methodology 4.1. Extract its 4-tuple. Find (or create) the tuple object
@@ -584,6 +586,7 @@ class Experiment(persistent.Persistent):
                 tuple.set_state_so_far(model.get_state()[tuple.get_min_state_len():tuple.get_max_state_len()])
             else:
                 print_error('No model for this tuple!!!')
+                # HERE. ACA TENGO QUE TOMAR UNA DECISION que pasa cuando el modelo de la tupla de testing no existe en la base. Creo un modelo nuevo?????
                 return False
             #print 'Test state so far: {}'.format(tuple.get_state_so_far())
             #print '\tTuple: {}'.format(tuple)
