@@ -299,7 +299,12 @@ class TimeSlot(persistent.Persistent):
     def get_predicted_label(self, ip):
         try:
             # The last assigned label (-1) is the final one
-            return self.ip_dict[ip]['predicted_labels'][-1][0]
+            ip_data = self.ip_dict[ip]
+            try:
+                return self.ip_dict[ip]['predicted_labels'][-1][0]
+            except IndexError:
+                # Predicted labels is empty
+                return ''
         except KeyError:
             #print_error('There is no predicted label for this ip {}'.format(ip))
             return ''
@@ -320,6 +325,7 @@ class TimeSlot(persistent.Persistent):
         # Compute performance metrics in this time slot
         self.compute_performance_metrics()
         print_info(cyan('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(self.performance_metrics['FMeasure1'], self.performance_metrics['FPR'],self.performance_metrics['TPR'], self.performance_metrics['TNR'], self.performance_metrics['FNR'], self.performance_metrics['ErrorRate'], self.performance_metrics['Precision'], self.performance_metrics['Accuracy'])))
+        #raw_input()
 
     def get_performance_metrics(self):
         """ return accumulated errors """
@@ -460,7 +466,6 @@ class Experiment(persistent.Persistent):
             self.add_errors(self.time_slots[-1].get_errors())
         # Add it
         self.time_slots.append(new_slot)
-        #raw_input()
         return new_slot
 
     def add_errors(self, errors):
@@ -581,7 +586,8 @@ class Experiment(persistent.Persistent):
             # For each traininig model
             for model_training_id in self.models_ids:
                 # Letters for the train model. They should not be 'cut' like the test ones. Train models should be complete.
-                train_sequence = training_models[model_training_id]['model_training'].get_state()[0:tuple.get_amount_of_flows()]
+                #train_sequence = training_models[model_training_id]['model_training'].get_state()[0:tuple.get_amount_of_flows()]
+                train_sequence = training_models[model_training_id]['model_training'].get_state()[tuple.get_min_state_len():tuple.get_amount_of_flows()]
                 #print_info('Trai Seq: {}'.format(train_sequence))
                 #print_info('Test Seq: {}'.format(tuple.get_state_so_far()))
                 # First re-create the matrix only for this sequence
@@ -629,6 +635,7 @@ class Experiment(persistent.Persistent):
                 time_slot.set_4tuple_unmatch(tuple.get_id())
             # Read next line
             line = file.readline().strip()
+            #raw_input()
         # Close the file
         file.close()
         # Move the state windows in the tuples that already matched in this time slot. Before closing the time windoows!
