@@ -202,8 +202,8 @@ class Group_Of_Labels(persistent.Persistent):
                     shortname = '-'.join(name.split('-')[0:-1])
                 else:
                     shortname = name
-                print 'Shortname: {}'.format(shortname)
-                print 'temp_name: {}'.format(temp_name)
+                #print 'Shortname: {}'.format(shortname)
+                #print 'temp_name: {}'.format(temp_name)
                 if str(shortname) == temp_name:
                     matches.append(label.get_name())
                     rows.append([label.get_id(), label.get_name(), label.get_group_of_model_id(), label.get_connections()])
@@ -315,13 +315,13 @@ class Group_Of_Labels(persistent.Persistent):
                 groupsid = model.get_groups_id()
                 if operator == '=':
                     for gid in groupsid:
-                        if value in gid:
+                        if value == gid:
                             responses.append(True)
                         else:
                             responses.append(False)
                 elif operator == '!=':
                     for gid in groupsid:
-                        if value not in gid:
+                        if value != gid:
                             responses.append(True)
                         else:
                             responses.append(False)
