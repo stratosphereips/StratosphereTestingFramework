@@ -772,6 +772,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         except IndexError:
             train_model.set_threshold(-1)
             print '\tSelected: None. No other models matched.'
+        return True
 
 
     # The run method runs every time that this command is used
@@ -820,7 +821,11 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             else:
                 self.train(int(self.args.train), self.args.filter, self.args.train_ids, self.args.verbose)
         elif self.args.generateall:
-            self.generate_all_models(self.args.numberofflows)
+            try:
+                self.create_new_model(self.args.generate, self.args.numberofflows)
+            except AttributeError:
+                numberofflows = 3
+                self.generate_all_models(numberofflows)
         #else:
         #    print_error('At least one of the parameter is required in this module')
         #    self.usage()
