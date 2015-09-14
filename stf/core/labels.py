@@ -196,11 +196,11 @@ class Group_Of_Labels(persistent.Persistent):
                 # Exact without the last id
                 #try:
                 lastpart = name.split('-')[-1]
-                if lastpart == type(int):
-                    print 'Lastpart: {}'.format(lastpart)
+                try:
+                    lastpart = int(lastpart)
                     # New name without the last int
                     shortname = '-'.join(name.split('-')[0:-1])
-                else:
+                except ValueError:
                     shortname = name
                 #print 'Shortname: {}'.format(shortname)
                 #print 'temp_name: {}'.format(temp_name)
@@ -312,19 +312,36 @@ class Group_Of_Labels(persistent.Persistent):
                     else:
                         responses.append(False)
             elif key == 'groupid':
+                # One label can have more than one groupid. So search for at least one match.
                 groupsid = model.get_groups_id()
                 if operator == '=':
+                    temp_resp = []
                     for gid in groupsid:
                         if value == gid:
-                            responses.append(True)
+                            temp_resp.append(True)
                         else:
-                            responses.append(False)
+                            temp_resp.append(False)
+                    # Since we want at lest one 
+                    try:
+                        # It can happend that there is no True
+                        if temp_resp.index(True) >= 0:
+                            responses.append(True)
+                    except ValueError:
+                        responses.append(False)
                 elif operator == '!=':
+                    temp_resp = []
                     for gid in groupsid:
                         if value != gid:
-                            responses.append(True)
+                            temp_resp.append(True)
                         else:
+                            temp_resp.append(False)
+                    # Since one is enough to stop
+                    try:
+                        if temp_resp.index(True) >= 0:
                             responses.append(False)
+                    except ValueError:
+                        # It can happend that there is no True
+                        responses.append(False)
             elif key == 'id':
                 id = float(model.get_id())
                 value = float(value)
@@ -590,7 +607,11 @@ class Group_Of_Labels(persistent.Persistent):
             # Get the label selected with an id
             label = self.get_label_by_id(int(selection))
             # Get its name
-            name = label.get_name()
+            try:
+                name = label.get_name()
+            except AttributeError:
+                print_error('The label does not exist.')
+                return False
             # Now get all the labels named the same (except the last number)
             matches = self.search_label_name(name, verbose=False, exact=2)
             last_name = matches[-1]
