@@ -495,11 +495,10 @@ Now stf can import external modules that implement new functionality.
 ### Bugs
 - For bug reports please fill an issue on the [github page](https://github.com/stratosphereips/StratosphereTestingFramework/issues)
 
-
 ### TODO
 - The experiment can only be run from the machine that has the netflow file. Unless we transfer the netflow file...?
 - Delete all the labels from one group-id
-- Solve how to train the models globally and for a given experiment.
+- Solve how to train the models globally and also for a given experiment.
 - Add labels to packets
 - Add labels to the binetflow files and biargus files automatically.
 - When adding a binetflow and leaving, the file is not stored. (yes when creating it)
