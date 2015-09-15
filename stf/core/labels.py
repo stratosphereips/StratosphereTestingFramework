@@ -27,6 +27,11 @@ class Label(persistent.Persistent):
         self.name = ''
         # This holds all the connections IDs in the label
         self.connections = {}
+        self.proto = ""
+
+    def get_proto(self):
+        # Horrible rigth? But this way I don't have to modify the DB. Just compute it when asked. The only problem is that the struture of the label should not change.
+        return self.name.split('-')[2]
 
     def get_id(self):
         return self.id
@@ -445,6 +450,7 @@ class Group_Of_Labels(persistent.Persistent):
                         label_id = 1
                     # Obtain the name
                     name = general_name + '-' + str(general_name_id)
+                    proto = general_name.split('-')[2]
                     label = Label(label_id)
                     label.set_name(name)
                     label.add_connection(group_of_model_id, connection_id)
@@ -672,7 +678,7 @@ class Group_Of_Labels(persistent.Persistent):
         else:
             print_error('Only those options are available. If you need more, please submit a request')
             return False
-
+        # Becareful if you change the structure of the label. In get_proto is harcoded
         name_so_far = direction+'-'+decision+'-'+proto3+'-'+proto4+'-'+details
 
         # Separator id
