@@ -10,6 +10,7 @@ import BTrees.OOBTree
 from stf.common.out import *
 from stf.common.abstracts import Module
 from stf.core.models import  __groupofgroupofmodels__ 
+from stf.core.models import  Model
 from stf.core.dataset import __datasets__
 from stf.core.notes import __notes__
 from stf.core.connections import  __group_of_group_of_connections__
@@ -561,7 +562,7 @@ class Experiment(persistent.Persistent):
             training_models[model_training_id]['label'] = training_models[model_training_id]['model_training'].get_label().get_name()
             training_models[model_training_id]['threshold'] = training_models[model_training_id]['model_training'].get_threshold()
         while line:
-            print_warning('Netflow: {}'.format(line.split('s[')[0]))
+            #print_warning('Netflow: {}'.format(line.split('s[')[0]))
             # Extract the column values
             column_values = self.extract_columns_values(line)
             # Methodology 4.1. Extract its 4-tuple. Find (or create) the tuple object
@@ -585,11 +586,9 @@ class Experiment(persistent.Persistent):
                 # Store the state so far in the tuple. Now we are cutting the original state. Min is the amount defined if this tuple had already matched before. Max is just the amount of flows recived so far.
                 tuple.set_state_so_far(model.get_state()[tuple.get_min_state_len():tuple.get_max_state_len()])
             else:
-                print_error('No model for this tuple!!!')
-                # HERE. ACA TENGO QUE TOMAR UNA DECISION que pasa cuando el modelo de la tupla de testing no existe en la base. Creo un modelo nuevo?????
-                return False
+                # It can happen that the 4tuple in the testing netflow file does not have a model in the database. In this case we should create one (not store it) and generate the letters again.
+                print_error('No model stored for tuple: {}. It will be ignored, which almost means marking it as Normal.'.format(tuple4))
             #print 'Test state so far: {}'.format(tuple.get_state_so_far())
-            #print '\tTuple: {}'.format(tuple)
             # Reset the winner variables.
             time_slot.set_winner_model_id_for_ip(tuple.get_src_ip(), False)
             time_slot.set_winner_model_distance_for_ip(tuple.get_src_ip(),'inf')
