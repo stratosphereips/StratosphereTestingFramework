@@ -123,19 +123,21 @@ def decode_dns_message(message):
 
 class DNSInfo(Module):
     cmd = 'dns_parser'
-    description = 'module to  some statistics about the DNS data in STF'
+    description = 'Module to compute statistics of a DNS tuple.'
     authors = ['Harpo MAxx']
 
     def __init__(self):
         # Call to our super init
         super(DNSInfo, self).__init__()
-        self.parser.add_argument('-i', '--info', metavar='flow_id', help='Show info')
+        self.parser.add_argument('-i', '--info', metavar='tuple_id', help='Show DNS statistics for this 4-tuple.')
 
     def show_flows(self,group_of_connections,connection_id):
         all_text=''
+        # Access each flow in this 4-tuple
         for flow_id in group_of_connections.connections[connection_id].flows:
 #            all_text = all_text + group_of_connections.connections[connection_id].flows[flow_id].get_srcUdata() + '\n'
-            all_text = all_text + ":".join("{:02x}".format(ord(c)) for c in  group_of_connections.connections[connection_id].flows[flow_id].get_srcUdata()) + '\n\n'
+            dns_text = ":".join("{:02x}".format(ord(c)) for c in group_of_connections.connections[connection_id].flows[flow_id].get_srcUdata())
+            all_text = all_text + dns_text + '\n\n'
         f = tempfile.NamedTemporaryFile()
         f.write(all_text)
         f.flush()
@@ -144,40 +146,29 @@ class DNSInfo(Module):
         sys.stdout = sys.__stdout__ 
         f.close()
 
-
-
-
     def dns_info(self,connection_id):
 #        """ Show the flows inside a connection """
 #        #__group_of_group_of_connections__.show_flows_in_connnection(arg, filter)
         if __datasets__.current:
             group_id = __datasets__.current.get_id()
             try:
+                print_info('Showing the DNS information of 4tuple {}'.format(connection_id))
                 self.show_flows(__group_of_group_of_connections__.group_of_connections[group_id],connection_id)
             except KeyError:
                 print_error('The connection {} does not longer exists in the database.'.format(connection_id))
         else:
             print_error('There is no dataset selected.')
-   
-
-
-
-
-
 
     def run(self):
         # List general info
         def help():
-            self.log('dnsinfo', "Show info about dns flows")
-            print 'Hi'
-
+            self.log('info', self.description)
         # Run?
         super(DNSInfo, self).run()
         if self.args is None:
             return
-
         if self.args.info:
             self.dns_info(self.args.info)
         else:
-            print_error('At least one of the parameter is required')
+            print_error('At least one parameter is required')
             self.usage()
