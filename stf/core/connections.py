@@ -163,7 +163,8 @@ class Flow(object):
         srcUdata_in_ascii=''
         try:
             for character in base64.b64decode(self.srcUdata[index:]):
-                if character not in string.printable:
+                # All the not printable chars are replaced by '.'. Also the enters, so we can read the content in one line.
+                if character not in string.printable or hex(ord(character)) == '0xa' or hex(ord(character)) == '0xd':
                     srcUdata_in_ascii+="."
                 else:
                     srcUdata_in_ascii+=character
@@ -181,7 +182,8 @@ class Flow(object):
         dstUdata_in_ascii=''
         try:
             for character in base64.b64decode(self.dstUdata[index:]):
-                if character not in string.printable:
+                # All the not printable chars are replaced by '.'. Also the enters, so we can read the content in one line.
+                if character not in string.printable or hex(ord(character)) == '0xa' or hex(ord(character)) == '0xd':
                     dstUdata_in_ascii+="."
                 else:
                     dstUdata_in_ascii+=character
