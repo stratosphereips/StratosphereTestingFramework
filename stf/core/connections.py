@@ -154,12 +154,11 @@ class Flow(object):
         return self.srcbytes 
 
     def get_srcUdata(self):
-        #try:
-        #    return self.srcUdata
-        #except AttributeError:
-        #    return ''
-        
-        index=self.srcUdata.find('=')+1
+        """ Return the srcUdata. If the data is in unicode, decode it. Else just return the text"""
+        try:
+            index=self.srcUdata.find('=')+1
+        except AttributeError:
+            return ''
         srcUdata_in_ascii=''
         try:
             for character in base64.b64decode(self.srcUdata[index:]):
@@ -174,12 +173,11 @@ class Flow(object):
             return self.srcUdata
 
     def get_dstUdata(self):
-       # try:
-       #     return self.dstUdata
-       # except AttributeError:
-       #     return ''
-        
-        index=self.dstUdata.find('=')+1
+        """ Return the srcUdata. If the data is in unicode, decode it. Else just return the text"""
+        try:
+            index=self.dstUdata.find('=')+1
+        except AttributeError:
+            return ''
         dstUdata_in_ascii=''
         try:
             for character in base64.b64decode(self.dstUdata[index:]):
@@ -521,7 +519,6 @@ class Group_Of_Connections(object):
 
     def create_connections(self):
         """ Read the flows and creates the connections """
-
         # Open the binetflow file
         file = open(self.filename)
         header_line = file.readline().strip()
@@ -545,7 +542,6 @@ class Group_Of_Connections(object):
         
     def get_amount_of_connections(self):
         return len(self.connections)
-
 
     def construct_filter(self, filter):
         """ Get the filter string and decode all the operations """
