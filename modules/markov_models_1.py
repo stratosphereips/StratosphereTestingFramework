@@ -108,7 +108,6 @@ class Markov_Model(persistent.Persistent):
         # Generate the MC
         self.init_vector, self.matrix = pykov.maximum_likelihood_probabilities(separated_letters, lag_time=1, separator='#')
 
-
     def get_matrix(self):
         """ Return the matrix """
         return self.matrix
@@ -720,7 +719,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                             # Compute the errors: TP, TN, FP, FN
                             errors = self.compute_errors(train_label, test_label)
                             if verbose:
-                                print '\t\t\tTraining with threshold: {}. Distance: {}. Errors: {}'.format(threshold, distance, errors)
+                                print '\t\tTraining with threshold: {}. Distance: {}. Errors: {}'.format(threshold, distance, errors)
                             # Store the info
                             train_vector['Distance'] = distance
                             train_vector['IndexFlow'] = index
@@ -763,7 +762,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             current_criteria = threshold[1][criteria]
             # Only  print the best FM1s
             if current_criteria >= best_criteria:
-                print '\tThreshold {}: FM1:{:.3f}, FPR:{:.3f}, TPR:{:.3f}, TNR:{:.3f}, FNR:{:.3f}, PPV:{:.3f}, NPV:{:.3f}, Prec:{:.3f}, TP:{}, FP:{}, TN:{}, FN:{}'.format(threshold[0], threshold[1]['FMeasure1'], threshold[1]['FPR'], threshold[1]['TPR'], threshold[1]['TNR'], threshold[1]['FNR'], threshold[1]['PPV'], threshold[1]['NPV'], threshold[1]['Precision'], threshold[1]['TP'], threshold[1]['FP'], threshold[1]['TN'], threshold[1]['FN'])
+                print '\t\tThreshold {}: FM1:{:.3f}, FPR:{:.3f}, TPR:{:.3f}, TNR:{:.3f}, FNR:{:.3f}, PPV:{:.3f}, NPV:{:.3f}, Prec:{:.3f}, TP:{}, FP:{}, TN:{}, FN:{}'.format(threshold[0], threshold[1]['FMeasure1'], threshold[1]['FPR'], threshold[1]['TPR'], threshold[1]['TNR'], threshold[1]['FNR'], threshold[1]['PPV'], threshold[1]['NPV'], threshold[1]['Precision'], threshold[1]['TP'], threshold[1]['FP'], threshold[1]['TN'], threshold[1]['FN'])
                 best_criteria = current_criteria
         # Store the trained threshold for this model
         try:
