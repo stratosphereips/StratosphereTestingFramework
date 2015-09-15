@@ -169,7 +169,8 @@ class Flow(object):
                 else:
                     srcUdata_in_ascii+=character
             return self.srcUdata[0:index]+srcUdata_in_ascii 
-        except IndexError:
+        except (IndexError, TypeError):
+            # Probably not base64, so just return the string
             return self.srcUdata
 
     def get_dstUdata(self):
@@ -188,7 +189,8 @@ class Flow(object):
                 else:
                     dstUdata_in_ascii+=character
             return self.dstUdata[0:index]+dstUdata_in_ascii 
-        except IndexError:
+        except (IndexError, TypeError):
+            # Probably not base64, so just return the string
             return self.dstUdata
 
     def get_label(self):
