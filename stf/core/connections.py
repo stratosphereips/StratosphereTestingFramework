@@ -3,6 +3,8 @@
 
 import time
 import datetime
+import base64
+import string
 import persistent
 import BTrees.IOBTree
 import BTrees.OOBTree
@@ -152,16 +154,44 @@ class Flow(object):
         return self.srcbytes 
 
     def get_srcUdata(self):
+        #try:
+        #    return self.srcUdata
+        #except AttributeError:
+        #    return ''
+        
+        index=self.srcUdata.find('=')+1
+        srcUdata_in_ascii=''
         try:
+            for character in base64.b64decode(self.srcUdata[index:]):
+                # All the not printable chars are replaced by '.'. Also the enters, so we can read the content in one line.
+                if character not in string.printable or hex(ord(character)) == '0xa' or hex(ord(character)) == '0xd':
+                    srcUdata_in_ascii+="."
+                else:
+                    srcUdata_in_ascii+=character
+            return self.srcUdata[0:index]+srcUdata_in_ascii 
+        except (IndexError, TypeError):
+            # Probably not base64, so just return the string
             return self.srcUdata
-        except AttributeError:
-            return ''
 
     def get_dstUdata(self):
+       # try:
+       #     return self.dstUdata
+       # except AttributeError:
+       #     return ''
+        
+        index=self.dstUdata.find('=')+1
+        dstUdata_in_ascii=''
         try:
+            for character in base64.b64decode(self.dstUdata[index:]):
+                # All the not printable chars are replaced by '.'. Also the enters, so we can read the content in one line.
+                if character not in string.printable or hex(ord(character)) == '0xa' or hex(ord(character)) == '0xd':
+                    dstUdata_in_ascii+="."
+                else:
+                    dstUdata_in_ascii+=character
+            return self.dstUdata[0:index]+dstUdata_in_ascii 
+        except (IndexError, TypeError):
+            # Probably not base64, so just return the string
             return self.dstUdata
-        except AttributeError:
-            return ''
 
     def get_label(self):
         try:
