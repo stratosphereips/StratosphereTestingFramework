@@ -720,7 +720,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                             # Compute the errors: TP, TN, FP, FN
                             errors = self.compute_errors(train_label, test_label)
                             if verbose:
-                                print '\t\tTraining with threshold: {}. Distance: {}. Errors: {}'.format(threshold, distance, errors)
+                                print '\t\t\tTraining with threshold: {}. Distance: {}. Errors: {}'.format(threshold, distance, errors)
                             # Store the info
                             train_vector['Distance'] = distance
                             train_vector['IndexFlow'] = index
