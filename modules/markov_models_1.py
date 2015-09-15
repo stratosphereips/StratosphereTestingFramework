@@ -647,7 +647,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         except AttributeError:
             print_error('No such training id is available')
             return False
-        print_info('Best Thresholds for trained model: {}. Letters used for training: {}'.format(train_model, 100)) # The 100 is hardcoded. See the number below.
+        print_info('Training model: {}. Amount of letters used for training: {}'.format(train_model, 100)) # The 100 is hardcoded. See the number below.
         # To store the training data
         thresholds_train = {}
         for test_model in self.get_markov_models():
@@ -677,7 +677,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 return False
             # Apply the filter and avoid training with itself and only if the protocols match
             if ( (filter != "" and self.apply_filter(test_model)) or (test_models_ids != "" and test_model_id in test_models_ids)) and test_model_id != train_model_id and train_protocol == test_protocol:
-                print_info('Training with model {}'.format(test_model))
+                print_info('\tTraining with model {}'.format(test_model))
                 # Store info about this particular test training. Later stored within the threshold vector
                 # train_vector = [test model id, distance, N flow that matched, errors, errors metrics]
                 train_vector = {}
