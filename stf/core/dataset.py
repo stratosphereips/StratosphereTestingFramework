@@ -72,7 +72,9 @@ class Dataset(persistent.Persistent):
     def get_main_file(self):
         """ Returns the name of the first file used to create the dataset. Usually the only one"""
         try:
-            return self.files[0]
+            for file in self.files:
+                if file:
+                return fil
         except KeyError:
             print_error('There is no main file in this dataset!')
             return False
