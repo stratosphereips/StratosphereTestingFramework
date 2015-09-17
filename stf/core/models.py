@@ -115,7 +115,7 @@ class Model(persistent.Persistent):
             return self.label_name
         except:
             return ''
-    
+
     def get_flow_label(self, model_group_id):
         """ Returns the label in the first flow on the connections """
         # Horrible to get the model group id in a parameter... i know
