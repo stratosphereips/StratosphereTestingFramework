@@ -357,7 +357,10 @@ class Datasets(persistent.Persistent):
         rows = []
         for dataset in self.datasets.values():
                 main_file = dataset.get_main_file()
-                rows.append([dataset.get_name(), dataset.get_id() , dataset.get_atime() , main_file.get_short_name(), main_file.get_modificationtime(), dataset.get_folder(), True if (self.current and self.current.get_id() == dataset.get_id()) else False, dataset.get_note_id() if dataset.get_note_id() >= 0 else '' ])
+                if main_file:
+                    rows.append([dataset.get_name(), dataset.get_id() , dataset.get_atime() , main_file.get_short_name(), main_file.get_modificationtime(), dataset.get_folder(), True if (self.current and self.current.get_id() == dataset.get_id()) else False, dataset.get_note_id() if dataset.get_note_id() >= 0 else '' ])
+                else:
+                    print_error('The dataset {} does not have a main file?'.format(dataset.get_id()))
         print(table(header=['Dataset Name', 'Id', 'Added Time', 'Main File Name', 'Main File Creation Time', 'Folder', 'Current', 'Note'], rows=rows))
 
     def list_files(self):
