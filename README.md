@@ -496,6 +496,8 @@ Now stf can import external modules that implement new functionality.
 - For bug reports please fill an issue on the [github page](https://github.com/stratosphereips/StratosphereTestingFramework/issues)
 
 ### TODO
+- When creating a new dataset, copy the README.md file as main note for the dataset
+- Change the name of a dataset
 - In experiments, what happen if the train models can't be trained because the rest of the train models are very stupid???? should we discard them??
 - How to change the Ground Truth label when the same machine is normal and infected???? Some tuples are infected and some are normal...
 - The experiment can only be run from the machine that has the netflow file. Unless we transfer the netflow file...?
