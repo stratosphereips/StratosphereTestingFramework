@@ -156,8 +156,10 @@ class Flow(object):
     def get_srcUdata(self):
         """ Return the srcUdata. If the data is in unicode, decode it. Else just return the text"""
         try:
-            index=self.srcUdata.find('=')+1
+            # This is supposed to find the This is not working, because some data has = inside.
+            index=self.srcUdata.find('=') + 1
         except AttributeError:
+            # there is no srcUdata?
             return ''
         srcUdata_in_ascii=''
         try:
@@ -177,6 +179,7 @@ class Flow(object):
         try:
             index=self.dstUdata.find('=')+1
         except AttributeError:
+            # there is no dstUdata?
             return ''
         dstUdata_in_ascii=''
         try:
