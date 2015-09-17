@@ -393,14 +393,14 @@ class TimeSlot(persistent.Persistent):
 ######################
 class Experiment(persistent.Persistent):
     """ An individual experiment """
-    def __init__(self, id, description):
+    def __init__(self, id, description, timeslotwidth):
         self.id = id
         self.description = description
         # Dict of tuples in this experiment during testing
         self.tuples = {}
         # The vect of time slots
         self.time_slots = []
-        self.time_slot_width = 300.0 # Now we hardcoded 300 seconds (5 mins), but it should be selected by the user
+        self.time_slot_width = timeslotwidth
         print_info('Using the default model constructor for the testing netflow. If you need, change it.')
         self.total_errors = {}
         self.total_errors['TP'] = 0.0
@@ -867,6 +867,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
         self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete an experiment given the id.')
         self.parser.add_argument('-m', '--models_ids', metavar='models_ids', help='Ids of the models (e.g. Markov Models) to be used when creating a new experiment with -n. Comma separated.')
         self.parser.add_argument('-t', '--testing_id', metavar='testing_id', type=int, help='Dataset id to be used as testing when creating a new experiment with -n.')
+        self.parser.add_argument('-T', '--timeslotwidth', default=300, metavar='timeslotwidth', type=int, help='The width of the time slot in seconds.')
 
     def get_name(self):
         """ Return the name of the module"""
@@ -897,7 +898,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
             rows.append([ object.get_id(), object.get_description() ])
         print(table(header=['Id', 'Description'], rows=rows))
 
-    def create_new_experiment(self, models_ids, testing_id):
+    def create_new_experiment(self, models_ids, testing_id, timeslotwidth):
         """ Create a new experiment """
         # Generate the new id
         try:
@@ -907,7 +908,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
         # Set the description
         desc = raw_input("Description: ")
         # Create the new object
-        new_experiment = Experiment(new_id, desc)
+        new_experiment = Experiment(new_id, desc, timeslotwidth)
         # Methodology 1. We receive the markov_models ids for the training, and the id of the dataset of the tetsing. (We may not have markov models for the testing. A binetflow file and labels are enough)
         # Add info
         new_experiment.add_models_ids(models_ids)
@@ -962,7 +963,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
             except AttributeError:
                 print_error('You should provide both the ids of the models to use for detection (with -m) and the testing dataset id (with -t).')
                 return False
-            self.create_new_experiment(models_ids, testing_id)
+            self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth)
         elif self.args.delete:
             self.delete_experiment(int(self.args.delete))
         else:
