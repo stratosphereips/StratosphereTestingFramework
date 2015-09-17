@@ -74,7 +74,7 @@ class Dataset(persistent.Persistent):
         try:
             for file in self.files:
                 if file:
-                return fil
+                    return file
         except KeyError:
             print_error('There is no main file in this dataset!')
             return False
