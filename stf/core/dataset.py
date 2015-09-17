@@ -73,8 +73,7 @@ class Dataset(persistent.Persistent):
         """ Returns the name of the first file used to create the dataset. Usually the only one"""
         try:
             for file in self.files:
-                if file:
-                    return file
+                return self.files[file]
         except KeyError:
             print_error('There is no main file in this dataset!')
             return False
@@ -358,11 +357,8 @@ class Datasets(persistent.Persistent):
         print_info("Datasets Available:")
         rows = []
         for dataset in self.datasets.values():
-                main_file = dataset.get_main_file()
-                if main_file:
-                    rows.append([dataset.get_name(), dataset.get_id() , dataset.get_atime() , main_file.get_short_name(), main_file.get_modificationtime(), dataset.get_folder(), True if (self.current and self.current.get_id() == dataset.get_id()) else False, dataset.get_note_id() if dataset.get_note_id() >= 0 else '' ])
-                else:
-                    print_error('The dataset {} does not have a main file?'.format(dataset.get_id()))
+            main_file = dataset.get_main_file()
+            rows.append([dataset.get_name(), dataset.get_id() , dataset.get_atime() , main_file.get_short_name(), main_file.get_modificationtime(), dataset.get_folder(), True if (self.current and self.current.get_id() == dataset.get_id()) else False, dataset.get_note_id() if dataset.get_note_id() >= 0 else '' ])
         print(table(header=['Dataset Name', 'Id', 'Added Time', 'Main File Name', 'Main File Creation Time', 'Folder', 'Current', 'Note'], rows=rows))
 
     def list_files(self):
