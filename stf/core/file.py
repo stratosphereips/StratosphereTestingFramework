@@ -87,6 +87,10 @@ class File(persistent.Persistent):
     def guess_type(self):
         short_name = os.path.split(self.filename)[1]
         extension = short_name.split('.')[-1]
+        if 'xz' in extension:
+            # The file is compressed, but argus can deal with it.
+            if 'biargus' in short_name.split('.')[-2]:
+                extension = 'biargus'
         if 'pcap' in extension:
             self.set_type('pcap')
         elif 'netflow' in extension:
