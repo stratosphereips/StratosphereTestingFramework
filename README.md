@@ -496,6 +496,7 @@ Now stf can import external modules that implement new functionality.
 - For bug reports please fill an issue on the [github page](https://github.com/stratosphereips/StratosphereTestingFramework/issues)
 
 ### TODO
+- When we trim flows from the connections, store the original amount of flows on each connection.
 - When creating a new dataset, copy the README.md file as main note for the dataset
 - Change the name of a dataset
 - In experiments, what happen if the train models can't be trained because the rest of the train models are very stupid???? should we discard them??
