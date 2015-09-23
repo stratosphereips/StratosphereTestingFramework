@@ -101,7 +101,7 @@ class Dataset(persistent.Persistent):
         extension = short_name.split('.')[-1]
         if 'xz' in extension:
             # The file is compressed, but argus can deal with it.
-            if 'biargus' in short_name.split('.')[-2]
+            if 'biargus' in short_name.split('.')[-2]:
                 extension = 'biargus'
         # search for the extensions of the files in the dataset
         for file in self.files:
@@ -180,6 +180,7 @@ class Dataset(persistent.Persistent):
                 self.add_file(binetflow_file_name)
             else:
                 print_error('There was an error with ra.')
+                print ra_error
                 return False
             return True
         else:
