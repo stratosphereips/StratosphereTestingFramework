@@ -496,6 +496,7 @@ Now stf can import external modules that implement new functionality.
 - For bug reports please fill an issue on the [github page](https://github.com/stratosphereips/StratosphereTestingFramework/issues)
 
 ### TODO
+- When creating connections, use filters to create a subset of the connections (so we don't have to delete them later)
 - When we trim flows from the connections, store the original amount of flows on each connection.
 - When creating a new dataset, copy the README.md file as main note for the dataset
 - Change the name of a dataset
