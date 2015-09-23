@@ -99,6 +99,10 @@ class Dataset(persistent.Persistent):
         # We should have only one file per type
         short_name = os.path.split(filename)[1]
         extension = short_name.split('.')[-1]
+        if 'xz' in extension:
+            # The file is compressed, but argus can deal with it.
+            if 'biargus' in short_name.split('.')[-2]
+                extension = 'biargus'
         # search for the extensions of the files in the dataset
         for file in self.files:
             if extension in self.files[file].get_type():
