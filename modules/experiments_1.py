@@ -333,7 +333,7 @@ class TimeSlot(persistent.Persistent):
         except KeyError:
             return ''
 
-    def close(self):
+    def close(self, verbose):
         """ Close the slot """
         #  - Compute the errors (TP, TN, FN, FP) for all the IPs in this time slot.
         for ip in self.ip_dict:
@@ -342,10 +342,12 @@ class TimeSlot(persistent.Persistent):
             ground_truth_label = self.get_ground_truth_label(ip)
             # Compute errors for this ip (and also accumulated)
             ip_error = self.compute_errors(predicted_label, ground_truth_label)
-            print_info('IP: {:16},Ground Truth: {:30}, Predicted: {:30} (at {} letters). Error: {}'.format(ip, ground_truth_label, predicted_label, num_letters, ip_error))
+            if verbose > 1:
+                print_info('IP: {:16},Ground Truth: {:30}, Predicted: {:30} (at {} letters). Error: {}'.format(ip, ground_truth_label, predicted_label, num_letters, ip_error))
         # Compute performance metrics in this time slot
         self.compute_performance_metrics()
-        print_info(cyan('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(self.performance_metrics['FMeasure1'], self.performance_metrics['FPR'],self.performance_metrics['TPR'], self.performance_metrics['TNR'], self.performance_metrics['FNR'], self.performance_metrics['ErrorRate'], self.performance_metrics['Precision'], self.performance_metrics['Accuracy'])))
+        if verbose > 1:
+            print_info(cyan('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(self.performance_metrics['FMeasure1'], self.performance_metrics['FPR'],self.performance_metrics['TPR'], self.performance_metrics['TNR'], self.performance_metrics['FNR'], self.performance_metrics['ErrorRate'], self.performance_metrics['Precision'], self.performance_metrics['Accuracy'])))
         ##raw_input()
 
     def get_performance_metrics(self):
@@ -442,9 +444,10 @@ class Experiment(persistent.Persistent):
     def add_testing_id(self, testing_id):
         self.testing_id = testing_id
 
-    def run(self):
+    def run(self, verbose):
         """ Run the experiment """
         # Train the models
+        self.verbose = verbose
         print_info('Models for detection: {}'.format(self.models_ids))
         group_mm = __group_of_markov_models__
         # This is necessary to get the models correctly from outside the class
@@ -457,7 +460,7 @@ class Experiment(persistent.Persistent):
             return False
         for model_id in self.models_ids:
             #print_warning('Training model {}'.format(model_id))
-            if not group_mm.train(model_id, "", self.models_ids, False):
+            if not group_mm.train(model_id, "", self.models_ids, verbose):
                 print_error('The model {} could not be trained.'.format(model_id))
                 return False
         # Methodology 2. Train the thresholds of the training models between themselves
@@ -487,8 +490,9 @@ class Experiment(persistent.Persistent):
             self.move_windows_in_matched_tuples()
             # We created a slot because the flow is outside the width, so we should close the previous time slot
             # Close the last slot
-            print 'Closing {}. (Time: {})'.format(self.time_slots[-1], datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S'))
-            self.time_slots[-1].close()
+            if self.verbose > 0:
+                print 'Closing {}. (Time: {})'.format(self.time_slots[-1], datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S'))
+            self.time_slots[-1].close(self.verbose)
             # Store the errors in the experiment
             self.add_errors(self.time_slots[-1].get_errors())
         # Add it
@@ -719,7 +723,7 @@ class Experiment(persistent.Persistent):
         # Move the state windows in the tuples that already matched in this time slot. Before closing the time windoows!
         self.move_windows_in_matched_tuples()
         # Methodology 7 Compute the results of the last time slot
-        self.time_slots[-1].close()
+        self.time_slots[-1].close(self.verbose)
         print
         finish_time = datetime.now()
         print_info('Finish Time: {} (Duration: {})'.format(unicode(finish_time), unicode(finish_time - start_time)))
@@ -868,6 +872,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
         self.parser.add_argument('-m', '--models_ids', metavar='models_ids', help='Ids of the models (e.g. Markov Models) to be used when creating a new experiment with -n. Comma separated.')
         self.parser.add_argument('-t', '--testing_id', metavar='testing_id', type=int, help='Dataset id to be used as testing when creating a new experiment with -n.')
         self.parser.add_argument('-T', '--timeslotwidth', default=300, metavar='timeslotwidth', type=int, help='The width of the time slot in seconds.')
+        self.parser.add_argument('-v', '--verbose', default=0, metavar='verbose', type=int, help='How verbose should we be while running the experiment.')
 
     def get_name(self):
         """ Return the name of the module"""
@@ -901,7 +906,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
             rows.append([ object.get_id(), object.get_description() ])
         print(table(header=['Id', 'Description'], rows=rows))
 
-    def create_new_experiment(self, models_ids, testing_id, timeslotwidth):
+    def create_new_experiment(self, models_ids, testing_id, timeslotwidth, verbose):
         """ Create a new experiment """
         # Generate the new id
         try:
@@ -919,7 +924,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
         # Store on DB
         self.main_dict[new_id] = new_experiment
         # Run it
-        new_experiment.run()
+        new_experiment.run(verbose)
 
 
 
@@ -986,7 +991,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
             except AttributeError:
                 print_error('You should provide both the ids of the models to use for detection (with -m) and the testing dataset id (with -t).')
                 return False
-            self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth)
+            self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth, self.args.verbose)
         elif self.args.delete:
             self.delete_experiment(self.args.delete)
         else:
