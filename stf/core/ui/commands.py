@@ -142,7 +142,7 @@ class Commands(object):
         parser.add_argument('-l', '--listgroups', action="store_true", help="List all the groups of  models. If a dataset is selected it only shows the models in that dataset.")
         parser.add_argument('-g', '--generate', action="store_true", help="Generate the models for the current dataset.")
         parser.add_argument('-d', '--deletegroup', metavar="group_model_id", help="Delete a group of models.")
-        parser.add_argument('-D', '--deletemodel', metavar="group_model_id", help="Delete a model from the group. This is the id of the group. Use -i to give the model id to delete (4-tuple) or -f to use a filter.")
+        parser.add_argument('-D', '--deletemodel', metavar="group_model_id", help="Delete a model (4tuple) from this group. With -D give the id of the group. Use -i to give the model id to delete (4-tuple) or -f to use a filter.")
         parser.add_argument('-i', '--modelid', metavar="model_id", help="Use this model id (4-tuple). Commonly used with -D.")
         parser.add_argument('-L', '--listmodels', metavar="group_model_id", help="List the models inside a group. You can use filters.")
         parser.add_argument('-C', '--countmodels', metavar="group_model_id", help="Count the models inside a group.")
