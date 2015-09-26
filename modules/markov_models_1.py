@@ -207,7 +207,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         self.parser.add_argument('-p', '--printstate', metavar='printstate', help='Print the chain of states of all the models included in this markov chain. Give the markov chain id.')
         self.parser.add_argument('-r', '--regenerate', metavar='regenerate', help='Regenerate the markov chain. Usually because more connections were added to the label. Give the markov chain id.')
         self.parser.add_argument('-a', '--generateall', action='store_true', help='Generate the markov chain for all the labels that don\'t have one already')
-        self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the markov models. For example for listing. Keywords: name. Usage: name=<text>. Partial matching.')
+        self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the markov models. For example for listing. Keywords: name, id. Usage: name=<text> name!=<text> or id=23. Partial matching.')
         self.parser.add_argument('-n', '--numberoffflows', metavar='numberofflows', default="3", help='When creating the markov models, this is the minimum number of flows that the connection should have. Less than this and the connection will be ignored. Be default 3.')
         self.parser.add_argument('-t', '--train', metavar='markovmodelid', help='Train the distance threshold for this Markov Model Id. Use -f to filter the list of Markov Models to use in the training. If you specify as Markov Model Id to train the special word \'all\', all the models are trained.')
         self.parser.add_argument('-i', '--train_ids', metavar='train_ids', default="", help='Specify the Ids of the models used for training the model given by -t. Comma separated. If you used -f, then don\'t use -i')
@@ -646,7 +646,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         except AttributeError:
             print_error('No such training id is available')
             return False
-        print_info('Training model: {}. Amount of letters used for training: {}'.format(train_model, 100)) # The 100 is hardcoded. See the number below.
+        if verbose > 0:
+            print_info('Training model: {}. Amount of letters used for training: {}'.format(train_model, 100)) # The 100 is hardcoded. See the number below.
         # To store the training data
         thresholds_train = {}
         for test_model in self.get_markov_models():
@@ -676,7 +677,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 return False
             # Apply the filter and avoid training with itself and only if the protocols match
             if ( (filter != "" and self.apply_filter(test_model)) or (test_models_ids != "" and test_model_id in test_models_ids)) and test_model_id != train_model_id and train_protocol == test_protocol:
-                print_info('\tTraining with model {}'.format(test_model))
+                if verbose > 0:
+                    print_info('\tTraining with model {}'.format(test_model))
                 # Store info about this particular test training. Later stored within the threshold vector
                 # train_vector = [test model id, distance, N flow that matched, errors, errors metrics]
                 train_vector = {}
@@ -718,7 +720,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                         if index > 2 and distance < threshold and distance > 0:
                             # Compute the errors: TP, TN, FP, FN
                             errors = self.compute_errors(train_label, test_label)
-                            if verbose:
+                            if verbose > 0:
                                 print '\t\tTraining with threshold: {}. Distance: {}. Errors: {}'.format(threshold, distance, errors)
                             # Store the info
                             train_vector['Distance'] = distance
@@ -762,15 +764,18 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             current_criteria = threshold[1][criteria]
             # Only  print the best FM1s
             if current_criteria >= best_criteria:
-                print '\t\tThreshold {}: FM1:{:.3f}, FPR:{:.3f}, TPR:{:.3f}, TNR:{:.3f}, FNR:{:.3f}, PPV:{:.3f}, NPV:{:.3f}, Prec:{:.3f}, TP:{}, FP:{}, TN:{}, FN:{}'.format(threshold[0], threshold[1]['FMeasure1'], threshold[1]['FPR'], threshold[1]['TPR'], threshold[1]['TNR'], threshold[1]['FNR'], threshold[1]['PPV'], threshold[1]['NPV'], threshold[1]['Precision'], threshold[1]['TP'], threshold[1]['FP'], threshold[1]['TN'], threshold[1]['FN'])
+                if verbose > 1:
+                    print '\t\tThreshold {}: FM1:{:.3f}, FPR:{:.3f}, TPR:{:.3f}, TNR:{:.3f}, FNR:{:.3f}, PPV:{:.3f}, NPV:{:.3f}, Prec:{:.3f}, TP:{}, FP:{}, TN:{}, FN:{}'.format(threshold[0], threshold[1]['FMeasure1'], threshold[1]['FPR'], threshold[1]['TPR'], threshold[1]['TNR'], threshold[1]['FNR'], threshold[1]['PPV'], threshold[1]['NPV'], threshold[1]['Precision'], threshold[1]['TP'], threshold[1]['FP'], threshold[1]['TN'], threshold[1]['FN'])
                 best_criteria = current_criteria
         # Store the trained threshold for this model
         try:
             train_model.set_threshold(sorted_metrics[0][0])
-            print '\tSelected: {}'.format(red(sorted_metrics[0][0]))
+            if verbose > 0:
+                print '\tSelected: {}'.format(red(sorted_metrics[0][0]))
         except IndexError:
             train_model.set_threshold(-1)
-            print '\tSelected: None. No other models matched.'
+            if verbose > 0:
+                print '\tSelected: None. No other models matched.'
         return True
 
 
