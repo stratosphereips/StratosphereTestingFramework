@@ -864,7 +864,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
         # Example of a parameter with arguments
         self.parser.add_argument('-p', '--printstate', metavar='experiment_id', help='Print some info about the experiment.')
         self.parser.add_argument('-n', '--new', action='store_true', help='Create a new experiment. Use -m to assign the models to use for detection. Use -t to select a testing dataset.')
-        self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete an experiment given the id.')
+        self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete an experiment given the id. You can give a range with -. Ej: -d 10-20')
         self.parser.add_argument('-m', '--models_ids', metavar='models_ids', help='Ids of the models (e.g. Markov Models) to be used when creating a new experiment with -n. Comma separated.')
         self.parser.add_argument('-t', '--testing_id', metavar='testing_id', type=int, help='Dataset id to be used as testing when creating a new experiment with -n.')
         self.parser.add_argument('-T', '--timeslotwidth', default=300, metavar='timeslotwidth', type=int, help='The width of the time slot in seconds.')
@@ -886,7 +886,10 @@ class Group_of_Experiments(Module, persistent.Persistent):
 
 
     def get_experiment(self, id):
-        return self.main_dict[id]
+        try:
+            return self.main_dict[id]
+        except KeyError:
+            return False
 
     def get_experiments(self):
         return self.main_dict.values()
@@ -924,12 +927,32 @@ class Group_of_Experiments(Module, persistent.Persistent):
         """ Deletes an experiment """
         ans = raw_input('Are you sure you want to delete experiment {} (YES/NO)?: '.format(id))
         if ans == "YES":
-            # Get the experiment
-            exp = self.get_experiment(id)
-            # First delete everything inside the experiment
-            exp.delete()
-            # Now delete it from the list of experiments
-            self.main_dict.pop(id)
+            # Is this a range or id?
+            if type(id) == int:
+                # Get the experiment
+                exp = self.get_experiment(id)
+                # First delete everything inside the experiment
+                exp.delete()
+                # Now delete it from the list of experiments
+                self.main_dict.pop(id)
+            elif '-' in id:
+                # is a range
+                try:
+                    start = int(id.split('-')[0])
+                    end = int(id.split('-')[1])
+                    while start<=end:
+                        # Get the experiment
+                        exp = self.get_experiment(start)
+                        if exp:
+                            # First delete everything inside the experiment
+                            exp.delete()
+                            # Now delete it from the list of experiments
+                            self.main_dict.pop(start)
+                        start += 1
+                except ValueError:
+                    print_error('The id of the experiment is invalid.')
+            else:
+                print_error('The id of the experiment is invalid.')
 
     # The run method runs every time that this command is used. Mandatory
     def run(self):
@@ -965,7 +988,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
                 return False
             self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth)
         elif self.args.delete:
-            self.delete_experiment(int(self.args.delete))
+            self.delete_experiment(self.args.delete)
         else:
             print_error('At least one of the parameter is required in this module')
             self.usage()
