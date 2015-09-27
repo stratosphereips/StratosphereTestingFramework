@@ -13,6 +13,7 @@ from multiprocessing import JoinableQueue
 from collections import deque
 import time
 from datetime import datetime
+import re
 
 
 from stf.common.out import *
@@ -37,7 +38,6 @@ class Screen(multiprocessing.Process):
     def __init__(self, qscreen):
         multiprocessing.Process.__init__(self)
         self.qscreen = qscreen
-        # {'tuple':{'y_pos':2, 'color':RED}}
         self.tuples = {}
         self.global_x_pos = 1
         self.y_min = 46
@@ -49,8 +49,6 @@ class Screen(multiprocessing.Process):
             return self.tuples[tuple_id]
         except KeyError:
             # first time for this tuple
-            #self.f.write('New tuple: {}\n'.format(tuple_id))
-            #self.f.flush()
             self.tuples[tuple_id] = {}
             self.tuples[tuple_id]['y_pos'] = self.y_min
             self.tuples[tuple_id]['x_pos'] = self.global_x_pos
@@ -75,7 +73,6 @@ class Screen(multiprocessing.Process):
                     order = self.qscreen.get()
                     #self.logfile.write('Receiving the order'+order+'\n')
                     if order == 'Start':
-                        #print 'Order is start' 
                         stdscr = curses.initscr()
                         curses.savetty()
                         curses.start_color()
@@ -123,15 +120,7 @@ class Screen(multiprocessing.Process):
                         # Update the status bar
                         self.screen.addstr(0,20,tuple_id + "                            ", curses.A_BOLD)
                         self.screen.refresh()
-                        #self.f.write(tuple_id)
-                        #self.f.write('\n')
-                        #self.f.write(str(tuple['x_pos']))
-                        #self.f.write('\n')
-                        #self.f.write(str(tuple['y_pos']))
-                        #self.f.write('\n')
-                        #self.f.write(state)
-                        #self.f.write('\n\n')
-                        #self.f.flush()
+                        #self.screen.addstr(int(tuple['x_pos']), int(tuple['y_pos']), state, tuple['color'] | curses.A_BOLD)
                         self.screen.addstr(int(tuple['x_pos']), int(tuple['y_pos']), state, tuple['color'])
                         #tuple['y_pos'] += len(state)
                         self.screen.refresh()
@@ -170,6 +159,7 @@ class Visualizations(Module):
         # Example of a parameter without arguments
         self.parser.add_argument('-v', '--visualize', metavar='datasetid', help='Visualize the connections in this dataset.')
         self.parser.add_argument('-x', '--multiplier', metavar='multiplier', type=float, default=0.0, help='Speed multiplier. 2 is twice, 3 is trice. -1 means to wait an equidistance but fake amount of time.')
+        self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the connections to show. Keywords: name. Usage: name=<text> name!=<text>.  Partial matching.')
         # A local list of models
         self.models = {}
 
@@ -195,7 +185,7 @@ class Visualizations(Module):
     def get_objects(self):
         return self.main_dict.values()
 
-    def visualize_dataset(self, dataset_id, multiplier):
+    def visualize_dataset(self, dataset_id, multiplier, filter):
         # Get the netflow file
         self.dataset = __datasets__.get_dataset(dataset_id)
         try:
@@ -203,16 +193,15 @@ class Visualizations(Module):
         except AttributeError:
             print_error('That testing dataset does no seem to exist.')
             return False
-        self.process_netflow(multiplier)
-
-    def process_netflow(self, multiplier):
-        """ Get a netflow file and process it for testing """
+        # Open the file
         try:
             file = open(self.binetflow_file.get_name(), 'r')
             self.setup_screen()
         except IOError:
             print_error('The binetflow file is not present in the system.')
             return False
+        # construct filter
+        self.construct_filter(filter)
         # Clean the previous models from the constructor
         __modelsconstructors__.get_default_constructor().clean_models()
         # Remove the header
@@ -226,11 +215,14 @@ class Visualizations(Module):
         while line:
             # Using our own extract_columns function makes this module more independent
             column_values = self.extract_columns_values(line)
-            #print_warning('Netflow: {}'.format(line))
             # Extract its 4-tuple. Find (or create) the tuple object
             tuple4 = column_values['SrcAddr']+'-'+column_values['DstAddr']+'-'+column_values['Dport']+'-'+column_values['Proto']
             # Get the _local_ model. We don't want to mess with the real models in the database, but we need the structure to get the state
             model = self.get_model(tuple4)
+            # filter
+            if not self.apply_filter(tuple4):
+                line = ','.join(file.readline().strip().split(',')[:14])
+                continue
             if not model:
                 model = Model(tuple4)
                 self.set_model(model)
@@ -382,6 +374,80 @@ class Visualizations(Module):
             column_values['Label'] = original_values[-1]
         return column_values
 
+    def construct_filter(self, filter):
+        """ Get the filter string and decode all the operations """
+        # If the filter string is empty, delete the filter variable
+        if not filter:
+            try:
+                del self.filter 
+            except:
+                pass
+            return True
+        self.filter = []
+        # Get the individual parts. We only support and's now.
+        for part in filter:
+            # Get the key
+            try:
+                key = re.split('<|>|=|\!=', part)[0]
+                value = re.split('<|>|=|\!=', part)[1]
+            except IndexError:
+                # No < or > or = or != in the string. Just stop.
+                break
+            try:
+                part.index('<')
+                operator = '<'
+            except ValueError:
+                pass
+            try:
+                part.index('>')
+                operator = '>'
+            except ValueError:
+                pass
+            # We should search for != before =
+            try:
+                part.index('!=')
+                operator = '!='
+            except ValueError:
+                # Now we search for =
+                try:
+                    part.index('=')
+                    operator = '='
+                except ValueError:
+                    pass
+            self.filter.append((key, operator, value))
+
+    def apply_filter(self, tuple4):
+        """ Use the stored filter to know what we should match"""
+        responses = []
+        try:
+            self.filter
+        except AttributeError:
+            # If we don't have any filter string, just return true and show everything
+            return True
+        # Check each filter
+        for filter in self.filter:
+            key = filter[0]
+            operator = filter[1]
+            value = filter[2]
+            if key == 'name':
+                # For filtering based on the label assigned to the model with stf (contrary to the flow label)
+                if operator == '=':
+                    if value in tuple4:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if value not in tuple4:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            else:
+                return False
+        for response in responses:
+            if not response:
+                return False
+        return True
+
     def setup_screen(self):
         # Create the queue             
         self.qscreen = JoinableQueue()
@@ -418,7 +484,7 @@ class Visualizations(Module):
 
         # Process the command line and call the methods. Here add your own parameters
         if self.args.visualize:
-            self.visualize_dataset(int(self.args.visualize), self.args.multiplier)
+            self.visualize_dataset(int(self.args.visualize), self.args.multiplier, self.args.filter)
         else:
             print_error('At least one of the parameter is required in this module')
             self.usage()
