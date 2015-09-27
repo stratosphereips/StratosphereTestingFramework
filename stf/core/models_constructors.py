@@ -23,9 +23,10 @@ class Model_Constructor(object):
         self.threshold_size_2 = False
         self.threshold_timeout = False
         self.use_multiples_timeouts = True
-
         self.models = {}
-      
+     
+    def clean_models(self):
+        self.models = {}
 
     def del_model(self, model_id):
         """ Delete this model from the list of models used by this constructor. This allow us to regenerate the state of a model without problems """
@@ -33,7 +34,6 @@ class Model_Constructor(object):
             self.models.pop(model_id)
         except KeyError:
             print_error('There is no such model {} in the constructor to delete.'.format(model_id))
-
 
     def set_name(self,name):
         self.name = name  
