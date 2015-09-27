@@ -40,43 +40,32 @@ class Screen(multiprocessing.Process):
         # {'tuple':{'y_pos':2, 'color':RED}}
         self.tuples = {}
         self.global_x_pos = 1
-        self.y_min = 42
+        self.y_min = 46
         self.f = open('log2','w')
 
     def get_tuple(self, tuple_id):
         """ Get a tuple, return its dict """
         try:
-            try:
-                return self.tuples[tuple_id]
-            except KeyError:
-                # first time for this tuple
-                self.f.write('New tuple: {}\n'.format(tuple_id))
-                self.f.flush()
-                self.tuples[tuple_id] = {}
-                self.tuples[tuple_id]['y_pos'] = self.y_min
-                self.tuples[tuple_id]['x_pos'] = self.global_x_pos
-                self.global_x_pos += 1
-                if 'tcp' in tuple_id.lower():
-                    self.tuples[tuple_id]['color'] = curses.color_pair(1)
-                elif 'udp' in tuple_id.lower():
-                    self.tuples[tuple_id]['color'] = curses.color_pair(2)
-                elif 'icmp' in tuple_id.lower():
-                    self.tuples[tuple_id]['color'] = curses.color_pair(3)
-                else:
-                    self.tuples[tuple_id]['color'] = curses.color_pair(4)
-                # print the tuple
-                self.screen.addstr(self.tuples[tuple_id]['x_pos'],0, tuple_id)
-                return self.tuples[tuple_id]
-        except Exception as inst:
-            curses.curs_set(1)
-            curses.nocbreak()
-            self.screen.keypad(0)
-            curses.echo()
-            print '\tProblem with get_tuple()'
-            print type(inst)     # the exception instance
-            print inst.args      # arguments stored in .args
-            print inst           # __str__ allows args to printed directly
-            sys.exit(1)
+            return self.tuples[tuple_id]
+        except KeyError:
+            # first time for this tuple
+            #self.f.write('New tuple: {}\n'.format(tuple_id))
+            #self.f.flush()
+            self.tuples[tuple_id] = {}
+            self.tuples[tuple_id]['y_pos'] = self.y_min
+            self.tuples[tuple_id]['x_pos'] = self.global_x_pos
+            self.global_x_pos += 1
+            if 'tcp' in tuple_id.lower():
+                self.tuples[tuple_id]['color'] = curses.color_pair(1)
+            elif 'udp' in tuple_id.lower():
+                self.tuples[tuple_id]['color'] = curses.color_pair(2)
+            elif 'icmp' in tuple_id.lower():
+                self.tuples[tuple_id]['color'] = curses.color_pair(3)
+            else:
+                self.tuples[tuple_id]['color'] = curses.color_pair(4)
+            # print the tuple
+            self.screen.addstr(self.tuples[tuple_id]['x_pos'],0, tuple_id)
+            return self.tuples[tuple_id]
 
     def run(self):
         try:
@@ -88,6 +77,7 @@ class Screen(multiprocessing.Process):
                     if order == 'Start':
                         #print 'Order is start' 
                         stdscr = curses.initscr()
+                        curses.savetty()
                         curses.start_color()
                         curses.use_default_colors()
                         self.screen = stdscr
@@ -107,13 +97,16 @@ class Screen(multiprocessing.Process):
                         self.qscreen.task_done()
 
                     elif order == 'Stop':
-                        #print 'Order is stop' 
-                        curses.curs_set(1)
+                        self.screen.addstr(0,0, 'Press any key to go back to stf screen...                                                                   ', curses.A_BOLD)
+                        self.screen.getstr(0,0, 15)
                         curses.nocbreak()
                         self.screen.keypad(0)
                         curses.echo()
-                        self.qscreen.task_done()
+                        curses.curs_set(1)
+                        stdscr.refresh()
                         # close
+                        self.qscreen.task_done()
+                        curses.resetty()
                         self.f.close()
                         return
                     else:
@@ -130,21 +123,26 @@ class Screen(multiprocessing.Process):
                         # Update the status bar
                         self.screen.addstr(0,20,tuple_id + "                            ", curses.A_BOLD)
                         self.screen.refresh()
-                        self.f.write(tuple_id)
-                        self.f.write('\n')
-                        self.f.write(str(tuple['x_pos']))
-                        self.f.write('\n')
-                        self.f.write(str(tuple['y_pos']))
-                        self.f.write('\n')
-                        self.f.write(state)
-                        self.f.write('\n\n')
-                        self.f.flush()
+                        #self.f.write(tuple_id)
+                        #self.f.write('\n')
+                        #self.f.write(str(tuple['x_pos']))
+                        #self.f.write('\n')
+                        #self.f.write(str(tuple['y_pos']))
+                        #self.f.write('\n')
+                        #self.f.write(state)
+                        #self.f.write('\n\n')
+                        #self.f.flush()
                         self.screen.addstr(int(tuple['x_pos']), int(tuple['y_pos']), state, tuple['color'])
                         #tuple['y_pos'] += len(state)
                         self.screen.refresh()
                         self.qscreen.task_done()
         except KeyboardInterrupt:
-            print 'Screen stopped.'
+            curses.nocbreak()
+            self.screen.keypad(0)
+            curses.echo()
+            curses.curs_set(1)
+            curses.resetty()
+            self.screen.refresh()
         except Exception as inst:
             print '\tProblem with Screen()'
             print type(inst)     # the exception instance
@@ -204,12 +202,16 @@ class Visualizations(Module):
         except AttributeError:
             print_error('That testing dataset does no seem to exist.')
             return False
-        #print_info('\nVisualizing the connections in the netflow file: {}'.format(self.binetflow_file.get_name()))
         self.process_netflow()
 
     def process_netflow(self):
         """ Get a netflow file and process it for testing """
-        file = open(self.binetflow_file.get_name(), 'r')
+        try:
+            file = open(self.binetflow_file.get_name(), 'r')
+            self.setup_screen()
+        except IOError:
+            print_error('The binetflow file is not present in the system.')
+            return False
         # Remove the header
         header_line = file.readline().strip()
         # Find the separation character
@@ -217,7 +219,7 @@ class Visualizations(Module):
         # Extract the columns names
         self.find_columns_names(header_line)
         line = ','.join(file.readline().strip().split(',')[:14])
-        logfile = open('log','w')
+        #logfile = open('log','w')
         while line:
             # Using our own extract_columns function makes this module more independent
             column_values = self.extract_columns_values(line)
@@ -268,14 +270,14 @@ class Visualizations(Module):
             # Add the flow
             model.add_flow(flow)
             # Log the info
-            logfile.write(model.get_id())
-            logfile.write(': ')
-            try:
-                logfile.write(model.get_state()[-2])
-            except IndexError:
-                logfile.write(model.get_state()[-1])
-            logfile.write('\n')
-            logfile.flush()
+            #logfile.write(model.get_id())
+            #logfile.write(': ')
+            #try:
+            #    logfile.write(model.get_state()[-2])
+            #except IndexError:
+            #    logfile.write(model.get_state()[-1])
+            #logfile.write('\n')
+            #logfile.flush()
             # Visualize this model
             self.qscreen.put(model)
             #try:
@@ -284,10 +286,16 @@ class Visualizations(Module):
                 #self.qscreen.put((model.get_id(), model.get_state()[-1]))
             time.sleep(0.1)
             line = ','.join(file.readline().strip().split(',')[:14])
-        logfile.close()
+        self.qscreen.put('Stop')
+        file.close()
+        self.clean_models()
+        #logfile.close()
 
     def set_model(self, model):
         self.models[model.get_id()] = model
+
+    def clean_models(self):
+        self.models = {}
 
     def get_model(self, tuple_id):
         try:
@@ -409,11 +417,7 @@ class Visualizations(Module):
 
         # Process the command line and call the methods. Here add your own parameters
         if self.args.visualize:
-            self.setup_screen()
-            try:
-                self.visualize_dataset(int(self.args.visualize))
-            except KeyboardInterrupt:
-                self.qscreen.put('Stop')
+            self.visualize_dataset(int(self.args.visualize))
         else:
             print_error('At least one of the parameter is required in this module')
             self.usage()
