@@ -57,13 +57,13 @@ class Screen(multiprocessing.Process):
                 self.tuples[tuple_id]['x_pos'] = self.global_x_pos
                 self.global_x_pos += 1
                 if 'tcp' in tuple_id.lower():
-                    self.tuples[tuple_id]['color'] = 1
+                    self.tuples[tuple_id]['color'] = curses.color_pair(1)
                 elif 'udp' in tuple_id.lower():
-                    self.tuples[tuple_id]['color'] = 2
+                    self.tuples[tuple_id]['color'] = curses.color_pair(2)
                 elif 'icmp' in tuple_id.lower():
-                    self.tuples[tuple_id]['color'] = 3
+                    self.tuples[tuple_id]['color'] = curses.color_pair(3)
                 else:
-                    self.tuples[tuple_id]['color'] = 4
+                    self.tuples[tuple_id]['color'] = curses.color_pair(4)
                 # print the tuple
                 self.screen.addstr(self.tuples[tuple_id]['x_pos'],0, tuple_id)
                 return self.tuples[tuple_id]
@@ -102,7 +102,7 @@ class Screen(multiprocessing.Process):
                         self.screen.keypad(1)
                         # curses.curs_set. 0 means invisible cursor, 1 visible, 2 very visible
                         curses.curs_set(0)
-                        self.screen.addstr(0,0, 'Live Stream')
+                        self.screen.addstr(0,0, 'Live Stream', curses.A_BOLD)
                         self.screen.refresh()
                         self.qscreen.task_done()
 
@@ -126,11 +126,9 @@ class Screen(multiprocessing.Process):
                         tuple_id = orig_tuple.get_id()
                         # Get the amount of letters that fit on the screen
                         state = orig_tuple.get_state()[-(y_max-self.y_min):]
-                        #(tuple, state) = order
                         tuple = self.get_tuple(tuple_id)
-                        # Max and min of the screen
                         # Update the status bar
-                        self.screen.addstr(0,20,tuple_id)
+                        self.screen.addstr(0,20,tuple_id + "                            ", curses.A_BOLD)
                         self.screen.refresh()
                         self.f.write(tuple_id)
                         self.f.write('\n')
@@ -141,8 +139,7 @@ class Screen(multiprocessing.Process):
                         self.f.write(state)
                         self.f.write('\n\n')
                         self.f.flush()
-                        #self.screen.addstr(int(tuple['x_pos']), int(tuple['y_pos']), state, tuple['color'])
-                        self.screen.addstr(int(tuple['x_pos']), int(tuple['y_pos']), state, 1)
+                        self.screen.addstr(int(tuple['x_pos']), int(tuple['y_pos']), state, tuple['color'])
                         #tuple['y_pos'] += len(state)
                         self.screen.refresh()
                         self.qscreen.task_done()
@@ -417,8 +414,6 @@ class Visualizations(Module):
                 self.visualize_dataset(int(self.args.visualize))
             except KeyboardInterrupt:
                 self.qscreen.put('Stop')
-                sys.exit(1)
-
         else:
             print_error('At least one of the parameter is required in this module')
             self.usage()
