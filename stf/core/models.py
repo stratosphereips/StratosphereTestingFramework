@@ -25,6 +25,16 @@ class Model(persistent.Persistent):
     def get_id(self):
         return self.id
 
+    def add_last_flow_time(self,time):
+        """ Used to compute during visualizations the time to wait """
+        self.last_flow_time = time
+
+    def get_last_flow_time(self):
+        try:
+            return self.last_flow_time
+        except AttributeError:
+            return False
+
     def add_flow(self,flow):
         """ Get a flow and generate a state to store"""
         state = self.constructor.get_state(flow, self.get_id())
