@@ -486,6 +486,7 @@ You can check that this was successful by inspecting the connections with ```con
 - You can filter by trainname, testname and distance in the detection_1 module.
 - You can delete labels by range of ids.
 - Only compare models when the upper most protocol matche. TCP with TCP, UDP with UDP, ICMP with ICMP.
+- The experiments can be deleted by range of values.
 
 ## Modules
 Now stf can import external modules that implement new functionality.
