@@ -97,13 +97,20 @@ class Model(persistent.Persistent):
         except AttributeError:
             # No label name? ok.. carry on
             pass
+    def warn_labels(self):
+        labelid = self.get_label_id()
+        if labelid:
+            print_warning('The label {} should be deleted by hand if not used anymore.'.format(self.get_label_id()))
 
     def set_label_id(self, label_id):
         """ Set the label id"""
         self.label_id = label_id
 
     def get_label_id(self):
-        return self.label_id
+        try:
+            return self.label_id
+        except AttributeError:
+            return False
 
     def set_label_name(self, name):
         """ Set the label name. We know that this is not ok and we should only store the label id, but we can not cross import modules, so this is the best way I know how to solve it"""
@@ -341,6 +348,8 @@ class Group_of_Models(persistent.Persistent):
             model.constructor.del_model(model_id)
             # Delete the notes in the model
             model.del_note()
+            # Say that the labels should be deleted by hand
+            model.warn_labels()
             # Now delete the model
             self.models.pop(model_id)
             return True
@@ -500,7 +509,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
             print(table(header=['Group of Model Id', 'Constructor ID', 'Amount of Models', 'Dataset Id', 'Dataset Name'], rows=rows))
 
     def delete_group_of_models(self, id):
-        """Get the id of a dataset and delete all the models that were generated from it"""
+        """Get the id of a group of models and delete it"""
         try:
             # Get the group
             group = self.group_of_models[id]
