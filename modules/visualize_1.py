@@ -12,6 +12,7 @@ from multiprocessing import Queue
 from multiprocessing import JoinableQueue
 from collections import deque
 import time
+from datetime import datetime
 
 
 from stf.common.out import *
@@ -26,7 +27,6 @@ from stf.core.database import __database__
 from stf.core.connections import Flow
 from modules.experiments_1 import Tuple
 from stf.core.models import Model
-
 
 
 ######################
@@ -169,6 +169,7 @@ class Visualizations(Module):
         super(Visualizations, self).__init__()
         # Example of a parameter without arguments
         self.parser.add_argument('-v', '--visualize', metavar='datasetid', help='Visualize the connections in this dataset.')
+        self.parser.add_argument('-x', '--multiplier', metavar='multiplier', type=float, default=0.0, help='Speed multiplier. 2 is twice, 3 is trice. -1 means to wait an equidistance but fake amount of time.')
         # A local list of models
         self.models = {}
 
@@ -194,7 +195,7 @@ class Visualizations(Module):
     def get_objects(self):
         return self.main_dict.values()
 
-    def visualize_dataset(self, dataset_id):
+    def visualize_dataset(self, dataset_id, multiplier):
         # Get the netflow file
         self.dataset = __datasets__.get_dataset(dataset_id)
         try:
@@ -202,9 +203,9 @@ class Visualizations(Module):
         except AttributeError:
             print_error('That testing dataset does no seem to exist.')
             return False
-        self.process_netflow()
+        self.process_netflow(multiplier)
 
-    def process_netflow(self):
+    def process_netflow(self, multiplier):
         """ Get a netflow file and process it for testing """
         try:
             file = open(self.binetflow_file.get_name(), 'r')
@@ -212,6 +213,8 @@ class Visualizations(Module):
         except IOError:
             print_error('The binetflow file is not present in the system.')
             return False
+        # Clean the previous models from the constructor
+        __modelsconstructors__.get_default_constructor().clean_models()
         # Remove the header
         header_line = file.readline().strip()
         # Find the separation character
@@ -269,26 +272,24 @@ class Visualizations(Module):
                 pass
             # Add the flow
             model.add_flow(flow)
-            # Log the info
-            #logfile.write(model.get_id())
-            #logfile.write(': ')
-            #try:
-            #    logfile.write(model.get_state()[-2])
-            #except IndexError:
-            #    logfile.write(model.get_state()[-1])
-            #logfile.write('\n')
-            #logfile.flush()
+            # As fast as we can or with some delay?
+            if multiplier != 0.0 and multiplier != -1:
+                # Wait some time between flows. 
+                last_time = model.get_last_flow_time()
+                current_time = datetime.strptime(column_values['StartTime'], '%Y/%m/%d %H:%M:%S.%f')
+                if last_time:
+                    diff = current_time - last_time
+                    wait_time = diff.total_seconds()
+                    time.sleep(wait_time / multiplier)
+                model.add_last_flow_time(current_time)
+                # Wait the necessary time. After the visualization
+            elif multiplier == -1:
+                time.sleep(0.1)
             # Visualize this model
             self.qscreen.put(model)
-            #try:
-                #self.qscreen.put((model.get_id(), model.get_state()[-2:]))
-            #except IndexError:
-                #self.qscreen.put((model.get_id(), model.get_state()[-1]))
-            time.sleep(0.1)
             line = ','.join(file.readline().strip().split(',')[:14])
         self.qscreen.put('Stop')
         file.close()
-        self.clean_models()
         #logfile.close()
 
     def set_model(self, model):
@@ -417,7 +418,7 @@ class Visualizations(Module):
 
         # Process the command line and call the methods. Here add your own parameters
         if self.args.visualize:
-            self.visualize_dataset(int(self.args.visualize))
+            self.visualize_dataset(int(self.args.visualize), self.args.multiplier)
         else:
             print_error('At least one of the parameter is required in this module')
             self.usage()
