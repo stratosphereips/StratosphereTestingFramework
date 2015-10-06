@@ -639,6 +639,9 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             # When calling this function from other modules, can be a vector
             else:
                 test_models_ids = map(int, test_ids)
+        else:
+            print_error('No test ids were specified using a filter or a number.')
+            return False
         train_model = self.get_markov_model(model_id_to_train)
         # Check that the train model id exists
         try:
