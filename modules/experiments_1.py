@@ -549,7 +549,11 @@ class Experiment(persistent.Persistent):
 
     def process_netflow_for_testing(self):
         """ Get a netflow file and process it for testing """
-        file = open(self.file_obj.get_name(), 'r')
+        try:
+            file = open(self.file_obj.get_name(), 'r')
+        except IOError:
+            print_error('It was not possible to open the test file. Is it on the current file system?')
+            return False
         # Remove the header
         header_line = file.readline().strip()
         # Find the separation character
@@ -669,16 +673,17 @@ class Experiment(persistent.Persistent):
                 # Letters for the train model. They should not be 'cut' like the test ones. Train models should be complete.
                 #train_sequence = training_models[model_training_id]['model_training'].get_state()[0:tuple.get_amount_of_flows()]
                 train_sequence = training_models[model_training_id]['model_training'].get_state()[tuple.get_min_state_len():tuple.get_amount_of_flows()]
-                ##print_info('Trai Seq: {}'.format(train_sequence))
-                ##print_info('Test Seq: {}'.format(tuple.get_state_so_far()))
                 # First re-create the matrix only for this sequence
                 training_models[model_training_id]['model_training'].create(train_sequence)
                 # Get the new original prob so far...
                 training_original_prob = training_models[model_training_id]['model_training'].compute_probability(train_sequence)
-                ##print_info('\tTrain prob: {}'.format(training_original_prob))
                 # Now obtain the probability for testing
                 test_prob = training_models[model_training_id]['model_training'].compute_probability(tuple.get_state_so_far())
-                ##print_info('\tTest prob: {}'.format(test_prob))
+                if self.verbose > 4:
+                    print_info('Trai Seq: {}'.format(train_sequence))
+                    print_info('Test Seq: {}'.format(tuple.get_state_so_far()))
+                    #print_info('\tTrain prob: {}'.format(training_original_prob))
+                    #print_info('\tTest prob: {}'.format(test_prob))
                 # Get the distance
                 prob_distance = -1
                 if training_original_prob != -1 and test_prob != -1 and training_original_prob <= test_prob:
@@ -701,7 +706,8 @@ class Experiment(persistent.Persistent):
                         time_slot.set_winner_model_id_for_ip(tuple.get_src_ip(), model_training_id)
                         time_slot.set_winner_model_distance_for_ip(tuple.get_src_ip(), prob_distance)
                         color=red
-                ##print_info(color('\tDistance to model id {:6}, {:50} (thres: {}):\t{}'.format(model_training_id, training_models[model_training_id]['labelname'], training_models[model_training_id]['threshold'], prob_distance)))
+                if self.verbose >3:
+                    print_info(color('\tDistance to model id {:6}, {:50} (thres: {}):\t{}'.format(model_training_id, training_models[model_training_id]['labelname'], training_models[model_training_id]['threshold'], prob_distance)))
             # If there is a winning model, just assign it.
             if time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()):
                 #print_info('Winner model for IP {}: {} ({}) with distance {}'.format(tuple.get_src_ip(), time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()), training_models[time_slot.get_winner_model_id_for_ip(tuple.get_src_ip())]['labelname'], time_slot.get_winner_model_distance_for_ip(tuple.get_src_ip())))
