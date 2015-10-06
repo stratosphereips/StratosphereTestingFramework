@@ -350,9 +350,9 @@ class TimeSlot(persistent.Persistent):
                 print_info('IP: {:16},Ground Truth: {:30}, Predicted: {:30} (at {} letters). Error: {}'.format(ip, ground_truth_label, predicted_label, num_letters, ip_error))
         # Compute performance metrics in this time slot
         self.compute_performance_metrics()
-        if verbose > 1:
+        if verbose > 0:
             print_info(cyan('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(self.performance_metrics['FMeasure1'], self.performance_metrics['FPR'],self.performance_metrics['TPR'], self.performance_metrics['TNR'], self.performance_metrics['FNR'], self.performance_metrics['ErrorRate'], self.performance_metrics['Precision'], self.performance_metrics['Accuracy'])))
-            print('*New time slot*')
+            #print('*New time slot*')
         ##raw_input()
 
     def get_performance_metrics(self):
@@ -490,13 +490,15 @@ class Experiment(persistent.Persistent):
                 return slot
         # Methodology 4.4. The first flow case and the case where the flow should be in a new flow because it is outside the last slot. All in one!
         new_slot = TimeSlot(starttime, self.time_slot_width)
+        if self.verbose > 0:
+            print('Starting {}'.format(new_slot))
         if self.time_slots:
             # Move the state windows in the tuples that already matched in this time slot. Before closing the time windoows!
             self.move_windows_in_matched_tuples()
             # We created a slot because the flow is outside the width, so we should close the previous time slot
             # Close the last slot
             if self.verbose > 0:
-                print 'Closing {}. (Time: {})'.format(self.time_slots[-1], datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S'))
+                print 'Closing  {}. (Time: {})'.format(self.time_slots[-1], datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S'))
             self.time_slots[-1].close(self.verbose)
             # Store the errors in the experiment
             self.add_errors(self.time_slots[-1].get_errors())
