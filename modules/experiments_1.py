@@ -91,9 +91,13 @@ class Tuple(object):
 
     def add_new_flow(self, column_values):
         """ Add new stuff about the flow in this tuple """
+        # The time stored is the time of the last netflow assigned
         self.datetime = column_values['StartTime']
         self.proto = column_values['Proto']
         self.amount_of_flows += 1
+
+    def get_last_time(self):
+        return self.datetime
 
     def get_ground_truth_label(self):
         """ Compute the new ground_truth_label and return it """
@@ -608,7 +612,7 @@ class Experiment(persistent.Persistent):
             if tuple.get_ground_truth_label():
                 time_slot.set_ground_truth_label_for_ip(tuple.get_src_ip(), tuple.get_ground_truth_label())
                 if self.verbose > 3:
-                    print_info('\t\tSetting the ground truth label for IP {}: {} (tuple {})'.format(tuple.get_src_ip(), tuple.get_ground_truth_label(), tuple.get_id()))
+                    print_info('\t\tSetting the ground truth label for IP {}: {} (tuple {}) (Time: {})'.format(tuple.get_src_ip(), tuple.get_ground_truth_label(), tuple.get_id(), tuple.get_last_time()))
             # Methodology 4.4 Get the letter for this flow. i.e. find the model we have stored for this test tuple.
             model = group_of_models.get_model(tuple.get_id())
             if model:
@@ -709,7 +713,7 @@ class Experiment(persistent.Persistent):
                         time_slot.set_winner_model_distance_for_ip(tuple.get_src_ip(), prob_distance)
                         color=red
                 if self.verbose >3:
-                    print_info(color('\tDistance to model id {:6}, {:50} (thres: {}):\t{}'.format(model_training_id, training_models[model_training_id]['labelname'], training_models[model_training_id]['threshold'], prob_distance)))
+                    print_info(color('\tTuple {}. Distance to model id {:6}, {:50} (thres: {}):\t{}'.format(tuple.get_id(), model_training_id, training_models[model_training_id]['labelname'], training_models[model_training_id]['threshold'], prob_distance)))
             # If there is a winning model, just assign it.
             if time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()):
                 #print_info('Winner model for IP {}: {} ({}) with distance {}'.format(tuple.get_src_ip(), time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()), training_models[time_slot.get_winner_model_id_for_ip(tuple.get_src_ip())]['labelname'], time_slot.get_winner_model_distance_for_ip(tuple.get_src_ip())))
