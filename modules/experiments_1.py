@@ -700,9 +700,7 @@ class Experiment(persistent.Persistent):
                 if self.verbose > 4:
                     print_info('\tTraining Seq: {}'.format(train_sequence))
                     print_info('\tTesting  Seq: {}'.format(tuple.get_state_so_far()))
-                    print_info('\tTrain prob: {}'.format(training_original_prob))
-                    print_info('\tTest prob: {}'.format(test_prob))
-                    print_info('\tDistance: {}'.format(prob_distance))
+                    print_info('\tTrain prob: {}. Test prob: {}. Distance: {}'.format(training_original_prob, test_prob, prob_distance))
                 # Methodology 4.6. Decide upon a winner model.
                 # Is the probability just computed for this model lower than the threshold for that same model?
                 color=cyan
