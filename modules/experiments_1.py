@@ -41,6 +41,8 @@ class Tuple(object):
         self.src_ip = tuple4.split('-')[0]
         # The ground truth label is assigned only once, because it will not change for the same tuple
         self.ground_truth_label_id = __group_of_labels__.search_connection_in_label(tuple4, dataset_id)
+        print tuple4, dataset_id
+        print self.ground_truth_label_id
         # It could be that the tuple does not have a ground truth label
         if self.ground_truth_label_id:
             self.ground_truth_label = __group_of_labels__.get_label_name_by_id(self.ground_truth_label_id)
