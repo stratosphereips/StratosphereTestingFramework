@@ -121,6 +121,7 @@ class Screen(multiprocessing.Process):
                         self.screen.addstr(0,20,tuple_id + "                            ", curses.A_BOLD)
                         self.screen.refresh()
                         #self.screen.addstr(int(tuple['x_pos']), int(tuple['y_pos']), state, tuple['color'] | curses.A_BOLD)
+                        #if int(tuple['x_pos']) <= xmax:
                         self.screen.addstr(int(tuple['x_pos']), int(tuple['y_pos']), state, tuple['color'])
                         #tuple['y_pos'] += len(state)
                         self.screen.refresh()
