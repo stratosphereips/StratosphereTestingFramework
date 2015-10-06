@@ -678,7 +678,8 @@ class Experiment(persistent.Persistent):
                 if test_proto != train_proto:
                     continue
                 # Letters for the train model. They should not be 'cut' like the test ones. Train models should be complete.
-                train_sequence = training_models[model_training_id]['model_training'].get_state()[tuple.get_min_state_len():tuple.get_amount_of_flows()]
+                train_sequence = training_models[model_training_id]['model_training'].get_state()[0:tuple.get_amount_of_flows()]
+                #train_sequence = training_models[model_training_id]['model_training'].get_state()[tuple.get_min_state_len():tuple.get_amount_of_flows()]
                 # First re-create the matrix only for this sequence
                 training_models[model_training_id]['model_training'].create(train_sequence)
                 # Get the new original prob so far...
