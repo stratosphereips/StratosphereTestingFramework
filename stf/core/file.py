@@ -26,19 +26,22 @@ class File(persistent.Persistent):
         self.guess_type()
 
     def get_size_in_megabytes(self):
-        try:
-            size = self.size
-        except (AttributeError, TypeError):
-            if not self.compute_size():
-                # We can't even compute the size
-                return "No data"
-        return str(self.size / 1024.0 / 1024.0)+' MB'
+        size = self.get_size()
+        if size:
+            return str(size / 1024.0 / 1024.0)+' MB'
+        # We can't even compute the size
+        return "No data"
 
     def get_size(self):
         try:
             size = self.size
         except (AttributeError, TypeError):
-            self.compute_size()
+            size = self.compute_size()
+            if size:
+                self.size = size
+            else:
+                # Could not be computed
+                return False
         return self.size
 
     def set_duration(self,duration):
@@ -60,9 +63,9 @@ class File(persistent.Persistent):
         try:
             size = os.path.getsize(self.get_name())
         except OSError:
-            print_error('The pcap file is not available in your disk.')
+            print_error('The file is not available in your disk.')
             return False
-        self.size = size
+        return size
 
     def get_id(self):
         return self.id
@@ -217,9 +220,12 @@ class File(persistent.Persistent):
         rows.append(['Creation Time', self.get_modificationtime()])
 
         # Get the file size
-        if not self.get_size():
-            self.compute_size()
-        rows.append(['Size', str(self.get_size()/1024.0/1024)+' MB'])
+        #if not self.get_size():
+            #self.compute_size()
+        size = self.get_size()
+        if not size:
+            return False
+        rows.append(['Size', str(size/1024.0/1024)+' MB'])
 
         # Get more info from pcap files
         if 'pcap' in self.get_type():
