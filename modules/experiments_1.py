@@ -592,7 +592,8 @@ class Experiment(persistent.Persistent):
         while line:
             # Using our own extract_columns function makes this module more independent
             column_values = self.extract_columns_values(line)
-            ##print_warning('Netflow: {}'.format(line))
+            if self.verbose > 5:
+                print_warning('Netflow: {}'.format(line))
             # Methodology 4.1. Extract its 4-tuple. Find (or create) the tuple object
             tuple4 = column_values['SrcAddr']+'-'+column_values['DstAddr']+'-'+column_values['Dport']+'-'+column_values['Proto']
             # Get the old tuple object for it, or get a new tuple object
