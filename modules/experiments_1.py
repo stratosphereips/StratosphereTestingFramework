@@ -678,7 +678,6 @@ class Experiment(persistent.Persistent):
                 if test_proto != train_proto:
                     continue
                 # Letters for the train model. They should not be 'cut' like the test ones. Train models should be complete.
-                #train_sequence = training_models[model_training_id]['model_training'].get_state()[0:tuple.get_amount_of_flows()]
                 train_sequence = training_models[model_training_id]['model_training'].get_state()[tuple.get_min_state_len():tuple.get_amount_of_flows()]
                 # First re-create the matrix only for this sequence
                 training_models[model_training_id]['model_training'].create(train_sequence)
@@ -686,11 +685,6 @@ class Experiment(persistent.Persistent):
                 training_original_prob = training_models[model_training_id]['model_training'].compute_probability(train_sequence)
                 # Now obtain the probability for testing
                 test_prob = training_models[model_training_id]['model_training'].compute_probability(tuple.get_state_so_far())
-                if self.verbose > 4:
-                    print_info('\tTraining Seq: {}'.format(train_sequence))
-                    print_info('\tTesting  Seq: {}'.format(tuple.get_state_so_far()))
-                    #print_info('\tTrain prob: {}'.format(training_original_prob))
-                    #print_info('\tTest prob: {}'.format(test_prob))
                 # Get the distance
                 prob_distance = -1
                 if training_original_prob != -1 and test_prob != -1 and training_original_prob <= test_prob:
@@ -703,6 +697,12 @@ class Experiment(persistent.Persistent):
                         prob_distance = test_prob / training_original_prob
                     except ZeroDivisionError:
                         prob_distance = -1
+                if self.verbose > 4:
+                    print_info('\tTraining Seq: {}'.format(train_sequence))
+                    print_info('\tTesting  Seq: {}'.format(tuple.get_state_so_far()))
+                    print_info('\tTrain prob: {}'.format(training_original_prob))
+                    print_info('\tTest prob: {}'.format(test_prob))
+                    print_info('\tDistance: {}'.format(prob_distance))
                 # Methodology 4.6. Decide upon a winner model.
                 # Is the probability just computed for this model lower than the threshold for that same model?
                 color=cyan
@@ -713,7 +713,7 @@ class Experiment(persistent.Persistent):
                         time_slot.set_winner_model_id_for_ip(tuple.get_src_ip(), model_training_id)
                         time_slot.set_winner_model_distance_for_ip(tuple.get_src_ip(), prob_distance)
                         color=red
-                if self.verbose >3:
+                if self.verbose > 3:
                     print_info(color('\tTuple {}. Distance to model id {:6}, {:50} (thres: {}):\t{}'.format(tuple.get_id(), model_training_id, training_models[model_training_id]['labelname'], training_models[model_training_id]['threshold'], prob_distance)))
             # If there is a winning model, just assign it.
             if time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()):
