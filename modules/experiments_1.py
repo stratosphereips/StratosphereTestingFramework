@@ -458,12 +458,12 @@ class Experiment(persistent.Persistent):
         except ValueError:
             print_error('Could not split the models ids with ,')
             return False
-        for model_id in self.models_ids:
-            #print_warning('Training model {}'.format(model_id))
-            if not group_mm.train(model_id, "", self.models_ids, verbose):
-                print_error('The model {} could not be trained.'.format(model_id))
-                return False
         # Methodology 2. Train the thresholds of the training models between themselves
+        ##for model_id in self.models_ids:
+        ##    #print_warning('Training model {}'.format(model_id))
+        ##    if not group_mm.train(model_id, "", self.models_ids, verbose):
+        ##        print_error('The model {} could not be trained.'.format(model_id))
+        ##        return False
         # Methodology 3. Start the testing
         # Methodology 3.1. Get the binetflow file
         test_dataset = __datasets__.get_dataset(self.testing_id)
