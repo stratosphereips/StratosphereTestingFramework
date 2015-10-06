@@ -352,6 +352,7 @@ class TimeSlot(persistent.Persistent):
         self.compute_performance_metrics()
         if verbose > 1:
             print_info(cyan('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(self.performance_metrics['FMeasure1'], self.performance_metrics['FPR'],self.performance_metrics['TPR'], self.performance_metrics['TNR'], self.performance_metrics['FNR'], self.performance_metrics['ErrorRate'], self.performance_metrics['Precision'], self.performance_metrics['Accuracy'])))
+            print_info('***')
         ##raw_input()
 
     def get_performance_metrics(self):
@@ -686,8 +687,8 @@ class Experiment(persistent.Persistent):
                 # Now obtain the probability for testing
                 test_prob = training_models[model_training_id]['model_training'].compute_probability(tuple.get_state_so_far())
                 if self.verbose > 4:
-                    print_info('Trai Seq: {}'.format(train_sequence))
-                    print_info('Test Seq: {}'.format(tuple.get_state_so_far()))
+                    print_info('\tTraining Seq: {}'.format(train_sequence))
+                    print_info('\tTesting  Seq: {}'.format(tuple.get_state_so_far()))
                     #print_info('\tTrain prob: {}'.format(training_original_prob))
                     #print_info('\tTest prob: {}'.format(test_prob))
                 # Get the distance
