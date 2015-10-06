@@ -351,6 +351,7 @@ class Commands(object):
         group.add_argument('-u', '--unselect', action='store_true', help="Unselect the current dataset.")
         group.add_argument('-n', '--editnote', metavar='dataset_id', help="Edit the note related with this dataset id.")
         group.add_argument('-N', '--delnote', metavar='dataset_id', help="Delete completely the note related with this dataset id.")
+        group.add_argument('-o', '--editfolder', metavar='dataset_id', type=str, help="Edit the main folder of this dataset. Useful when you upload files from different machines and then you move them around.")
 
         try:
             args = parser.parse_args(args)
@@ -413,6 +414,12 @@ class Commands(object):
         elif args.delnote :
             __datasets__.del_note(args.delnote)
             __database__.root._p_changed = True
+
+        # Subcomand to edit the folder of this dataset
+        elif args.editfolder :
+            __datasets__.edit_folder(args.editfolder)
+            __database__.root._p_changed = True
+            
 
         else:
             parser.print_usage()
