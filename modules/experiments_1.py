@@ -872,7 +872,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
         self.parser.add_argument('-m', '--models_ids', metavar='models_ids', help='Ids of the models (e.g. Markov Models) to be used when creating a new experiment with -n. Comma separated.')
         self.parser.add_argument('-t', '--testing_id', metavar='testing_id', type=int, help='Dataset id to be used as testing when creating a new experiment with -n.')
         self.parser.add_argument('-T', '--timeslotwidth', default=300, metavar='timeslotwidth', type=int, help='The width of the time slot in seconds.')
-        self.parser.add_argument('-v', '--verbose', default=0, metavar='verbose', type=int, help='How verbose should we be while running the experiment.')
+        self.parser.add_argument('-v', '--verbose', default=0, metavar='verbose', type=int, help='An integer expressing how verbose should we be while running the experiment. For example -v 1.')
 
     def get_name(self):
         """ Return the name of the module"""
