@@ -31,7 +31,7 @@ import time
 ######################
 class Tuple(object):
     """ The class to simply handle tuples """
-    def __init__(self, tuple4):
+    def __init__(self, tuple4, dataset_id):
         self.id = tuple4
         self.ground_truth_label = ""
         self.datetime = ""
@@ -40,7 +40,7 @@ class Tuple(object):
         self.amount_of_flows = 0
         self.src_ip = tuple4.split('-')[0]
         # The ground truth label is assigned only once, because it will not change for the same tuple
-        self.ground_truth_label_id = __group_of_labels__.search_connection_in_label(tuple4)
+        self.ground_truth_label_id = __group_of_labels__.search_connection_in_label(tuple3, dataset_id)
         # It could be that the tuple does not have a ground truth label
         if self.ground_truth_label_id:
             self.ground_truth_label = __group_of_labels__.get_label_name_by_id(self.ground_truth_label_id)
@@ -466,9 +466,9 @@ class Experiment(persistent.Persistent):
         ##        return False
         # Methodology 3. Start the testing
         # Methodology 3.1. Get the binetflow file
-        test_dataset = __datasets__.get_dataset(self.testing_id)
+        self.test_dataset = __datasets__.get_dataset(self.testing_id)
         try:
-            self.file_obj = test_dataset.get_file_type('binetflow')
+            self.file_obj = self.test_dataset.get_file_type('binetflow')
         except AttributeError:
             print_error('That testing dataset does no seem to exist.')
             return False
@@ -596,7 +596,7 @@ class Experiment(persistent.Persistent):
             # Methodology 4.1. Extract its 4-tuple. Find (or create) the tuple object
             tuple4 = column_values['SrcAddr']+'-'+column_values['DstAddr']+'-'+column_values['Dport']+'-'+column_values['Proto']
             # Get the old tuple object for it, or get a new tuple object
-            tuple = self.get_tuple(tuple4)
+            tuple = self.get_tuple(tuple4, self.testing_id)
             # Methodology 4.2. Add all the relevant data to this tupple
             tuple.add_new_flow(column_values)
             # Methodology 4.3. Get the correct time slot. If the flow is outside the time slot, it will close the last time slot.
@@ -754,14 +754,14 @@ class Experiment(persistent.Persistent):
             self.tuples[tuple4].update_min_state_len()
             #print '\tMatched tuple {}. Min len moved to {}'.format(tuple4, self.tuples[tuple4].get_min_state_len())
 
-    def get_tuple(self, tuple4):
+    def get_tuple(self, tuple4, dataset_id):
         """ Get the values and return the correct tuple for them """
         try:
             tuple = self.tuples[tuple4]
             # We already have this connection
         except KeyError:
             # First time for this connection
-            tuple = Tuple(tuple4)
+            tuple = Tuple(tuple4, dataset_id)
             self.tuples[tuple4] = tuple
         return tuple
 
