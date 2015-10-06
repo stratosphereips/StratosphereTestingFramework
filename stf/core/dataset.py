@@ -229,6 +229,22 @@ class Dataset(persistent.Persistent):
             self.note_id = __notes__.new_note()
             __notes__.edit_note(self.note_id)
 
+    def edit_folder(self, new_folder):
+        """ Edit the folder related with this dataset """
+        # First change it in the dataset
+        self.set_folder(new_folder)
+        # Now change it in the files inside the dataset
+        for file in self.get_files():
+            filename = file.get_name()
+            real_file_name = os.path.split(filename)[1]
+            # does the folder has a final / ?
+            current_folder = self.get_folder()
+            if current_folder[-1] != '/':
+                current_folder += '/'
+            newfilenanme = current_folder + real_file_name
+            file.set_name(newfilenanme)
+
+
     def del_note(self):
         """ Delete the note related with this dataset """
         try:
@@ -436,6 +452,13 @@ class Datasets(persistent.Persistent):
                 print_error('At least a pcap file should be in the dataset.')
 
             # Do we have a pcap file in the folder?
+        else:
+            print_error('No dataset selected. Use -s option.')
+
+    def edit_folder(self, folder_name):
+        """ Get a dataset id and edit its folder """
+        if self.current:
+            self.current.edit_folder(folder_name)
         else:
             print_error('No dataset selected. Use -s option.')
 
