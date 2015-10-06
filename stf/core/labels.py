@@ -175,12 +175,12 @@ class Group_Of_Labels(persistent.Persistent):
                 return label
         return False
 
-    def search_connection_in_label(self, connection_id):
+    def search_connection_in_label(self, connection_id, dataset_id):
         """ Given a connection id, print the label """
         for label in self.get_labels():
             datasets = label.get_group_of_model_id()
             for dataset in datasets:
-                if label.has_connection(dataset, connection_id):
+                if dataset.get_id() == dataset_id and label.has_connection(dataset, connection_id):
                     #print_info('Found in label: {}'.format(label.get_name()))
                     return label.get_id()
 
