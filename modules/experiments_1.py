@@ -606,7 +606,8 @@ class Experiment(persistent.Persistent):
             # Assign the ground truth label if we have one, only once for ip for time slot
             if tuple.get_ground_truth_label():
                 time_slot.set_ground_truth_label_for_ip(tuple.get_src_ip(), tuple.get_ground_truth_label())
-                #print_info('\t\tSetting the ground truth label for IP {}: {}'.format(tuple.get_src_ip(), tuple.get_ground_truth_label()))
+                if verbose > 3:
+                    print_info('\t\tSetting the ground truth label for IP {}: {} (tuple {})'.format(tuple.get_src_ip(), tuple.get_ground_truth_label(), tuple.get_id()))
             # Methodology 4.4 Get the letter for this flow. i.e. find the model we have stored for this test tuple.
             model = group_of_models.get_model(tuple.get_id())
             if model:
