@@ -258,12 +258,12 @@ class Detection(persistent.Persistent):
         try:
             current_training_model_len = len(structures[self.training_structure_name][int(self.model_training_id)].get_state())
         except KeyError:
-            print_warning('Warning! In distance id {}, the training model was deleted. However, this distance can still be used.'.format(self.get_id()))
+            #print_warning('Warning! In distance id {}, the training model was deleted. However, this distance can still be used.'.format(self.get_id()))
             return False
         try:
             current_testing_model_len = len(structures[self.testing_structure_name][int(self.model_testing_id)].get_state())
         except KeyError:
-            print_warning('Warning! In distance id {}, the testing model was deleted. However, this distance can still be used.'.format(self.get_id()))
+            #print_warning('Warning! In distance id {}, the testing model was deleted. However, this distance can still be used.'.format(self.get_id()))
             return False
 
         if len(self.training_states) != current_training_model_len or len(self.testing_states) != current_testing_model_len:
@@ -594,6 +594,7 @@ class Group_of_Detections(Module, persistent.Persistent):
             if self.apply_filter(distance):
                 regenerate = distance.check_need_for_regeneration()
                 if not regenerate:
+                    print_warning('Deleting distance {}'.format(distance.get_id()))
                     self.delete_distance(distance.get_id())
                 training_label = distance.get_training_label()
                 testing_label = distance.get_testing_label()
