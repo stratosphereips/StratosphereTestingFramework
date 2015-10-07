@@ -98,7 +98,7 @@ class Model_Constructor(object):
                 else:
                     TD = datetime.timedelta(seconds=(model['T1'].total_seconds() / model['T2'].total_seconds())).total_seconds()
             except ZeroDivisionError:
-                print_error('The time difference between flows was 0. Strange. We keep going anyway.')
+                #print_error('The time difference between flows was 0. Strange. We keep going anyway.')
                 TD = 1
             # Decide the periodic based on TD and the thresholds
             if TD <= self.get_tt1():
