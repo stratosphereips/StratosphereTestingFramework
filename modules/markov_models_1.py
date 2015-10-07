@@ -428,7 +428,14 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
     def delete(self, markov_model_id):
         """ Delete the markvov chain """
         try:
-            self.markov_models.pop(int(markov_model_id))
+            if '-' in markov_model_id:
+                # There is a range
+                start = int(markov_model_id.split('-')[0])
+                end = int(markov_model_id.split('-')[1])
+                for temp_id in range(start,end):
+                    self.markov_models.pop(temp_id)
+            else:
+                self.markov_models.pop(int(markov_model_id))
         except KeyError:
             print_error('No such markov model id')
 
