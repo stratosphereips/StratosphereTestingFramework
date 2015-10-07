@@ -492,11 +492,13 @@ You can check that this was successful by inspecting the connections with ```con
 Now stf can import external modules that implement new functionality.
 - There is a module for creating markov models of the network connections.
 - There is a module to detect a testing model with a training model.
+- There is a module for visualizing the model of letters.
 
 ### Bugs
 - For bug reports please fill an issue on the [github page](https://github.com/stratosphereips/StratosphereTestingFramework/issues)
 
 ### TODO
+- When we leave the DB, there is an error when storing the relationship between the letters in the model and in the connections. Specifically, when using -F to see the flows in a connection, the letter is NOT shown. If we recreate the models, the letters are shown, but if we exit and enter again, they are not. This only happens in some datasets (like dataset 71)
 - When creating connections, use filters to create a subset of the connections (so we don't have to delete them later)
 - When we trim flows from the connections, store the original amount of flows on each connection.
 - When creating a new dataset, copy the README.md file as main note for the dataset
@@ -513,7 +515,7 @@ Now stf can import external modules that implement new functionality.
 - The proxy connections (like htbot) maybe be detected by the ratio of in/out bytes of argus
 - argus is not detected when installed as root. Make the link
 - When deleting a dataset, not all the group of models are deleted
-- Put a limit to markov_models: amount of flows, or amount of time or maybe a specific string of letters that should be looked up.
+- Put a limit when searching markov_models: amount of flows, or amount of time or maybe a specific string of letters that should be looked up.
 - When deleting a label, delete its note too.
 - Add notes to distances
 - Live analysis
