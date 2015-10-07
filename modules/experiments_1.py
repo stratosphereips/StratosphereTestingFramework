@@ -347,7 +347,7 @@ class TimeSlot(persistent.Persistent):
             # Compute errors for this ip (and also accumulated)
             ip_error = self.compute_errors(predicted_label, ground_truth_label)
             if verbose > 1:
-                color=black
+                color=str
                 if ip_error=='FN':
                     color=blue
                 elif ip_error=='TP':
