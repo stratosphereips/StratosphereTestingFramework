@@ -288,7 +288,7 @@ class TimeSlot(persistent.Persistent):
     def set_predicted_label_for_ip(self, ip, new_predicted_label, num_state, tuple_id):
         """ Store the new predicted label for this ip. Also store at which len of the state latter this label was assigned. Also store the tuple that generated this match."""
         try:
-            # Since we append, the last position has the lastest label. And from there 0 is the label and 1 the amount
+            # Since we append, the last position has the lastest label. And from there 0 is the label and 1 the num of states
             current_label = self.ip_dict[ip]['predicted_labels'][-1][0] 
             # This if does not only avoid putting the same label again, but also avoids overwritting the first number when it happened.
             if current_label != new_predicted_label:
@@ -362,10 +362,11 @@ class TimeSlot(persistent.Persistent):
                 elif ip_error=='FP':
                     tcolor=red
                 print('\tIP: {:16}, Ground Truth: {:30}, Predicted: {:30} (at {} letters). Error: {}'.format(ip, tcolor(ground_truth_label), tcolor(predicted_label), num_letters, ip_error))
+                #print(self.ip_dict[ip])
             if verbose > 0:
                 if ip_error == 'TP':
                     print(red('\tDetected IPs:'))
-                    print('\t\tIP: {:16}'.format(red(ip)))
+                    print('\t\tIP: {:16} (at {} flows)'.format(red(ip), red(str(num_letters))))
         # Compute performance metrics in this time slot
         self.compute_performance_metrics()
         if verbose > 0:
