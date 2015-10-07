@@ -339,6 +339,23 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                         responses.append(True)
                     else:
                         responses.append(False)
+            if key == 'statelength':
+                state = model.get_state()
+                if operator == '<':
+                    if len(state) < int(value):
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '>':
+                    if len(state) > int(value):
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '=':
+                    if len(state) == int(value):
+                        responses.append(True)
+                    else:
+                        responses.append(False)
             else:
                 return False
 
