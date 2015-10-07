@@ -292,7 +292,7 @@ class TimeSlot(persistent.Persistent):
             # First time
             self.ip_dict[ip]['predicted_labels'] = []
             self.ip_dict[ip]['predicted_labels'].append((new_predicted_label, num_state, tuple_id))
-        print '\tAssigning predicted label to ip {}: {} (after {} letters)'.format(ip, new_predicted_label, num_state)
+        #print '\tAssigning predicted label to ip {}: {} (after {} letters)'.format(ip, new_predicted_label, num_state)
 
     def get_num_letters_for_label(self, label, ip):
         try:
@@ -609,6 +609,9 @@ class Experiment(persistent.Persistent):
             training_models[model_training_id]['labelname'] = training_models[model_training_id]['model_training'].get_label().get_name()
             training_models[model_training_id]['threshold'] = training_models[model_training_id]['model_training'].get_threshold()
             training_models[model_training_id]['proto'] = training_models[model_training_id]['label'].get_proto()
+        if type(group_of_models) == bool:
+            print_error('Inexistant group of models for this testing dataset.')
+            return False
         while line:
             # Using our own extract_columns function makes this module more independent
             column_values = self.extract_columns_values(line)
