@@ -419,50 +419,8 @@ class Commands(object):
         elif args.editfolder :
             __datasets__.edit_folder(args.editfolder)
             __database__.root._p_changed = True
-            
-
         else:
             parser.print_usage()
-
-
-    ##
-    # EXPERIMENTS
-    #
-    # This command retrieves a list of all experiments.
-    # You can also switch to a different experiments.
-    #def cmd_experiments(self, *args):
-        #parser = argparse.ArgumentParser(prog="experiments", description="Manage experiments", epilog="Manage experiments")
-        #group = parser.add_mutually_exclusive_group()
-        #group.add_argument('-l', '--list', action="store_true", help="List all existing experiments")
-        #group.add_argument('-s', '--switch', metavar='experiment_name', help="Switch to the specified experiment")
-        #group.add_argument('-c', '--create', metavar='experiment_name', help="Create a new experiment")
-        #group.add_argument('-d', '--delete', metavar='experiment_id', help="Delete an experiment")
-#
-        #try:
-            #args = parser.parse_args(args)
-        #except:
-            #return
-#
-        ## Subcomand to list
-        #if args.list:
-            #__experiments__.list_all()
-#
-        ## Subcomand to switch
-        #elif args.switch:
-            #__experiments__.switch_to(args.switch)
-#
-        # Subcomand to create
-        #elif args.create:
-            #__experiments__.create(args.create)
-            #__database__.root._p_changed = True
-#
-        ## Subcomand to delete
-        #elif args.delete:
-            #__experiments__.delete(args.delete)
-            #__database__.root._p_changed = True
-#
-        #else:
-            #parser.print_usage()
 
 
     ##
