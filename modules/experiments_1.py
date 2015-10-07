@@ -346,8 +346,21 @@ class TimeSlot(persistent.Persistent):
             ground_truth_label = self.get_ground_truth_label(ip)
             # Compute errors for this ip (and also accumulated)
             ip_error = self.compute_errors(predicted_label, ground_truth_label)
-            if verbose > 1:
-                print_info('IP: {:16},Ground Truth: {:30}, Predicted: {:30} (at {} letters). Error: {}'.format(ip, ground_truth_label, predicted_label, num_letters, ip_error))
+            if verbose > 2:
+                color=black
+                if ip_error=='FN':
+                    color=blue
+                elif ip_error=='TP':
+                    color=yellow
+                elif ip_error=='TN':
+                    color=green
+                elif ip_error=='FP':
+                    color=red
+                print('\tIP: {:16}, Ground Truth: {:30}, Predicted: {:30} (at {} letters). Error: {}'.format(ip, color(ground_truth_label), color(predicted_label), num_letters, ip_error))
+            if verbose > 0:
+                if ip_error == 'TP':
+                    print(red('\tDetected IPs:'))
+                    print('\t\tIP: {:16}'.format(red(ip)))
         # Compute performance metrics in this time slot
         self.compute_performance_metrics()
         if verbose > 0:
@@ -484,14 +497,12 @@ class Experiment(persistent.Persistent):
     def get_time_slot(self, column_values):
         """ Get the columns values and return the correct time slot object. Also closes the old time slot """
         starttime = datetime.strptime(column_values['StartTime'], '%Y/%m/%d %H:%M:%S.%f') 
-        # Find the slot for this flow (theoretically it works with unordered flows). This is the check of times for getting inside a timetime  slot.
+        # Find the slot for this flow (theoretically it works with unordered flows). This is the check of times for getting inside a timetime slot.
         for slot in reversed(self.time_slots):
             if starttime >= slot.init_time and starttime <= slot.finish_time:
                 return slot
         # Methodology 4.4. The first flow case and the case where the flow should be in a new flow because it is outside the last slot. All in one!
         new_slot = TimeSlot(starttime, self.time_slot_width)
-        if self.verbose > 0:
-            print('Starting {}'.format(new_slot))
         if self.time_slots:
             # Move the state windows in the tuples that already matched in this time slot. Before closing the time windoows!
             self.move_windows_in_matched_tuples()
@@ -504,6 +515,8 @@ class Experiment(persistent.Persistent):
             self.add_errors(self.time_slots[-1].get_errors())
         # Add it
         self.time_slots.append(new_slot)
+        if self.verbose > 0:
+            print('Starting {}'.format(new_slot))
         return new_slot
 
     def add_errors(self, errors):
