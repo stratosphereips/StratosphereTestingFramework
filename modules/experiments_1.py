@@ -731,7 +731,7 @@ class Experiment(persistent.Persistent):
                         time_slot.set_winner_model_distance_for_ip(tuple.get_src_ip(), prob_distance)
                         color=red
                 if self.verbose > 3:
-                    print_info(color('\tTuple {}. Distance to model id {:6}, {:50} (thres: {}):\t{}'.format(tuple.get_id(), model_training_id, training_models[model_training_id]['labelname'], training_models[model_training_id]['threshold'], prob_distance)))
+                    print_info(color('\tTuple {} ({}). Distance to model id {:6} ({:50}) (thres: {}):\t{}'.format(tuple.get_id(), tuple.get_ground_truth_label(), model_training_id, training_models[model_training_id]['labelname'], training_models[model_training_id]['threshold'], prob_distance)))
             # If there is a winning model, just assign it.
             if time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()):
                 #print_info('Winner model for IP {}: {} ({}) with distance {}'.format(tuple.get_src_ip(), time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()), training_models[time_slot.get_winner_model_id_for_ip(tuple.get_src_ip())]['labelname'], time_slot.get_winner_model_distance_for_ip(tuple.get_src_ip())))
