@@ -347,16 +347,16 @@ class TimeSlot(persistent.Persistent):
             # Compute errors for this ip (and also accumulated)
             ip_error = self.compute_errors(predicted_label, ground_truth_label)
             if verbose > 1:
-                color=str
+                tcolor=str
                 if ip_error=='FN':
-                    color=blue
+                    tcolor=blue
                 elif ip_error=='TP':
-                    color=yellow
+                    tcolor=yellow
                 elif ip_error=='TN':
-                    color=green
+                    tcolor=green
                 elif ip_error=='FP':
-                    color=red
-                print('\tIP: {:16}, Ground Truth: {:30}, Predicted: {:30} (at {} letters). Error: {}'.format(ip, color(ground_truth_label), color(predicted_label), num_letters, ip_error))
+                    tcolor=red
+                print('\tIP: {:16}, Ground Truth: {:30}, Predicted: {:30} (at {} letters). Error: {}'.format(ip, tcolor(ground_truth_label), tcolor(predicted_label), num_letters, ip_error))
             if verbose > 0:
                 if ip_error == 'TP':
                     print(red('\tDetected IPs:'))
