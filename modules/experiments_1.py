@@ -147,6 +147,10 @@ class TimeSlot(persistent.Persistent):
         self.results_dict = {}
         # To hold the tuples and if they matched in this time slot or not. used to move the states windows of each tuple
         self.tuples = {}
+        self.verbose = 0
+
+    def set_verbose(self, verbose):
+        self.verbose = verbose
 
     def compute_performance_metrics(self):
         """ Compute performance metrics """
@@ -275,7 +279,8 @@ class TimeSlot(persistent.Persistent):
             if current_predicted_tuple == tuple_id:
                 # Delete the last
                 self.ip_dict[ip]['predicted_labels'] = self.ip_dict[ip]['predicted_labels'][:-1]
-                print_info('Deleting the last match for IP {}, from tuple {}, with label {}, at {} letters.'.format(ip, tuple_id, current_predicted_label, num_state))
+                if self.verbose > 2:
+                    print_info('Deleting the last match for IP {}, from tuple {}, with label {}, at {} letters.'.format(ip, tuple_id, current_predicted_label, num_state))
         except (KeyError, IndexError):
             # This ip didn't have a prediction yet.
             pass
@@ -625,6 +630,8 @@ class Experiment(persistent.Persistent):
             tuple.add_new_flow(column_values)
             # Methodology 4.3. Get the correct time slot. If the flow is outside the time slot, it will close the last time slot.
             time_slot = self.get_time_slot(column_values)
+            # Add verbosity to time slot
+            time_slot.set_verbose(self.verbose)
             # Add this 4tuple and src IP to the list on the time_slot
             time_slot.add_tuple4(tuple4)
             # Assign the ground truth label if we have one, only once for ip for time slot
