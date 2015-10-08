@@ -149,6 +149,9 @@ class TimeSlot(persistent.Persistent):
         self.tuples = {}
         self.verbose = 0
 
+    def get_acc_errors(self):
+        return self.acc_errors
+
     def set_verbose(self, verbose):
         self.verbose = verbose
 
@@ -365,14 +368,18 @@ class TimeSlot(persistent.Persistent):
                 #print(self.ip_dict[ip])
             if verbose > 0:
                 if ip_error == 'TP':
-                    print(red('\tDetected IPs:'))
+                    print(red('\tTrue Detected IPs:'))
                     print('\t\tIP: {:16} (at {} flows)'.format(red(ip), red(str(num_letters))))
+                elif ip_error == 'FP':
+                    print(bold(red('\tFalse Detected IPs:')))
+                    print('\t\tIP: {:16} (at {} flows)'.format(bold(red(ip)), bold(red(str(num_letters)))))
         # Compute performance metrics in this time slot
         self.compute_performance_metrics()
         if verbose > 0:
             print_info(cyan('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(self.performance_metrics['FMeasure1'], self.performance_metrics['FPR'],self.performance_metrics['TPR'], self.performance_metrics['TNR'], self.performance_metrics['FNR'], self.performance_metrics['ErrorRate'], self.performance_metrics['Precision'], self.performance_metrics['Accuracy'])))
             #print('*New time slot*')
-        ##raw_input()
+        if verbose > 9:
+            raw_input()
 
     def get_performance_metrics(self):
         """ return accumulated errors """
@@ -575,6 +582,8 @@ class Experiment(persistent.Persistent):
 
     def process_netflow_for_testing(self):
         """ Get a netflow file and process it for testing """
+        # Clean the models in the constructor. We should do this better
+        __modelsconstructors__.get_default_constructor().clean_models()
         try:
             file = open(self.file_obj.get_name(), 'r')
         except IOError:
@@ -874,6 +883,9 @@ class Experiment(persistent.Persistent):
             column_values['Label'] = original_values[-1]
         return column_values
 
+    def get_timeslots(self):
+        return self.time_slots
+
     # Mandatory __repr__ module. Something you want to identify each object with. Usefull for selecting objects later
     def __repr__(self):
         return('Id:' + str(self.get_id()))
@@ -904,7 +916,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
         # Example of a parameter without arguments
         self.parser.add_argument('-l', '--list', action='store_true', help='List the Experiments.')
         # Example of a parameter with arguments
-        self.parser.add_argument('-p', '--printstate', metavar='experiment_id', help='Print some info about the experiment.')
+        self.parser.add_argument('-p', '--printstate', metavar='experiment_id', type=int, help='Print some info about the experiment.')
         self.parser.add_argument('-n', '--new', action='store_true', help='Create a new experiment. Use -m to assign the models to use for detection. Use -t to select a testing dataset.')
         self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete an experiment given the id. You can give a range with -. Ej: -d 10-20')
         self.parser.add_argument('-m', '--models_ids', metavar='models_ids', help='Ids of the models (e.g. Markov Models) to be used when creating a new experiment with -n. Comma separated.')
@@ -964,8 +976,6 @@ class Group_of_Experiments(Module, persistent.Persistent):
         # Run it
         new_experiment.run(verbose)
 
-
-
     def delete_experiment(self, id):
         """ Deletes an experiment """
         ans = raw_input('Are you sure you want to delete experiment {} (YES/NO)?: '.format(id))
@@ -996,6 +1006,19 @@ class Group_of_Experiments(Module, persistent.Persistent):
                     print_error('The id of the experiment is invalid.')
             else:
                 print_error('The id of the experiment is invalid.')
+
+    def print_experiment(self, experiment_id):
+        """ Print the experiment """
+        experiment = self.get_experiment(experiment_id)
+        if not experiment:
+            print_error('No such experiment id')
+            return False
+        print_info('Experiment {}'.format(experiment))
+        for timeslot in experiment.get_timeslots():
+            print timeslot
+            print '\t' + str(timeslot.get_acc_errors())
+            print '\t' + str(timeslot.get_performance_metrics())
+
 
     # The run method runs every time that this command is used. Mandatory
     def run(self):
@@ -1032,6 +1055,8 @@ class Group_of_Experiments(Module, persistent.Persistent):
             self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth, self.args.verbose)
         elif self.args.delete:
             self.delete_experiment(self.args.delete)
+        elif self.args.printstate:
+            self.print_experiment(self.args.printstate)
         else:
             print_error('At least one of the parameter is required in this module')
             self.usage()
