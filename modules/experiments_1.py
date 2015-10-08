@@ -454,6 +454,15 @@ class Experiment(persistent.Persistent):
         # Max amount of letters to use per tuple
         self.max_amount_to_check = 100
 
+    def get_time_slots(self):
+        return self.time_slots
+
+    def get_performance_metrics(self):
+        return self.total_performance_metrics
+
+    def get_tuples(self):
+        return self.tuples
+
     def get_id(self):
         return self.id
 
@@ -1014,6 +1023,12 @@ class Group_of_Experiments(Module, persistent.Persistent):
             print_error('No such experiment id')
             return False
         print_info('Experiment {}'.format(experiment))
+        print_info('Description: ' + experiment.get_description())
+        print_info('Total amount of tuples: {}'.format(len(experiment.get_tuples())))
+        print_info('Total time slots: {}'.format(len(experiment.get_time_slots())))
+        print_info('Total Errors: {}'.format(experiment.get_total_errors()))
+        print_info('Total Performance Metrics:')
+        print_info('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(experiment.total_performance_metrics['FMeasure1'], experiment.total_performance_metrics['FPR'],experiment.total_performance_metrics['TPR'], experiment.total_performance_metrics['TNR'], experiment.total_performance_metrics['FNR'], experiment.total_performance_metrics['ErrorRate'], experiment.total_performance_metrics['Precision'], experiment.total_performance_metrics['Accuracy']))
         for timeslot in experiment.get_timeslots():
             print timeslot
             print '\t' + str(timeslot.get_acc_errors())
