@@ -345,6 +345,38 @@ class TimeSlot(persistent.Persistent):
         except KeyError:
             return ''
 
+    def get_tp_ips(self):
+        """ Return the TP ips in this slot """
+        res = []
+        for ip in self.ip_dict:
+            if 'TP' in self.ip_dict[ip]['error']:
+                res.append(ip)
+        return res
+
+    def get_fp_ips(self):
+        """ Return the FP ips in this slot """
+        res = []
+        for ip in self.ip_dict:
+            if 'FP' in self.ip_dict[ip]['error']:
+                res.append(ip)
+        return res
+
+    def get_fn_ips(self):
+        """ Return the FN ips in this slot """
+        res = []
+        for ip in self.ip_dict:
+            if 'FN' in self.ip_dict[ip]['error']:
+                res.append(ip)
+        return res
+
+    def get_tn_ips(self):
+        """ Return the TN ips in this slot """
+        res = []
+        for ip in self.ip_dict:
+            if 'TN' in self.ip_dict[ip]['error']:
+                res.append(ip)
+        return res
+
     def close(self, verbose):
         """ Close the slot """
         #  - Compute the errors (TP, TN, FN, FP) for all the IPs in this time slot.
@@ -354,6 +386,8 @@ class TimeSlot(persistent.Persistent):
             ground_truth_label = self.get_ground_truth_label(ip)
             # Compute errors for this ip (and also accumulated)
             ip_error = self.compute_errors(predicted_label, ground_truth_label)
+            # Store the error for this IP
+            self.ip_dict[ip]['error'] = ip_error
             if verbose > 1:
                 tcolor=str
                 if ip_error=='FN':
@@ -375,7 +409,7 @@ class TimeSlot(persistent.Persistent):
                     print('\t\tIP: {:16} (at {} flows)'.format(bold(red(ip)), bold(red(str(num_letters)))))
         # Compute performance metrics in this time slot
         self.compute_performance_metrics()
-        if verbose > 0:
+        if verbose > 1:
             print_info(cyan('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(self.performance_metrics['FMeasure1'], self.performance_metrics['FPR'],self.performance_metrics['TPR'], self.performance_metrics['TNR'], self.performance_metrics['FNR'], self.performance_metrics['ErrorRate'], self.performance_metrics['Precision'], self.performance_metrics['Accuracy'])))
             #print('*New time slot*')
         if verbose > 9:
@@ -393,7 +427,6 @@ class TimeSlot(persistent.Persistent):
             # Tuple was never stored. This should not happen
             print_error('This tuple was never stored in the time slot. Weird.')
             return False
-
 
     def set_4tuple_match(self, tuple4):
         """ Get a 4tuple and mark it in our dict as Matched """
@@ -453,6 +486,12 @@ class Experiment(persistent.Persistent):
         self.total_performance_metrics['FMeasure1'] = -1
         # Max amount of letters to use per tuple
         self.max_amount_to_check = 100
+        # To store the info of IPs detected. 'TP', 'FP', 'FN', 'TN'
+        self.final_ips = {}
+        self.final_ips['TP'] = []
+        self.final_ips['TN'] = []
+        self.final_ips['FP'] = []
+        self.final_ips['FN'] = []
 
     def get_time_slots(self):
         return self.time_slots
@@ -530,16 +569,64 @@ class Experiment(persistent.Persistent):
             self.move_windows_in_matched_tuples()
             # We created a slot because the flow is outside the width, so we should close the previous time slot
             # Close the last slot
-            if self.verbose > 0:
+            if self.verbose > 1:
                 print 'Closing  {}. (Time: {})'.format(self.time_slots[-1], datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S'))
             self.time_slots[-1].close(self.verbose)
+            # After closing the time slot, we should get some info back
+            tp_ips_in_last_time_slot = self.time_slots[-1].get_tp_ips()
+            fp_ips_in_last_time_slot = self.time_slots[-1].get_fp_ips()
+            fn_ips_in_last_time_slot = self.time_slots[-1].get_fn_ips()
+            tn_ips_in_last_time_slot = self.time_slots[-1].get_tn_ips()
+            self.add_tp_ips(tp_ips_in_last_time_slot)
+            self.add_fp_ips(fp_ips_in_last_time_slot)
+            self.add_fn_ips(fn_ips_in_last_time_slot)
+            self.add_tn_ips(tn_ips_in_last_time_slot)
             # Store the errors in the experiment
             self.add_errors(self.time_slots[-1].get_errors())
         # Add it
         self.time_slots.append(new_slot)
-        if self.verbose > 0:
+        if self.verbose > 1:
             print('Starting {}'.format(new_slot))
         return new_slot
+
+    def add_tp_ips(self, ips):
+        """ Get a vector of TP ips and store them """
+        for ip in ips:
+            try:
+                self.final_ips['TP'].index(ip)
+            except ValueError:
+                # We dont have this ip
+                self.final_ips['TP'].append(ip)
+
+    def add_fp_ips(self, ips):
+        """ Get a vector of FP ips and store them """
+        for ip in ips:
+            try:
+                self.final_ips['FP'].index(ip)
+            except ValueError:
+                # We dont have this ip
+                self.final_ips['FP'].append(ip)
+
+    def add_fn_ips(self, ips):
+        """ Get a vector of FN ips and store them """
+        for ip in ips:
+            try:
+                self.final_ips['FN'].index(ip)
+            except ValueError:
+                # We dont have this ip
+                self.final_ips['FN'].append(ip)
+
+    def add_tn_ips(self, ips):
+        """ Get a vector of TN ips and store them """
+        for ip in ips:
+            try:
+                self.final_ips['TN'].index(ip)
+            except ValueError:
+                # We dont have this ip
+                self.final_ips['TN'].append(ip)
+
+    def get_final_ips(self):
+        return self.final_ips
 
     def add_errors(self, errors):
         """ Get the errors of the last tuple and add them to the experiments errors """
@@ -780,9 +867,23 @@ class Experiment(persistent.Persistent):
         self.move_windows_in_matched_tuples()
         # Methodology 7 Compute the results of the last time slot
         self.time_slots[-1].close(self.verbose)
-        print
+        # After closing the time slot, we should get some info back
+        tp_ips_in_last_time_slot = self.time_slots[-1].get_tp_ips()
+        fp_ips_in_last_time_slot = self.time_slots[-1].get_fp_ips()
+        fn_ips_in_last_time_slot = self.time_slots[-1].get_fn_ips()
+        tn_ips_in_last_time_slot = self.time_slots[-1].get_tn_ips()
+        self.add_tp_ips(tp_ips_in_last_time_slot)
+        self.add_fp_ips(fp_ips_in_last_time_slot)
+        self.add_fn_ips(fn_ips_in_last_time_slot)
+        self.add_tn_ips(tn_ips_in_last_time_slot)
+        # Store the errors in the experiment
+        self.add_errors(self.time_slots[-1].get_errors())
         finish_time = datetime.now()
         print_info('Finish Time: {} (Duration: {})'.format(unicode(finish_time), unicode(finish_time - start_time)))
+        self.print_final_values()
+
+    def print_final_values(self):
+        print
         # Print something about all the tuples
         print_info('Total amount of tuples: {}'.format(len(self.tuples)))
         print_info('Total time slots: {}'.format(len(self.time_slots)))
@@ -793,6 +894,11 @@ class Experiment(persistent.Persistent):
         # Methodology 7.2 Print performance metric
         print_info('Total Performance Metrics:')
         print_info('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(self.total_performance_metrics['FMeasure1'], self.total_performance_metrics['FPR'],self.total_performance_metrics['TPR'], self.total_performance_metrics['TNR'], self.total_performance_metrics['FNR'], self.total_performance_metrics['ErrorRate'], self.total_performance_metrics['Precision'], self.total_performance_metrics['Accuracy']))
+        print_info('IPs Detections')
+        for iptype in self.final_ips:
+            print '\t' + str(iptype)
+            for ip in self.final_ips[iptype]:
+                print '\t\t' + str(ip)
 
     def move_windows_in_matched_tuples(self):
         """ Ask for all the tuples that had matches in this time slot and move their state letters windows. This is run after the closing of the time slot. Be careful """
@@ -1016,7 +1122,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
             else:
                 print_error('The id of the experiment is invalid.')
 
-    def print_experiment(self, experiment_id):
+    def print_experiment(self, experiment_id, verbose):
         """ Print the experiment """
         experiment = self.get_experiment(experiment_id)
         if not experiment:
@@ -1029,10 +1135,13 @@ class Group_of_Experiments(Module, persistent.Persistent):
         print_info('Total Errors: {}'.format(experiment.get_total_errors()))
         print_info('Total Performance Metrics:')
         print_info('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(experiment.total_performance_metrics['FMeasure1'], experiment.total_performance_metrics['FPR'],experiment.total_performance_metrics['TPR'], experiment.total_performance_metrics['TNR'], experiment.total_performance_metrics['FNR'], experiment.total_performance_metrics['ErrorRate'], experiment.total_performance_metrics['Precision'], experiment.total_performance_metrics['Accuracy']))
-        for timeslot in experiment.get_timeslots():
-            print timeslot
-            print '\t' + str(timeslot.get_acc_errors())
-            print '\t' + str(timeslot.get_performance_metrics())
+        if verbose > 3:
+            print_info('IPs:')
+            for timeslot in experiment.get_timeslots():
+                print timeslot
+                print '\t' + str(timeslot.get_acc_errors())
+                print '\t' + str(timeslot.get_performance_metrics())
+                print timeslot.get_tp_ips()
 
 
     # The run method runs every time that this command is used. Mandatory
@@ -1071,7 +1180,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
         elif self.args.delete:
             self.delete_experiment(self.args.delete)
         elif self.args.printstate:
-            self.print_experiment(self.args.printstate)
+            self.print_experiment(self.args.printstate, self.args.verbose)
         else:
             print_error('At least one of the parameter is required in this module')
             self.usage()
