@@ -491,6 +491,10 @@ class Experiment(persistent.Persistent):
         self.final_ips['TN'] = []
         self.final_ips['FP'] = []
         self.final_ips['FN'] = []
+        self.training_models = {}
+
+    def get_training_models(self):
+        return self.training_models
 
     def get_time_slots(self):
         return self.time_slots
@@ -713,22 +717,22 @@ class Experiment(persistent.Persistent):
         training_structure_name = 'markov_models_1' # Same as before, now it is hardcoded, but warning!
         training_structure = structures[training_structure_name]
         # Store some info about each training model, do it here and only once
-        training_models = {}
+        self.training_models = {}
         for model_training_id in self.models_ids:
-            training_models[model_training_id] = {}
-            training_models[model_training_id]['traininig_structure_name'] = training_structure_name
-            training_models[model_training_id]['traininig_structure'] = training_structure
+            self.training_models[model_training_id] = {}
+            self.training_models[model_training_id]['traininig_structure_name'] = training_structure_name
+            self.training_models[model_training_id]['traininig_structure'] = training_structure
             try:
-                training_models[model_training_id]['model_training'] = training_structure[int(model_training_id)]
+                self.training_models[model_training_id]['model_training'] = training_structure[int(model_training_id)]
             except:
                 print_error('The training model id should be the id in the selected model structure. For example: markov_chains_1')
                 return False
-            training_models[model_training_id]['original_matrix'] = training_models[model_training_id]['model_training'].get_matrix()
-            training_models[model_training_id]['original_self_prob'] = training_models[model_training_id]['model_training'].get_self_probability()
-            training_models[model_training_id]['label'] = training_models[model_training_id]['model_training'].get_label()
-            training_models[model_training_id]['labelname'] = training_models[model_training_id]['model_training'].get_label().get_name()
-            training_models[model_training_id]['threshold'] = training_models[model_training_id]['model_training'].get_threshold()
-            training_models[model_training_id]['proto'] = training_models[model_training_id]['label'].get_proto()
+            self.training_models[model_training_id]['original_matrix'] = self.training_models[model_training_id]['model_training'].get_matrix()
+            self.training_models[model_training_id]['original_self_prob'] = self.training_models[model_training_id]['model_training'].get_self_probability()
+            self.training_models[model_training_id]['label'] = self.training_models[model_training_id]['model_training'].get_label()
+            self.training_models[model_training_id]['labelname'] = self.training_models[model_training_id]['model_training'].get_label().get_name()
+            self.training_models[model_training_id]['threshold'] = self.training_models[model_training_id]['model_training'].get_threshold()
+            self.training_models[model_training_id]['proto'] = self.training_models[model_training_id]['label'].get_proto()
         if type(group_of_models) == bool:
             print_error('Inexistant group of models for this testing dataset.')
             return False
@@ -814,18 +818,18 @@ class Experiment(persistent.Persistent):
             for model_training_id in self.models_ids:
                 # First, only continue if the protocols are the same
                 test_proto = tuple.get_proto().lower()
-                train_proto = training_models[model_training_id]['proto'].lower()
+                train_proto = self.training_models[model_training_id]['proto'].lower()
                 if test_proto != train_proto:
                     continue
                 # Letters for the train model. They should not be 'cut' like the test ones. Train models should be complete.
-                #train_sequence = training_models[model_training_id]['model_training'].get_state()[0:tuple.get_amount_of_flows()]
-                train_sequence = training_models[model_training_id]['model_training'].get_state()[tuple.get_min_state_len():tuple.get_amount_of_flows()]
+                #train_sequence = self.training_models[model_training_id]['model_training'].get_state()[0:tuple.get_amount_of_flows()]
+                train_sequence = self.training_models[model_training_id]['model_training'].get_state()[tuple.get_min_state_len():tuple.get_amount_of_flows()]
                 # First re-create the matrix only for this sequence
-                training_models[model_training_id]['model_training'].create(train_sequence)
+                self.training_models[model_training_id]['model_training'].create(train_sequence)
                 # Get the new original prob so far...
-                training_original_prob = training_models[model_training_id]['model_training'].compute_probability(train_sequence)
+                training_original_prob = self.training_models[model_training_id]['model_training'].compute_probability(train_sequence)
                 # Now obtain the probability for testing
-                test_prob = training_models[model_training_id]['model_training'].compute_probability(tuple.get_state_so_far())
+                test_prob = self.training_models[model_training_id]['model_training'].compute_probability(tuple.get_state_so_far())
                 # Get the distance
                 prob_distance = -1
                 if training_original_prob != -1 and test_prob != -1 and training_original_prob <= test_prob:
@@ -845,7 +849,7 @@ class Experiment(persistent.Persistent):
                 # Methodology 4.6. Decide upon a winner model.
                 # Is the probability just computed for this model lower than the threshold for that same model?
                 color=cyan
-                if prob_distance >= 1 and prob_distance <= training_models[model_training_id]['threshold']:
+                if prob_distance >= 1 and prob_distance <= self.training_models[model_training_id]['threshold']:
                     # The model is a candidate
                     if prob_distance < time_slot.get_winner_model_distance_for_ip(tuple.get_src_ip()):
                         # The model is the winner so far
@@ -853,12 +857,12 @@ class Experiment(persistent.Persistent):
                         time_slot.set_winner_model_distance_for_ip(tuple.get_src_ip(), prob_distance)
                         color=red
                 if self.verbose > 3:
-                    print_info(color('\tTuple {} ({}). Distance to model id {:6} ({:50}) (thres: {}):\t{}'.format(tuple.get_id(), tuple.get_ground_truth_label(), model_training_id, training_models[model_training_id]['labelname'], training_models[model_training_id]['threshold'], prob_distance)))
+                    print_info(color('\tTuple {} ({}). Distance to model id {:6} ({:50}) (thres: {}):\t{}'.format(tuple.get_id(), tuple.get_ground_truth_label(), model_training_id, self.training_models[model_training_id]['labelname'], self.training_models[model_training_id]['threshold'], prob_distance)))
             # If there is a winning model, just assign it.
             if time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()):
-                #print_info('Winner model for IP {}: {} ({}) with distance {}'.format(tuple.get_src_ip(), time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()), training_models[time_slot.get_winner_model_id_for_ip(tuple.get_src_ip())]['labelname'], time_slot.get_winner_model_distance_for_ip(tuple.get_src_ip())))
+                #print_info('Winner model for IP {}: {} ({}) with distance {}'.format(tuple.get_src_ip(), time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()), self.training_models[time_slot.get_winner_model_id_for_ip(tuple.get_src_ip())]['labelname'], time_slot.get_winner_model_distance_for_ip(tuple.get_src_ip())))
                 # Methodology 4.7. Extract the label and assign it
-                time_slot.set_predicted_label_for_ip(tuple.get_src_ip(), training_models[time_slot.get_winner_model_id_for_ip(tuple.get_src_ip())]['labelname'], tuple.get_amount_of_flows(), tuple.get_id())
+                time_slot.set_predicted_label_for_ip(tuple.get_src_ip(), self.training_models[time_slot.get_winner_model_id_for_ip(tuple.get_src_ip())]['labelname'], tuple.get_amount_of_flows(), tuple.get_id())
                 # Methodology 4.8. Mark the 4tuple as 'matched' in the time slot. This is used later to know, from all the 4tuples, which ones we should move their states window.
                 time_slot.set_4tuple_match(tuple4)
             # Did we have a winner in the past, but not now anymore??? Erase its label as the current winner.
@@ -908,6 +912,12 @@ class Experiment(persistent.Persistent):
             print '\t' + str(iptype)
             for ip in self.final_ips[iptype]:
                 print '\t\t' + str(ip)
+        # Which positive IP did we miss?
+        print_info('Not Detected IPs:')
+        for ip in self.final_ips['FN']:
+            # Was it TP?
+            if ip not in self.final_ips['TP']:
+                print('\tIP {} was never detected.'.format(red(ip)))
 
     def move_windows_in_matched_tuples(self):
         """ Ask for all the tuples that had matches in this time slot and move their state letters windows. This is run after the closing of the time slot. Be careful """
@@ -1139,26 +1149,27 @@ class Group_of_Experiments(Module, persistent.Persistent):
             return False
         print_info('Experiment {}'.format(experiment))
         print_info('Description: ' + experiment.get_description())
-        print_info('Trained models for detection: {}'.format())
+        print_info('Trained models for detection: {}'.format(experiment.get_training_models().keys()))
         print_info('Total amount of tuples: {}'.format(len(experiment.get_tuples())))
         print_info('Total time slots: {}'.format(len(experiment.get_time_slots())))
         print_info('Total Errors: {}'.format(experiment.get_total_errors()))
         print_info('Total Performance Metrics:')
         print_info('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(experiment.total_performance_metrics['FMeasure1'], experiment.total_performance_metrics['FPR'],experiment.total_performance_metrics['TPR'], experiment.total_performance_metrics['TNR'], experiment.total_performance_metrics['FNR'], experiment.total_performance_metrics['ErrorRate'], experiment.total_performance_metrics['Precision'], experiment.total_performance_metrics['Accuracy']))
-        if verbose > 2:
+        if verbose > 0:
             try:
                 for iptype in experiment.final_ips:
                     print '\t' + str(iptype)
                     for ip in experiment.final_ips[iptype]:
                         print '\t\t' + str(ip)
                 # Which positive IP did we miss?
+                print_info('Not Detected IPs:')
                 for ip in experiment.final_ips['FN']:
                     # Was it TP?
                     if ip not in experiment.final_ips['TP']:
-                        print_info('\tIP {} was never detected.'.format(red(ip)))
+                        print('\tIP {} was never detected.'.format(red(ip)))
             except AttributeError:
                 print_error('No info about the IPs stored in this experiment.')
-        if verbose > 3:
+        if verbose > 2:
             print_info('IPs:')
             for timeslot in experiment.get_timeslots():
                 print timeslot
