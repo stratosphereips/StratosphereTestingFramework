@@ -495,6 +495,12 @@ class Experiment(persistent.Persistent):
     def get_time_slots(self):
         return self.time_slots
 
+    def get_fancy_performance_metrics(self):
+        text = ''
+        for error in self.total_performance_metrics:
+            text += '{}: {:.3f}. '.format(error, self.total_performance_metrics[error])
+        return text
+
     def get_performance_metrics(self):
         return self.total_performance_metrics
 
@@ -1070,9 +1076,9 @@ class Group_of_Experiments(Module, persistent.Persistent):
     def list_experiments(self):
         print_info('List of objects')
         rows = []
-        for object in self.get_experiments():
-            rows.append([ object.get_id(), object.get_description() ])
-        print(table(header=['Id', 'Description'], rows=rows))
+        for experiment in self.get_experiments():
+            rows.append([ experiment.get_id(), experiment.get_description(), experiment.get_fancy_performance_metrics() ])
+        print(table(header=['Id', 'Description','Performance Metrics'], rows=rows))
 
     def create_new_experiment(self, models_ids, testing_id, timeslotwidth, verbose):
         """ Create a new experiment """
@@ -1133,11 +1139,25 @@ class Group_of_Experiments(Module, persistent.Persistent):
             return False
         print_info('Experiment {}'.format(experiment))
         print_info('Description: ' + experiment.get_description())
+        print_info('Trained models for detection: {}'.format())
         print_info('Total amount of tuples: {}'.format(len(experiment.get_tuples())))
         print_info('Total time slots: {}'.format(len(experiment.get_time_slots())))
         print_info('Total Errors: {}'.format(experiment.get_total_errors()))
         print_info('Total Performance Metrics:')
         print_info('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(experiment.total_performance_metrics['FMeasure1'], experiment.total_performance_metrics['FPR'],experiment.total_performance_metrics['TPR'], experiment.total_performance_metrics['TNR'], experiment.total_performance_metrics['FNR'], experiment.total_performance_metrics['ErrorRate'], experiment.total_performance_metrics['Precision'], experiment.total_performance_metrics['Accuracy']))
+        if verbose > 2:
+            try:
+                for iptype in experiment.final_ips:
+                    print '\t' + str(iptype)
+                    for ip in experiment.final_ips[iptype]:
+                        print '\t\t' + str(ip)
+                # Which positive IP did we miss?
+                for ip in experiment.final_ips['FN']:
+                    # Was it TP?
+                    if ip not in experiment.final_ips['TP']:
+                        print_info('\tIP {} was never detected.'.format(red(ip)))
+            except AttributeError:
+                print_error('No info about the IPs stored in this experiment.')
         if verbose > 3:
             print_info('IPs:')
             for timeslot in experiment.get_timeslots():
