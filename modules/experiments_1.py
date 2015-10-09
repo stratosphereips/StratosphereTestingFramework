@@ -411,7 +411,6 @@ class TimeSlot(persistent.Persistent):
         self.compute_performance_metrics()
         if verbose > 1:
             print_info(cyan('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(self.performance_metrics['FMeasure1'], self.performance_metrics['FPR'],self.performance_metrics['TPR'], self.performance_metrics['TNR'], self.performance_metrics['FNR'], self.performance_metrics['ErrorRate'], self.performance_metrics['Precision'], self.performance_metrics['Accuracy'])))
-            #print('*New time slot*')
         if verbose > 9:
             raw_input()
 
@@ -592,6 +591,7 @@ class Experiment(persistent.Persistent):
     def add_tp_ips(self, ips):
         """ Get a vector of TP ips and store them """
         for ip in ips:
+            # Add the ips one by one
             try:
                 self.final_ips['TP'].index(ip)
             except ValueError:
@@ -601,6 +601,7 @@ class Experiment(persistent.Persistent):
     def add_fp_ips(self, ips):
         """ Get a vector of FP ips and store them """
         for ip in ips:
+            # Add the ips one by one
             try:
                 self.final_ips['FP'].index(ip)
             except ValueError:
@@ -610,6 +611,7 @@ class Experiment(persistent.Persistent):
     def add_fn_ips(self, ips):
         """ Get a vector of FN ips and store them """
         for ip in ips:
+            # Add the ips one by one
             try:
                 self.final_ips['FN'].index(ip)
             except ValueError:
@@ -619,6 +621,7 @@ class Experiment(persistent.Persistent):
     def add_tn_ips(self, ips):
         """ Get a vector of TN ips and store them """
         for ip in ips:
+            # Add the ips one by one
             try:
                 self.final_ips['TN'].index(ip)
             except ValueError:
