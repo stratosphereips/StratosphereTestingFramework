@@ -52,7 +52,9 @@ class Screen(multiprocessing.Process):
             self.tuples[tuple_id] = {}
             self.tuples[tuple_id]['y_pos'] = self.y_min
             self.tuples[tuple_id]['x_pos'] = self.global_x_pos
-            self.global_x_pos += 1
+            (x_max, y_max) = self.screen.getmaxyx()
+            if self.global_x_pos <= x_max - 2:
+                self.global_x_pos += 1
             if 'tcp' in tuple_id.lower():
                 self.tuples[tuple_id]['color'] = curses.color_pair(1)
             elif 'udp' in tuple_id.lower():
@@ -118,14 +120,15 @@ class Screen(multiprocessing.Process):
                         state = orig_tuple.get_state()[-(y_max-self.y_min):]
                         tuple = self.get_tuple(tuple_id)
                         # Update the status bar
-                        self.screen.addstr(0,20,tuple_id + "                            ", curses.A_BOLD)
-                        self.screen.refresh()
-                        #self.screen.addstr(int(tuple['x_pos']), int(tuple['y_pos']), state, tuple['color'] | curses.A_BOLD)
-                        #if int(tuple['x_pos']) <= xmax:
-                        self.screen.addstr(int(tuple['x_pos']), int(tuple['y_pos']), state, tuple['color'])
-                        #tuple['y_pos'] += len(state)
-                        self.screen.refresh()
-                        self.qscreen.task_done()
+                        if int(tuple['x_pos']) < x_max - 3: 
+                            self.screen.addstr(0,20,tuple_id + "                            ", curses.A_BOLD)
+                            self.screen.refresh()
+                            #self.screen.addstr(int(tuple['x_pos']), int(tuple['y_pos']), state, tuple['color'] | curses.A_BOLD)
+                            #if int(tuple['x_pos']) <= xmax:
+                            self.screen.addstr(int(tuple['x_pos']), int(tuple['y_pos']), state, tuple['color'])
+                            #tuple['y_pos'] += len(state)
+                            self.screen.refresh()
+                            self.qscreen.task_done()
         except KeyboardInterrupt:
             curses.nocbreak()
             self.screen.keypad(0)
