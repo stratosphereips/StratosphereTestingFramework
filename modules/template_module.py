@@ -146,5 +146,5 @@ class Group_of_Template_Objects(Module, persistent.Persistent):
         elif self.args.generate:
             self.create_new_object(self.args.generate)
         else:
-            print_error('At least one of the parameter is required in this module')
+            print_error('At least one parameter is required in this module')
             self.usage()
