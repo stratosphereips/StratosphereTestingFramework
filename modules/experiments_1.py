@@ -971,31 +971,34 @@ class Group_of_Experiments(Module, persistent.Persistent):
         ans = raw_input('Are you sure you want to delete experiment {} (YES/NO)?: '.format(id))
         if ans == "YES":
             # Is this a range or id?
-            if type(id) == int:
+            try:
+                eid = int(id)
+                print_info('Deleting experiment {}.'.format(eid))
                 # Get the experiment
-                exp = self.get_experiment(id)
+                exp = self.get_experiment(eid)
                 # First delete everything inside the experiment
                 exp.delete()
                 # Now delete it from the list of experiments
-                self.main_dict.pop(id)
-            elif '-' in id:
-                # is a range
-                try:
-                    start = int(id.split('-')[0])
-                    end = int(id.split('-')[1])
-                    while start<=end:
-                        # Get the experiment
-                        exp = self.get_experiment(start)
-                        if exp:
-                            # First delete everything inside the experiment
-                            exp.delete()
-                            # Now delete it from the list of experiments
-                            self.main_dict.pop(start)
-                        start += 1
-                except ValueError:
+                self.main_dict.pop(eid)
+            except ValueError:
+                if '-' in id:
+                    # is a range
+                    try:
+                        start = int(id.split('-')[0])
+                        end = int(id.split('-')[1])
+                        while start<=end:
+                            # Get the experiment
+                            exp = self.get_experiment(start)
+                            if exp:
+                                # First delete everything inside the experiment
+                                exp.delete()
+                                # Now delete it from the list of experiments
+                                self.main_dict.pop(start)
+                            start += 1
+                    except ValueError:
+                        print_error('The id of the experiment is invalid.')
+                else:
                     print_error('The id of the experiment is invalid.')
-            else:
-                print_error('The id of the experiment is invalid.')
 
     # The run method runs every time that this command is used. Mandatory
     def run(self):
@@ -1033,5 +1036,5 @@ class Group_of_Experiments(Module, persistent.Persistent):
         elif self.args.delete:
             self.delete_experiment(self.args.delete)
         else:
-            print_error('At least one of the parameter is required in this module')
+            print_error('At least one parameter is required in this module')
             self.usage()
