@@ -693,7 +693,7 @@ class Experiment(persistent.Persistent):
     def process_netflow_for_testing(self):
         """ Get a netflow file and process it for testing """
         # Clean the models in the constructor. We should do this better
-        __modelsconstructors__.get_default_constructor().clean_models()
+        #__modelsconstructors__.get_default_constructor().clean_models()
         try:
             file = open(self.file_obj.get_name(), 'r')
         except IOError:
