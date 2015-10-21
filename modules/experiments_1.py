@@ -412,6 +412,7 @@ class TimeSlot(persistent.Persistent):
         if verbose > 1:
             print_info(cyan('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(self.performance_metrics['FMeasure1'], self.performance_metrics['FPR'],self.performance_metrics['TPR'], self.performance_metrics['TNR'], self.performance_metrics['FNR'], self.performance_metrics['ErrorRate'], self.performance_metrics['Precision'], self.performance_metrics['Accuracy'])))
         if verbose > 9:
+            # Stop after each timeslot
             raw_input()
 
     def get_performance_metrics(self):
@@ -873,7 +874,9 @@ class Experiment(persistent.Persistent):
             # Read next line
             # Line without the src and dst data
             line = ','.join(file.readline().strip().split(',')[:14])
-            #raw_input()
+            if verbose > 10:
+                # Stop after each flow
+                raw_input()
         # Close the file
         file.close()
         # Move the state windows in the tuples that already matched in this time slot. Before closing the time windoows!
