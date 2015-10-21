@@ -561,7 +561,11 @@ class Experiment(persistent.Persistent):
         except AttributeError:
             print_error('That testing dataset does no seem to exist.')
             return False
-        print_info('\nTesting with the netflow file: {}'.format(self.file_obj.get_name()))
+        try:
+            print_info('\nTesting with the netflow file: {}'.format(self.file_obj.get_name()))
+        except AttributeError:
+            print_error('There is no binetflow file available. Did you generate it with dataset -g?')
+            return False
         # Methodology 3.3. Process the netflow file for testing
         self.process_netflow_for_testing()
 
@@ -693,9 +697,12 @@ class Experiment(persistent.Persistent):
     def process_netflow_for_testing(self):
         """ Get a netflow file and process it for testing """
         # Clean the models in the constructor. We should do this better
-        #__modelsconstructors__.get_default_constructor().clean_models()
+        __modelsconstructors__.get_default_constructor().clean_models()
         try:
             file = open(self.file_obj.get_name(), 'r')
+        except AttributeError:
+            print_error('There is no binetflow file available. Did you generate it with dataset -g?')
+            return False
         except IOError:
             print_error('It was not possible to open the test file. Is it on the current file system?')
             return False
@@ -713,6 +720,10 @@ class Experiment(persistent.Persistent):
         # The constructor of models can change. Now we hardcode -1, but warning!
         group_id = str(self.testing_id) + '-1'
         group_of_models = group_group_of_models.get_group(group_id)
+        # If there are no model group for the testing, quit.
+        if type(group_of_models) == bool:
+            print_error('Inexistant group of models for this testing dataset.')
+            return False
         # Get the structures
         structures = __database__.get_structures()
         training_structure_name = 'markov_models_1' # Same as before, now it is hardcoded, but warning!
@@ -734,9 +745,6 @@ class Experiment(persistent.Persistent):
             self.training_models[model_training_id]['labelname'] = self.training_models[model_training_id]['model_training'].get_label().get_name()
             self.training_models[model_training_id]['threshold'] = self.training_models[model_training_id]['model_training'].get_threshold()
             self.training_models[model_training_id]['proto'] = self.training_models[model_training_id]['label'].get_proto()
-        if type(group_of_models) == bool:
-            print_error('Inexistant group of models for this testing dataset.')
-            return False
         while line:
             # Using our own extract_columns function makes this module more independent
             column_values = self.extract_columns_values(line)
@@ -761,11 +769,7 @@ class Experiment(persistent.Persistent):
                     print_info('\t\tSetting the ground truth label for IP {}: {} (tuple {}) (Time: {})'.format(tuple.get_src_ip(), tuple.get_ground_truth_label(), tuple.get_id(), tuple.get_last_time()))
             # Methodology 4.4 Get the letter for this flow. i.e. find the model we have stored for this test tuple.
             model = group_of_models.get_model(tuple.get_id())
-            if model:
-                # Take the letters from the test model, but not all of them, just the ones inside this time slot. This way we 'move' the letters used from time windows to time windows, but only if there was a model match.
-                # Store the state so far in the tuple. Now we are cutting the original state. Min is the amount defined if this tuple had already matched before. Max is just the amount of flows recived so far.
-                tuple.set_state_so_far(model.get_state()[tuple.get_min_state_len():tuple.get_max_state_len()])
-            else:
+            if not model:
                 # It can happen that the 4tuple in the testing netflow file does not have a model in the database. In this case we should create one (not store it) and generate the letters again.
                 # Actually this is the case for real time traffic
                 #print_info('No model stored for tuple: {}. Generting one...'.format(tuple4))
@@ -810,7 +814,9 @@ class Experiment(persistent.Persistent):
                     pass
                 model.add_flow(flow)
                 ################
-                tuple.set_state_so_far(model.get_state()[tuple.get_min_state_len():tuple.get_max_state_len()])
+            # Take the letters from the test model, but not all of them, just the ones inside this time slot. This way we 'move' the letters used from time windows to time windows, but only if there was a model match.
+            # Store the state so far in the tuple. Now we are cutting the original state. Min is the amount defined if this tuple had already matched before. Max is just the amount of flows recived so far.
+            tuple.set_state_so_far(model.get_state()[tuple.get_min_state_len():tuple.get_max_state_len()])
             # Reset the winner variables.
             time_slot.set_winner_model_id_for_ip(tuple.get_src_ip(), False)
             time_slot.set_winner_model_distance_for_ip(tuple.get_src_ip(),'inf')
