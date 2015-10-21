@@ -1182,7 +1182,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
                             continue
                     if timeslot.ip_dict[ip]['error'] == 'TP':
                         color = yellow
-                    elif timeslot.ip_dict[ip]['error'] == 'TP':
+                    elif timeslot.ip_dict[ip]['error'] == 'FP':
                         color = red
                     else:
                         color = str
