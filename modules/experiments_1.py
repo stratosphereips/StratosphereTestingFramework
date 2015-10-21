@@ -1177,15 +1177,21 @@ class Group_of_Experiments(Module, persistent.Persistent):
                 # Print info about each IP on each slot
                 for ip in timeslot.ip_dict:
                     if timeslot.ip_dict[ip]['error'] == 'NN':
-                        # Dont print this IP because is unknown and detected as unknown
                         if verbose < 3:
+                            # Dont print this IP because is unknown and detected as unknown
                             continue
-                    print '\t\tIP: {}'.format(ip)
+                    if timeslot.ip_dict[ip]['error'] == 'TP':
+                        color = yellow
+                    elif timeslot.ip_dict[ip]['error'] == 'TP':
+                        color = red
+                    else:
+                        color = str
+                    print color('\t\tIP: {}'.format(ip))
                     try:
                         gtl = timeslot.ip_dict[ip]['ground_truth_label']
                     except KeyError:
                         gtl = 'None'
-                    print '\t\t\t Ground Truth Label: {}. Error Type: {}. Winner Model: {}, Distance: {}'.format(gtl,timeslot.ip_dict[ip]['error'], timeslot.ip_dict[ip]['winner_model_id'], timeslot.ip_dict[ip]['winner_model_distance'])
+                    print color('\t\t\t Ground Truth Label: {}. Error Type: {}. Winner Model: {}, Distance: {}'.format(gtl,timeslot.ip_dict[ip]['error'], timeslot.ip_dict[ip]['winner_model_id'], timeslot.ip_dict[ip]['winner_model_distance']))
             if verbose > 2:
                 # Print TP in the slot
                 for tp in timeslot.get_tp_ips():
