@@ -391,7 +391,7 @@ class TimeSlot(persistent.Persistent):
             if verbose > 1:
                 tcolor=str
                 if ip_error=='FN':
-                    tcolor=blue
+                    tcolor=magenta
                 elif ip_error=='TP':
                     tcolor=yellow
                 elif ip_error=='TN':
@@ -1180,7 +1180,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
                     except KeyError:
                         gtl = 'None'
                     print '\t\t\t Ground Truth Label: {}. Error Type: {}. Winner Model: {}, Distance: {}'.format(gtl,timeslot.ip_dict[ip]['error'], timeslot.ip_dict[ip]['winner_model_id'], timeslot.ip_dict[ip]['winner_model_distance'])
-            elif verbose > 2:
+            if verbose > 2:
                 # Print TP in the slot
                 for tp in timeslot.get_tp_ips():
                     print '\t\t IP:{}'.format(tp)
