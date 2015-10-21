@@ -209,9 +209,10 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         self.parser.add_argument('-a', '--generateall', action='store_true', help='Generate the markov chain for all the labels that don\'t have one already')
         self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the markov models. For example for listing. Keywords: name, id. Usage: name=<text> name!=<text> or id=23. Partial matching.')
         self.parser.add_argument('-n', '--numberoffflows', metavar='numberofflows', default="3", help='When creating the markov models, this is the minimum number of flows that the connection should have. Less than this and the connection will be ignored. Be default 3.')
-        self.parser.add_argument('-t', '--train', metavar='markovmodelid', help='Train the distance threshold for this Markov Model Id. Use -f to filter the list of Markov Models to use in the training. If you specify as Markov Model Id to train the special word \'all\', all the models are trained.')
-        self.parser.add_argument('-i', '--train_ids', metavar='train_ids', default="", help='Specify the Ids of the models used for training the model given by -t. Comma separated. If you used -f, then don\'t use -i')
+        self.parser.add_argument('-t', '--train', metavar='markovmodelid', help='Train the distance threshold for this Markov Model Id. Use -f to filter the list of Markov Models to use in the training or use -i to specify a list of markov models id.')
+        self.parser.add_argument('-i', '--train_ids', metavar='train_ids', default="", help='Specify the Ids of the markov models to use. Can be used together with -t and -T. You can specify a singled id or a comma separated list. You can use \'all\' to specify all the models.')
         self.parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Make the train process more verbose, printing the details of the models matched.')
+        self.parser.add_argument('-T', '--threshold', metavar='threshold', type=float, help='Change the threshold of a markov model to this value. Use -i to designate the ids of target markov models.')
 
     # Mandatory Method!
     def get_name(self):
@@ -659,12 +660,16 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         elif test_ids != "" and not filter:
             # When calling directly markov_model is a string
             if type(test_ids) == str:
-                test_models_ids = map(int, test_ids.split(','))
+                if test_ids == 'all':
+                    # If all was specified, create a range with all of them
+                    test_ids = range(0,len(self.get_markov_models()))
+                elif ',' in test_ids:
+                    test_models_ids = map(int, test_ids.split(','))
             # When calling this function from other modules, can be a vector
             else:
                 test_models_ids = map(int, test_ids)
         else:
-            print_error('No test ids were specified using a filter or a number.')
+            print_error('No test ids were specified using a filter OR a number. Dont specify both.')
             return False
         train_model = self.get_markov_model(model_id_to_train)
         # Check that the train model id exists
@@ -805,6 +810,18 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 print '\tSelected: None. No other models matched.'
         return True
 
+    def assign_threshold_to_id(self, ids, threshold):
+        """ Assign the threshold to the markov models ids"""
+        # ids can be a single id, a range or 'all'
+        if type(ids) == str and 'all' in ids:
+            ids = range(0,len(self.get_markov_models()))
+        elif type(ids) == str and ',' in ids:
+            ids = map(int, ids.split(','))
+        else:
+            ids = [ids]
+        for id in ids:
+            markov_model = self.get_markov_model(int(id))
+            markov_model.set_threshold(threshold)
 
     # The run method runs every time that this command is used
     def run(self):
@@ -845,20 +862,24 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         elif self.args.regenerate:
             self.regenerate(self.args.regenerate)
         elif self.args.train:
+            """
             if self.args.train == 'all':
                 for model in self.get_markov_models():
                     id = model.get_id()
                     self.train(id, self.args.filter, self.args.train_ids, self.args.verbose)
             else:
-                self.train(int(self.args.train), self.args.filter, self.args.train_ids, self.args.verbose)
+            """
+            self.train(int(self.args.train), self.args.filter, self.args.train_ids, self.args.verbose)
         elif self.args.generateall:
             try:
                 self.create_new_model(self.args.generate, self.args.numberofflows)
             except AttributeError:
                 numberofflows = 3
                 self.generate_all_models(numberofflows)
-        #else:
-        #    print_error('At least one of the parameter is required in this module')
-        #    self.usage()
+        elif self.args.threshold:
+            if not self.args.train_ids:
+                print_error('You must specify some markov model id to apply the threshold.')
+                return False
+            self.assign_threshold_to_id(self.args.train_ids, self.args.threshold)
 
 __group_of_markov_models__ = Group_of_Markov_Models_1()
