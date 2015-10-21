@@ -493,6 +493,8 @@ class Experiment(persistent.Persistent):
         self.final_ips['FP'] = []
         self.final_ips['FN'] = []
         self.training_models = {}
+        # Here we store the testing models that we found but that they are not in the database.
+        self.testing_models = {}
 
     def get_training_models(self):
         return self.training_models
@@ -694,6 +696,15 @@ class Experiment(persistent.Persistent):
         except ZeroDivisionError:
             self.total_performance_metrics['FMeasure1'] = -1
 
+    def get_testing_model(self, tuple4):
+        """ See if we have the testing model stored for this experiment """
+        try:
+            model = self.testing_models[tuple4]
+        except KeyError:
+            model = Model(tuple4)
+            self.testing_models[tuple4] = model
+        return model
+
     def process_netflow_for_testing(self):
         """ Get a netflow file and process it for testing """
         # Clean the models in the constructor. We should do this better
@@ -775,7 +786,7 @@ class Experiment(persistent.Persistent):
                 #print_info('No model stored for tuple: {}. Generting one...'.format(tuple4))
                 ################
                 # Create a model
-                model = Model(tuple4)
+                model = self.get_testing_model(tuple.get_id())
                 constructor_id = __modelsconstructors__.get_default_constructor().get_id()
                 # Warning, here we depend on the modelsconstrutor
                 model.set_constructor(__modelsconstructors__.get_constructor(constructor_id))
