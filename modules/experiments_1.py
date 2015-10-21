@@ -1145,7 +1145,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
                     print_error('The id of the experiment is invalid.')
 
     def print_experiment(self, experiment_id, verbose):
-        """ Print the experiment """
+        """ Print info about the experiment """
         experiment = self.get_experiment(experiment_id)
         if not experiment:
             print_error('No such experiment id')
@@ -1155,16 +1155,46 @@ class Group_of_Experiments(Module, persistent.Persistent):
         print_info('Trained models for detection: {}'.format(experiment.get_training_models().keys()))
         print_info('Total amount of tuples: {}'.format(len(experiment.get_tuples())))
         print_info('Total time slots: {}'.format(len(experiment.get_time_slots())))
-        print_info('Total Errors: {}'.format(experiment.get_total_errors()))
-        print_info('Total Performance Metrics:')
-        print_info('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(experiment.total_performance_metrics['FMeasure1'], experiment.total_performance_metrics['FPR'],experiment.total_performance_metrics['TPR'], experiment.total_performance_metrics['TNR'], experiment.total_performance_metrics['FNR'], experiment.total_performance_metrics['ErrorRate'], experiment.total_performance_metrics['Precision'], experiment.total_performance_metrics['Accuracy']))
+        # Depending on the verbosity, we print more info about the experiment.
+        if verbose > 1:
+            # Print for each time slot, the errors
+            for timeslot in experiment.get_timeslots():
+                # In verbose mode 2, just print the timeslots that got some error types FN, TP, TN or FP
+                if verbose < 3:
+                    sum = 0
+                    for error in timeslot.get_acc_errors():
+                        sum += timeslot.get_acc_errors()['TP']
+                        sum += timeslot.get_acc_errors()['TN']
+                        sum += timeslot.get_acc_errors()['FP']
+                        sum += timeslot.get_acc_errors()['FN']
+                    if sum == 0:    
+                        continue
+                print timeslot
+                print cyan('\tFP:{}, TP:{}, FN:{}, TN:{}, NN:{}'.format(timeslot.get_acc_errors()['FP'], timeslot.get_acc_errors()['TP'], timeslot.get_acc_errors()['FN'], timeslot.get_acc_errors()['TN'], timeslot.get_acc_errors()['NN']))
+                print '\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(timeslot.get_performance_metrics()['FMeasure1'], timeslot.get_performance_metrics()['FPR'],timeslot.get_performance_metrics()['TPR'], timeslot.get_performance_metrics()['TNR'], timeslot.get_performance_metrics()['FNR'], timeslot.get_performance_metrics()['ErrorRate'], timeslot.get_performance_metrics()['Precision'], timeslot.get_performance_metrics()['Accuracy'])
+                # Print info about each IP on each slot
+                for ip in timeslot.ip_dict:
+                    print '\t\tIP: {}'.format(ip)
+                    try:
+                        gtl = timeslot.ip_dict[ip]['ground_truth_label']
+                    except KeyError:
+                        gtl = 'None'
+                    print '\t\t\t Ground Truth Label: {}. Error Type: {}. Winner Model: {}, Distance: {}'.format(gtl,timeslot.ip_dict[ip]['error'], timeslot.ip_dict[ip]['winner_model_id'], timeslot.ip_dict[ip]['winner_model_distance'])
+            elif verbose > 2:
+                # Print TP in the slot
+                for tp in timeslot.get_tp_ips():
+                    print '\t\t IP:{}'.format(tp)
         if verbose > 0:
+            print
+            print_info('Summary of IP detections:')
             try:
+                # Only one, print the IPs in each type of error: TN, TP, FN, FP
                 for iptype in experiment.final_ips:
-                    print '\t' + str(iptype)
+                    if experiment.final_ips[iptype]:
+                        print '\t- ' + str(iptype)
                     for ip in experiment.final_ips[iptype]:
-                        print '\t\t' + str(ip)
-                # Which positive IP did we miss?
+                        print '\t     ' + str(ip)
+                # Print which positive IP did we miss?
                 print_info('Not Detected IPs:')
                 for ip in experiment.final_ips['FN']:
                     # Was it TP?
@@ -1172,13 +1202,9 @@ class Group_of_Experiments(Module, persistent.Persistent):
                         print('\tIP {} was never detected.'.format(red(ip)))
             except AttributeError:
                 print_error('No info about the IPs stored in this experiment.')
-        if verbose > 2:
-            print_info('IPs:')
-            for timeslot in experiment.get_timeslots():
-                print timeslot
-                print '\t' + str(timeslot.get_acc_errors())
-                print '\t' + str(timeslot.get_performance_metrics())
-                print timeslot.get_tp_ips()
+        print_info('Total Errors. FP:{}, TP:{}, FN:{}, TN:{}, NN:{}'.format(experiment.get_total_errors()['FP'], experiment.get_total_errors()['TP'], experiment.get_total_errors()['FN'], experiment.get_total_errors()['TN'], experiment.get_total_errors()['NN']))
+        print_info('Total Performance Metrics:')
+        print_info('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(experiment.total_performance_metrics['FMeasure1'], experiment.total_performance_metrics['FPR'],experiment.total_performance_metrics['TPR'], experiment.total_performance_metrics['TNR'], experiment.total_performance_metrics['FNR'], experiment.total_performance_metrics['ErrorRate'], experiment.total_performance_metrics['Precision'], experiment.total_performance_metrics['Accuracy']))
 
 
     # The run method runs every time that this command is used. Mandatory
