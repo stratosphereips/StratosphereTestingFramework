@@ -1168,12 +1168,18 @@ class Group_of_Experiments(Module, persistent.Persistent):
                         sum += timeslot.get_acc_errors()['FP']
                         sum += timeslot.get_acc_errors()['FN']
                     if sum == 0:    
+                        # In verbose = 2 don't print this timeslot because there is no interesting data
                         continue
+                # Print this timeslot
                 print timeslot
                 print cyan('\tFP:{}, TP:{}, FN:{}, TN:{}, NN:{}'.format(timeslot.get_acc_errors()['FP'], timeslot.get_acc_errors()['TP'], timeslot.get_acc_errors()['FN'], timeslot.get_acc_errors()['TN'], timeslot.get_acc_errors()['NN']))
                 print '\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(timeslot.get_performance_metrics()['FMeasure1'], timeslot.get_performance_metrics()['FPR'],timeslot.get_performance_metrics()['TPR'], timeslot.get_performance_metrics()['TNR'], timeslot.get_performance_metrics()['FNR'], timeslot.get_performance_metrics()['ErrorRate'], timeslot.get_performance_metrics()['Precision'], timeslot.get_performance_metrics()['Accuracy'])
                 # Print info about each IP on each slot
                 for ip in timeslot.ip_dict:
+                    if timeslot.ip_dict[ip]['error'] == 'NN':
+                        # Dont print this IP because is unknown and detected as unknown
+                        if verbose < 3:
+                            continue
                     print '\t\tIP: {}'.format(ip)
                     try:
                         gtl = timeslot.ip_dict[ip]['ground_truth_label']
