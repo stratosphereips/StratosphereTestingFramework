@@ -824,6 +824,8 @@ class Experiment(persistent.Persistent):
                     continue
                 # Letters for the train model. They should not be 'cut' like the test ones. Train models should be complete.
                 #train_sequence = self.training_models[model_training_id]['model_training'].get_state()[0:tuple.get_amount_of_flows()]
+                if self.verbose > 11:
+                    print '\tMin state len from tuple: {}'.format(tuple.get_min_state_len())
                 train_sequence = self.training_models[model_training_id]['model_training'].get_state()[tuple.get_min_state_len():tuple.get_amount_of_flows()]
                 # First re-create the matrix only for this sequence
                 self.training_models[model_training_id]['model_training'].create(train_sequence)
