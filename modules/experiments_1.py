@@ -263,16 +263,20 @@ class TimeSlot(persistent.Persistent):
 
     def set_ground_truth_label_for_ip(self, ip, ground_truth_label):
         """ The logic to select which ground_truth_label is assigned to an IP. Because we can have multiple labels because of multiple tuples for the same ip """
-        try:
-            current = self.ip_dict[ip]['ground_truth_label'] 
-            # We change the ground_truth_label only if it is Normal or Background. Don't change any Botnet labels.
-            if current and 'normal' not in current.lower() and 'background' not in current.lower() and current != ground_truth_label:
-                self.ip_dict[ip]['ground_truth_label'] = ground_truth_label
-                #print '\tAssigning GTL to ip {}: {}'.format(ip, ground_truth_label)
-        except KeyError:
-            # First time
+        # Here just store the label as one more label for this ip
+        self.ip_dict[ip]['ground_truth_labels'] = []
+        self.ip_dict[ip]['ground_truth_labels'].append(ground_truth_label)
+        """
+        current = self.ip_dict[ip]['ground_truth_label'] 
+        # We change the ground_truth_label only if it is Normal or Background. Don't change any Botnet labels.
+        if current and 'normal' not in current.lower() and 'background' not in current.lower() and current != ground_truth_label:
             self.ip_dict[ip]['ground_truth_label'] = ground_truth_label
-            #print '\tAssigning first time GTL in this time slot to IP {}: {}'.format(ip, ground_truth_label)
+            #print '\tAssigning GTL to ip {}: {}'.format(ip, ground_truth_label)
+    except KeyError:
+        # First time
+        self.ip_dict[ip]['ground_truth_label'] = ground_truth_label
+        #print '\tAssigning first time GTL in this time slot to IP {}: {}'.format(ip, ground_truth_label)
+        """
 
     def unset_predicted_label_for_ip(self, ip, new_predicted_label, num_state, tuple_id):
         """ Get the ip, new_predicted_label num_state and tuple_id and unset it from the predictions. This is because it can happend that the model stop matching after some flows, i.e. its distance is above the threshold """
@@ -331,19 +335,23 @@ class TimeSlot(persistent.Persistent):
     
     def get_ground_truth_label(self, ip):
         """ Return the ground truth label for this IP. That means, only Botnet, Malware or Normal... not the whole info of the tuple """
+        botnet_labels = 0
+        normal_labels = 0
         try:
-            if 'botnet' in self.ip_dict[ip]['ground_truth_label'].lower():
-                return 'Botnet'
-            elif 'malware' in self.ip_dict[ip]['ground_truth_label'].lower():
-                return 'Malware'
-            elif 'normal' in self.ip_dict[ip]['ground_truth_label'].lower():
-                return 'Normal'
-            elif 'attack' in self.ip_dict[ip]['ground_truth_label'].lower():
-                return 'attack'
-            else:
-                return ''
+            labels = self.ip_dict[ip]['ground_truth_labels']
         except KeyError:
-            return ''
+            return 'Background'
+        for label in labels:
+            if 'Malware' in label or 'Botnet' in label:
+                botnet_labels += 1
+            elif 'Normal' in label:
+                normal_labels += 1
+        if botnet_labels >= normal_labels:        
+            return 'Botnet'
+        elif botnet_labels < normal_labels:
+            return 'Normal'
+        else:
+            return 'Background'
 
     def get_tp_ips(self):
         """ Return the TP ips in this slot """
@@ -1210,7 +1218,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
                         color = str
                     print color('\t\tIP: {}'.format(ip))
                     try:
-                        gtl = timeslot.ip_dict[ip]['ground_truth_label']
+                        gtl = timeslot.get_ground_truth_label[ip]
                     except KeyError:
                         gtl = 'None'
                     print color('\t\t\t Ground Truth Label: {}. Error Type: {}. Winner Model: {}, Distance: {}'.format(gtl,timeslot.ip_dict[ip]['error'], timeslot.ip_dict[ip]['winner_model_id'], timeslot.ip_dict[ip]['winner_model_distance']))
