@@ -1218,7 +1218,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
                         color = str
                     print color('\t\tIP: {}'.format(ip))
                     try:
-                        gtl = timeslot.get_ground_truth_label[ip]
+                        gtl = timeslot.get_ground_truth_label(ip)
                     except KeyError:
                         gtl = 'None'
                     print color('\t\t\t Ground Truth Label: {}. Error Type: {}. Winner Model: {}, Distance: {}'.format(gtl,timeslot.ip_dict[ip]['error'], timeslot.ip_dict[ip]['winner_model_id'], timeslot.ip_dict[ip]['winner_model_distance']))
