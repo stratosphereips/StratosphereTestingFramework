@@ -452,6 +452,9 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 end = int(markov_model_id.split('-')[1])
                 for temp_id in range(start, end + 1):
                     self.markov_models.pop(temp_id)
+            elif ',' in markov_model_id:
+                for temp_id in markov_model_id.split(','):
+                    self.markov_models.pop(int(temp_id))
             else:
                 self.markov_models.pop(int(markov_model_id))
         except KeyError:
@@ -862,14 +865,15 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         elif self.args.regenerate:
             self.regenerate(self.args.regenerate)
         elif self.args.train:
-            """
-            if self.args.train == 'all':
-                for model in self.get_markov_models():
-                    id = model.get_id()
-                    self.train(id, self.args.filter, self.args.train_ids, self.args.verbose)
+            if '-' in self.args.train:
+                # There is a range of ids to train
+                first = int(self.args.train.split('-')[0])
+                last = int(self.args.train.split('-')[1])
+                train_ids = range(first,last + 1)
             else:
-            """
-            self.train(int(self.args.train), self.args.filter, self.args.train_ids, self.args.verbose)
+                train_ids = [self.args.train]
+            for train_id in train_ids:
+                self.train(train_id, self.args.filter, self.args.train_ids, self.args.verbose)
         elif self.args.generateall:
             try:
                 self.create_new_model(self.args.generate, self.args.numberofflows)
