@@ -820,11 +820,18 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             ids = range(0,len(self.get_markov_models()))
         elif type(ids) == str and ',' in ids:
             ids = map(int, ids.split(','))
+        elif type(ids) == str and '-' in ids:
+            first = int(ids.split('-')[0])
+            last = int(ids.split('-')[1])
+            ids = range(first,last + 1)
         else:
             ids = [ids]
         for id in ids:
             markov_model = self.get_markov_model(int(id))
-            markov_model.set_threshold(threshold)
+            try:
+                markov_model.set_threshold(threshold)
+            except AttributeError:
+                print_error('Model id {} does not exists. Continuing...'.format(id))
 
     # The run method runs every time that this command is used
     def run(self):
