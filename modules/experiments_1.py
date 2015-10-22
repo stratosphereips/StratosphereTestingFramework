@@ -785,7 +785,7 @@ class Experiment(persistent.Persistent):
             if tuple.get_ground_truth_label():
                 time_slot.set_ground_truth_label_for_ip(tuple.get_src_ip(), tuple.get_ground_truth_label())
                 if self.verbose > 3:
-                    print_info('\t\tSetting the ground truth label for IP {}: {} (tuple {}) (Time: {})'.format(tuple.get_src_ip(), tuple.get_ground_truth_label(), tuple.get_id(), tuple.get_last_time()))
+                    print_info('\t\tSetting the ground truth label for IP {}. The new label is {} in tuple {}. The final label is {}. (Time: {})'.format(tuple.get_src_ip(), tuple.get_ground_truth_label(), tuple.get_id(), time_slot.get_ground_truth_label(tuple.get_src_ip()), tuple.get_last_time()))
             # Methodology 4.4 Get the letter for this flow. i.e. find the model we have stored for this test tuple.
             model = group_of_models.get_model(tuple.get_id())
             if not model:
@@ -849,8 +849,8 @@ class Experiment(persistent.Persistent):
                     continue
                 # Letters for the train model. They should not be 'cut' like the test ones. Train models should be complete.
                 #train_sequence = self.training_models[model_training_id]['model_training'].get_state()[0:tuple.get_amount_of_flows()]
-                if self.verbose > 11:
-                    print '\tMin state len from tuple: {}'.format(tuple.get_min_state_len())
+                #if self.verbose > 11:
+                    #print '\tMin state len from tuple: {}'.format(tuple.get_min_state_len())
                 train_sequence = self.training_models[model_training_id]['model_training'].get_state()[tuple.get_min_state_len():tuple.get_amount_of_flows()]
                 # First re-create the matrix only for this sequence
                 self.training_models[model_training_id]['model_training'].create(train_sequence)
