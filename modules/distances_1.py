@@ -389,13 +389,13 @@ class Group_of_Detections(Module, persistent.Persistent):
         # Example of a parameter without arguments
         self.parser.add_argument('-l', '--list', action='store_true', help='List the distances.')
         # Example of a parameter with arguments
-        self.parser.add_argument('-n', '--new', action='store_true', help='Create a new distance. You will be prompted to select the trained model and the \'unknown\' model.')
+        self.parser.add_argument('-n', '--new', action='store_true', help='Create a new distance between two specific models. You will be prompted to select the trained model and the \'unknown\' model.')
         self.parser.add_argument('-d', '--delete', metavar='id', help='Delete the distance object with the given id.')
         self.parser.add_argument('-L', '--letterbyletter', type=int, metavar='id', help='Compare and print the distances between the models letter-by-letter. Give the distance id. Optionally you can use -a to analize a fixed amount of letters. An ascii plot is generated.')
         self.parser.add_argument('-a', '--amount', type=int, default=-1, metavar='amount', help='Amount of letters to compare in the letter-by-letter comparison.')
         self.parser.add_argument('-r', '--regenerate', metavar='regenerate', type=int, help='Regenerate the distance. Used when the original training or testing models changed. Give the distance id.')
         self.parser.add_argument('-p', '--print_comparison', metavar='id', type=int, help='Print the values of the letter by letter comparison. No graph.')
-        self.parser.add_argument('-c', '--compareall', metavar='structure', help='Compare all the models between themselves in the structure specified. The comparisons are not repeted if the already exists. For example: -c markov_models_1. You can force a maximun amount of letters to compare with -a.')
+        self.parser.add_argument('-c', '--compareall', metavar='structure', help='Create distances between all the models between themselves in the structure specified. The comparisons are not repeted if the already exists. For example: -c markov_models_1. You can force a maximun amount of letters to compare with -a.')
         self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the distance. For example for listing. Keywords: testname, trainname, distance, id. Usage: testname=<text> distance<2. The names are partial matching. The operator for distances are <, >, = and !=. The operator for id is = and !=')
         self.parser.add_argument('-D', '--deleteall', action='store_true', help='Delete all the distance object that matches the -f filter. Must provide a -f filter.')
 
