@@ -346,9 +346,9 @@ class TimeSlot(persistent.Persistent):
                 botnet_labels += 1
             elif 'Normal' in label:
                 normal_labels += 1
-        if botnet_labels >= normal_labels:        
+        if botnet_labels:        
             return 'Botnet'
-        elif botnet_labels < normal_labels:
+        elif normal_labels:
             return 'Normal'
         else:
             return 'Background'
