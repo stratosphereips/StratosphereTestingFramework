@@ -422,6 +422,8 @@ class TimeSlot(persistent.Persistent):
         if verbose > 9:
             # Stop after each timeslot
             raw_input()
+        # Clean the tuples in this timeslot
+        self.clean_tuples()
 
     def get_performance_metrics(self):
         """ return accumulated errors """
@@ -458,6 +460,10 @@ class TimeSlot(persistent.Persistent):
 
     def __repr__(self):
         return ('TimeSlot start: {}, ends: {}'.format(self.init_time, self.finish_time))
+
+    def clean_tuples(self):
+        """ Clean the timeslot of the info about tuples, so we don't store them """
+        self.tuples = {}
 
 
 
@@ -921,6 +927,11 @@ class Experiment(persistent.Persistent):
         finish_time = datetime.now()
         print_info('Finish Time: {} (Duration: {})'.format(unicode(finish_time), unicode(finish_time - start_time)))
         self.print_final_values()
+        self.tuples = {}
+
+    def clean_experiment_for_storage(self):
+        # After we printed everything, we should clean the experiment of all the stuff we don't want stored in the db.
+        self.time_slots = []
 
     def print_final_values(self):
         print
@@ -1084,6 +1095,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
         self.parser.add_argument('-t', '--testing_id', metavar='testing_id', type=int, help='Dataset id to be used as testing when creating a new experiment with -n.')
         self.parser.add_argument('-T', '--timeslotwidth', default=300, metavar='timeslotwidth', type=int, help='The width of the time slot in seconds.')
         self.parser.add_argument('-v', '--verbose', default=0, metavar='verbose', type=int, help='An integer expressing how verbose should we be while running the experiment. For example -v 1.')
+        self.parser.add_argument('-r', '--reduce', metavar='experiment_id', type=int, help='Reduce the size of the given experiment. Strongly suggested to be used before storing the experiment by leaving the program. It deletes the timeslots from the experiment. Before this command you can use -p and -v > 3 to see the info of the time slots in an experiment. After this commend you can only use -v < 3.')
 
     def get_name(self):
         """ Return the name of the module"""
@@ -1221,8 +1233,12 @@ class Group_of_Experiments(Module, persistent.Persistent):
                     print color('\t\t\t Ground Truth Label: {}. Error Type: {}. Winner Model: {}, Distance: {}'.format(gtl,timeslot.ip_dict[ip]['error'], timeslot.ip_dict[ip]['winner_model_id'], timeslot.ip_dict[ip]['winner_model_distance']))
             if verbose > 2:
                 # Print TP in the slot
-                for tp in timeslot.get_tp_ips():
-                    print '\t\t IP:{}'.format(tp)
+                try:
+                    for tp in timeslot.get_tp_ips():
+                        print '\t\t IP:{}'.format(tp)
+                except UnboundLocalError:
+                    # The timeslot variable does not exists. Is ok.
+                    pass
         if verbose > 0:
             print
             print_info('Summary of IP detections:')
@@ -1245,6 +1261,11 @@ class Group_of_Experiments(Module, persistent.Persistent):
         print_info('Total Performance Metrics:')
         print_info('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(experiment.total_performance_metrics['FMeasure1'], experiment.total_performance_metrics['FPR'],experiment.total_performance_metrics['TPR'], experiment.total_performance_metrics['TNR'], experiment.total_performance_metrics['FNR'], experiment.total_performance_metrics['ErrorRate'], experiment.total_performance_metrics['Precision'], experiment.total_performance_metrics['Accuracy']))
 
+
+    def reduce_experiment(self, experiment_id):
+        """ Since an experiment can be very large, very..., it is necessary to delete some parts before storing in the db """
+        experiment = self.get_experiment(experiment_id)
+        experiment.clean_experiment_for_storage()
 
     # The run method runs every time that this command is used. Mandatory
     def run(self):
@@ -1283,6 +1304,8 @@ class Group_of_Experiments(Module, persistent.Persistent):
             self.delete_experiment(self.args.delete)
         elif self.args.printstate:
             self.print_experiment(self.args.printstate, self.args.verbose)
+        elif self.args.reduce:
+            self.reduce_experiment(self.args.reduce)
         else:
             print_error('At least one parameter is required in this module')
             self.usage()
