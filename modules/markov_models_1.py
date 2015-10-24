@@ -145,7 +145,7 @@ class Markov_Model(persistent.Persistent):
                 temp_prob = log_temp_prob
                 i += 1
                 if temp_prob != float('-inf'):                
-                    probability = probability + temp_prob # logs should be +
+                    probability = probability + temp_prob # logs should be summed up
                     #print_info('\tTransition [{}:{}]: {} -> Prob:{:.10f}. CumProb: {}'.format(i-1, i,vector, temp_prob, probability))
                 else:
                     # Here is our trick. If two letters are not in the matrix... ignore the transition.
