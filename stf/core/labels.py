@@ -530,6 +530,10 @@ class Group_Of_Labels(persistent.Persistent):
             print_error('The connection does not have a model. Probably deleted.')
             return False
 
+    def add_model_to_the_label(self, group_of_model_id, connection_id,):
+        """ Add the model id to the label """
+        model = self.get_the_model_of_a_connection(group_of_model_id, connection_id)
+
     def add_label_to_model(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label id and a current dataset, add the label id to the model"""
         model = self.get_the_model_of_a_connection(group_of_model_id, connection_id)
