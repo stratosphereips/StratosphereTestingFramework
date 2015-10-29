@@ -11,6 +11,7 @@ import copy
 import re
 import numpy as np
 import tempfile
+import cPickle
 
 from stf.common.out import *
 from stf.common.abstracts import Module
@@ -164,6 +165,16 @@ class Markov_Model(persistent.Persistent):
             #ignored = 0
         return probability       
 
+    def export(self, path):
+        """ Export the current model to that path """
+        final_file = path + str(self.get_label().get_name()) + '-' + str(self.get_id()) + '.stfm'
+        output = open(final_file, 'wb')
+        cPickle.dump(self.init_vector,output)         
+        cPickle.dump(self.matrix,output)         
+        cPickle.dump(self.get_self_probability(),output)         
+        cPickle.dump(self.get_label().get_name(),output)         
+        output.close()
+
     def get_label(self):
         """ Return the label name"""
         label = __group_of_labels__.get_label_by_id(self.get_label_id())
@@ -213,6 +224,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         self.parser.add_argument('-i', '--train_ids', metavar='train_ids', default="", help='Specify the Ids of the markov models to use. Can be used together with -t and -T. You can specify a singled id or a comma separated list. You can use \'all\' to specify all the models.')
         self.parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Make the train process more verbose, printing the details of the models matched.')
         self.parser.add_argument('-T', '--threshold', metavar='threshold', type=float, help='Change the threshold of a markov model to this value. Use -i to designate the ids of target markov models.')
+        self.parser.add_argument('-e', '--export', metavar='model_id', type=int, help='Export the given markov model id to an object on disk. Give the model id here. You must use -E to give an export path.')
+        self.parser.add_argument('-E', '--exportpath', metavar='path', type=str, help='The folder path were to export the markov model.')
 
     # Mandatory Method!
     def get_name(self):
@@ -833,6 +846,11 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             except AttributeError:
                 print_error('Model id {} does not exists. Continuing...'.format(id))
 
+    def export_model(self, model_id, path):
+        """ Get a model id and path, and export that model there """
+        model = self.get_markov_model(model_id)
+        model.export(path)
+
     # The run method runs every time that this command is used
     def run(self):
         # Register the structure in the database, so it is stored and use in the future. 
@@ -887,6 +905,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             except AttributeError:
                 numberofflows = 3
                 self.generate_all_models(numberofflows)
+        elif self.args.export and self.args.exportpath:
+            self.export_model(self.args.export, self.args.exportpath)
         elif self.args.threshold:
             if not self.args.train_ids:
                 print_error('You must specify some markov model id to apply the threshold.')
