@@ -222,7 +222,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         self.parser.add_argument('-n', '--numberoffflows', metavar='numberofflows', default="3", help='When creating the markov models, this is the minimum number of flows that the connection should have. Less than this and the connection will be ignored. Be default 3.')
         self.parser.add_argument('-t', '--train', metavar='markovmodelid', help='Train the distance threshold for this Markov Model Id. Use -f to filter the list of Markov Models to use in the training or use -i to specify a list of markov models id.')
         self.parser.add_argument('-i', '--train_ids', metavar='train_ids', default="", help='Specify the Ids of the markov models to use. Can be used together with -t and -T. You can specify a singled id or a comma separated list. You can use \'all\' to specify all the models.')
-        self.parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Make the train process more verbose, printing the details of the models matched.')
+        self.parser.add_argument('-v', '--verbose', metavar='verbose_val', default=0, type=int, help='Make the train process more verbose, printing the details of the models matched. Give an integer value.')
         self.parser.add_argument('-T', '--threshold', metavar='threshold', type=float, help='Change the threshold of a markov model to this value. Use -i to designate the ids of target markov models.')
         self.parser.add_argument('-e', '--export', metavar='model_id', type=int, help='Export the given markov model id to an object on disk. Give the model id here. You must use -E to give an export path.')
         self.parser.add_argument('-E', '--exportpath', metavar='path', type=str, help='The folder path were to export the markov model.')
@@ -694,7 +694,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         except AttributeError:
             print_error('No such training id is available')
             return False
-        if verbose > 0:
+        if verbose > 1:
             print_info('Training model: {}. Amount of letters used for training: {}'.format(train_model, 100)) # The 100 is hardcoded. See the number below.
         # To store the training data
         thresholds_train = {}
@@ -725,7 +725,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 return False
             # Apply the filter and avoid training with itself and only if the protocols match
             if ( (filter != "" and self.apply_filter(test_model)) or (test_models_ids != "" and test_model_id in test_models_ids)) and test_model_id != train_model_id and train_protocol == test_protocol:
-                if verbose > 0:
+                if verbose > 1:
                     print_info('\tTraining with model {}'.format(test_model))
                 # Store info about this particular test training. Later stored within the threshold vector
                 # train_vector = [test model id, distance, N flow that matched, errors, errors metrics]
@@ -768,7 +768,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                         if index > 2 and distance < threshold and distance > 0:
                             # Compute the errors: TP, TN, FP, FN
                             errors = self.compute_errors(train_label, test_label)
-                            if verbose > 0:
+                            if verbose > 1:
                                 print '\t\tTraining with threshold: {}. Distance: {}. Errors: {}'.format(threshold, distance, errors)
                             # Store the info
                             train_vector['Distance'] = distance
@@ -812,17 +812,16 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             current_criteria = threshold[1][criteria]
             # Only  print the best FM1s
             if current_criteria >= best_criteria:
-                if verbose > 1:
+                if verbose > 2:
                     print '\t\tThreshold {}: FM1:{:.3f}, FPR:{:.3f}, TPR:{:.3f}, TNR:{:.3f}, FNR:{:.3f}, PPV:{:.3f}, NPV:{:.3f}, Prec:{:.3f}, TP:{}, FP:{}, TN:{}, FN:{}'.format(threshold[0], threshold[1]['FMeasure1'], threshold[1]['FPR'], threshold[1]['TPR'], threshold[1]['TNR'], threshold[1]['FNR'], threshold[1]['PPV'], threshold[1]['NPV'], threshold[1]['Precision'], threshold[1]['TP'], threshold[1]['FP'], threshold[1]['TN'], threshold[1]['FN'])
                 best_criteria = current_criteria
         # Store the trained threshold for this model
         try:
             train_model.set_threshold(sorted_metrics[0][0])
-            if verbose > 0:
-                print '\tSelected: {}'.format(red(sorted_metrics[0][0]))
+            print '\tSelected: {}'.format(red(sorted_metrics[0][0]))
         except IndexError:
             train_model.set_threshold(-1)
-            if verbose > 0:
+            if verbose > 1:
                 print '\tSelected: None. No other models matched.'
         return True
 
