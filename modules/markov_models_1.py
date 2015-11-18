@@ -898,7 +898,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             else:
                 train_ids = [self.args.train]
             for train_id in train_ids:
-                self.train(train_id, self.args.filter, self.args.train_ids, self.args.verbose)
+                self.train(int(train_id), self.args.filter, self.args.train_ids, self.args.verbose)
         elif self.args.generateall:
             try:
                 self.create_new_model(self.args.generate, self.args.numberofflows)
