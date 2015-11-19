@@ -980,3 +980,6 @@ class Group_of_Detections(Module, persistent.Persistent):
         else:
             print_error('At least one of the parameter is required in this module')
             self.usage()
+
+
+__group_of_distances__ = Group_of_Detections()
