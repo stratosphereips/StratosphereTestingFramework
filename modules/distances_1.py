@@ -816,18 +816,19 @@ class Group_of_Detections(Module, persistent.Persistent):
                     total_errors['FN'] += 1
                 elif error == 'FP':
                     total_errors['FP'] += 1
-            error_string = ""
+            error_string_1 = ""
             for error in total_errors:
-                error_string += '{}:{} '.format(error, total_errors[error])
-            print_info(error_string)
+                error_string_1 += '{}:{} '.format(error, total_errors[error])
+            print_info(error_string_1)
             # Call the performance metrics
             performance_metrics = self.compute_total_performance_metrics(total_errors)
-            error_string = ""
+            error_string_2 = ""
             for pmetric in performance_metrics:
-                error_string += '{}:{} '.format(pmetric, performance_metrics[pmetric])
-            print_info(error_string)
+                error_string_2 += '{}:{} '.format(pmetric, performance_metrics[pmetric])
+            print_info(error_string_2)
             # Forget the distances ids for this execution
             del distances_ids
+            return error_string_1 + ',' + error_string_2
 
     def compute_total_performance_metrics(self, total_errors):
         """ Compute the total performance metrics """
