@@ -50,6 +50,9 @@ class Detection(persistent.Persistent):
         # The vector of probabilities for each letter of the testing model
         self.test_prob_vector = []
         self.amount = -1
+        # The type error and in which letter index in happens between the two models. There is only one type of possible error between two given models.
+        self.error_type = ""
+        self.error_index = -1
 
     def get_id(self):
         return self.id
@@ -124,7 +127,8 @@ class Detection(persistent.Persistent):
             return -1
 
     def detect(self, training_structure_name,  structure_training, model_training_id, testing_structure_name, structure_testing, model_testing_id, amount):
-        """ Perform the distance between the testing model and the training model"""
+        """ Setup the environment prior the actual detection. Check everyting """
+        # Store the data
         self.set_model_training_id(model_training_id)
         self.set_model_testing_id(model_testing_id)
         self.set_structure_training(structure_training)
@@ -147,76 +151,70 @@ class Detection(persistent.Persistent):
         # Only compare if the protocols are the same
         if not train_protocol == test_protocol:
             return False
-        # Get the models. But don't store them... they are too 'heavy'
+        # Get the models for the detection. But don't store them in this object... they are too 'heavy'
         model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
         model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
         if not model_testing or not model_training:
             print_error('Id is incorrect.')
             return False
         print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
-        # Get the states 
+        # Get the states of both models
         self.training_states = model_training.get_state()
         self.testing_states = model_testing.get_state()
-        # Get the original probability of detecting the training state in the training module
-        #self.training_original_prob = model_training.compute_probability(self.training_states)
-        #print_info('Probability of detecting the training model with the training model: {}'.format(self.training_original_prob))
-        # Compute the distance with the cut training chain of states
-        len_testing_chain = len(self.testing_states)
+        # Actually compute the distance with the training chain of states
         self.distance = self.detect_letter_by_letter(amount)
         print_info(red('Final Distance: {}'.format(self.distance)))
+        # Return True so the caller knows if we could compute the distance
         return True
 
     def detect_letter_by_letter(self, amount):
         """ 
-        Try to detect letter-by-letter 
-        In this model we re-create the prob matrix in the training for each letter. So the comparison is made to a matrix created with the same amount of lines that the testing sequence.
-        Also the probability of detecting the training is created for the same length that the testing. We don't compare a 4 letter long testing against the prob of generating a 2000 letter long training.
+        Try to detect the test model using the train model in a letter-by-letter way.
+        In this type of detection, we re-create the prob matrix of the training model for each letter analyzed (each index of the letter). 
+        So the comparison is made to a matrix created with the same amount of letters than the testing sequence.
+        Also the probability of detecting the training letters is re-created for each letter. So is always compared against the same length that the testing. 
+        We don't compare a 4 letter long testing against the prob of generating a 2000 letter long training.
         """
+        # Get the group of labels for later
+        group_labels = __group_of_labels__
         # Get the models. But don't store them... they are 'heavy'
         model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
-        if not model_training:
-            print_error('The training model was possibly deleted. We can not re-run a letter by letter comparison.')
-            return False
+        train_label_id = model_training.get_label_id()
+        ground_truth_label = group_labels.get_label_name_by_id(train_label_id)
+        threshold = model_training.get_threshold()
         model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
-        if not model_testing:
-            print_error('The testing model was possibly deleted. We can not re-run a letter by letter comparison.')
-            return False
-        # Dont repeat the computation if we already have the data
-        # Check the amount
+        test_label_id = model_testing.get_label_id()
+        predicted_label = group_labels.get_label_name_by_id(test_label_id)
+        self.error_type = self.compute_errors(predicted_label, ground_truth_label)
+        # amouunt == -1 means that we should use all the letters available, no limit.
         if amount == -1:
+            # Move along...
             amount = len(self.testing_states)
+        # If the amount is not > than what we already have stored, just print what we have and don't compute something new.
         if amount != -1 and amount > len(self.dict_of_distances):
-            # Store the original matrix and prob for later
+            # Store the original matrix and prob for later recovery
             original_matrix = model_training.get_matrix()
             original_self_prob = model_training.get_self_probability()
             if not original_self_prob:
-                # IS THIS EVER USED???? IF NOT WE SHOULD DELETE IT
-                # Maybe it was the first time that it is generated
+                # Is this used the first time that it is generated????
                 training_original_prob = model_training.compute_probability(self.training_states)
                 model_training.set_self_probability(training_original_prob)
-
-            # Only generate what we dont have, not all of it
+            # Start comparing from what we have stored so far
             index = len(self.dict_of_distances)
             while index < len(self.testing_states) and index < amount:
                 test_sequence = self.testing_states[0:index+1]
                 train_sequence = self.training_states[0:index+1]
-                #print_info('Trai Seq: {}'.format(train_sequence))
-                #print_info('Test Seq: {}'.format(test_sequence))
-                # First re-create the matrix only for this sequence
+                # First re-create the matrix only for the current sequence
                 model_training.create(train_sequence)
-                #print_info('\tNew Matrix:')
-                #for item in model_training.get_matrix():
-                    #print '\t', item, model_training.get_matrix()[item]
-                # Get the new original prob so far...
+                # Compute the new original prob so far...
                 self.training_original_prob = model_training.compute_probability(train_sequence)
-                #print_info('\tTrain prob: {}'.format(self.training_original_prob))
-                # Store the prob for future verification
+                # Store the orig prob for this string for future verification
                 self.train_prob_vector.insert(index, self.training_original_prob)
                 # Now obtain the probability for testing
                 test_prob = model_training.compute_probability(test_sequence)
-                #print_info('\tTest prob: {}'.format(test_prob))
-                # Store the prob for future verification
+                # Store the test prob for this string for future verification
                 self.test_prob_vector.insert(index, test_prob)
+                # Compute the distance
                 if self.training_original_prob < test_prob:
                     try:
                         self.prob_distance = self.training_original_prob / test_prob
@@ -230,7 +228,11 @@ class Detection(persistent.Persistent):
                 elif self.training_original_prob == test_prob:
                     self.prob_distance = 1
                 self.dict_of_distances.insert(index, self.prob_distance)
-                #print_info('\tDistance: {}'.format(self.prob_distance))
+                # Compute the confusion matrix errors
+                # If the threshold is less than the distance
+                if threshold and threshold >= self.prob_distance:
+                    self.error_index = index + 1 # Because letter 10 is index 9 + 1 # Because letter 10 is index 9
+                # Go to the next letter
                 index += 1
             final_position = index
             # Put back the original matrix and values in the model
@@ -250,7 +252,44 @@ class Detection(persistent.Persistent):
         x = range(len(self.dict_of_distances[0:final_position]))
         y = self.dict_of_distances[0:final_position]
         print p.plot(x, y, marker='_of')
+        # Print the error type
+        try:
+            test = self.error_index
+            if threshold >= self.dict_of_distances[final_position - 1]:
+                print_info('On letter {} the distance is under the threshold. Error Type: {} (last overcomed on letter {})'.format(amount, self.error_type, self.error_index))
+            else:
+                print_info('Letter {} was the last time that the distance was less than the threshold with error type {}'.format(self.error_index, self.error_type))
+        except AttributeError:
+            # This is an distance object without the index yet. Before the change. Put it in -1
+            self.error_index = -1
         return self.dict_of_distances[final_position-1]
+
+    def compute_errors(self, predicted_label, ground_truth_label):
+        """ Get the predicted and ground truth labels and figure it out the errors. Both current errors for this time slot and accumulated errors in all time slots."""
+        """ This coded is copied in the experiments_1.py file. """
+        # So we can work with multiple positives and negative labels
+        # Set the predicted label
+        if 'Botnet' in predicted_label or 'Malware' in predicted_label or 'CC' in predicted_label:
+            predicted_label_positive = True
+        elif 'Normal' in predicted_label or predicted_label == '':
+            predicted_label_positive = False
+        # Set the ground truth label
+        if 'Botnet' in ground_truth_label or 'Malware' in ground_truth_label or 'CC' in ground_truth_label:
+            ground_truth_label_positive = True
+        elif 'Normal' in ground_truth_label:
+            ground_truth_label_positive = False
+        elif 'Background' in ground_truth_label or ground_truth_label == '':
+            self.acc_errors['NN'] += 1
+            return 'NN'
+        # Compute the actual errors
+        if predicted_label_positive and ground_truth_label_positive:
+            return 'TP'
+        elif predicted_label_positive and not ground_truth_label_positive:
+            return 'FP'
+        elif not predicted_label_positive and not ground_truth_label_positive:
+            return 'TN'
+        elif not predicted_label_positive and ground_truth_label_positive:
+            return 'FN'
 
     def check_need_for_regeneration(self):
         """ Check if the training or testing of this comparison changed since we use them """
@@ -392,7 +431,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         self.parser.add_argument('-n', '--new', action='store_true', help='Create a new distance between two specific models. You will be prompted to select the trained model and the \'unknown\' model.')
         self.parser.add_argument('-d', '--delete', metavar='id', help='Delete the distance object with the given id.')
         self.parser.add_argument('-L', '--letterbyletter', type=int, metavar='id', help='Compare and print the distances between the models letter-by-letter. Give the distance id. Optionally you can use -a to analize a fixed amount of letters. An ascii plot is generated.')
-        self.parser.add_argument('-a', '--amount', type=int, default=-1, metavar='amount', help='Amount of letters to compare in the letter-by-letter comparison.')
+        self.parser.add_argument('-a', '--amount', type=int, default=100, metavar='amount', help='Amount of letters to compare in the letter-by-letter comparison.')
         self.parser.add_argument('-r', '--regenerate', metavar='regenerate', type=int, help='Regenerate the distance. Used when the original training or testing models changed. Give the distance id.')
         self.parser.add_argument('-p', '--print_comparison', metavar='id', type=int, help='Print the values of the letter by letter comparison. No graph.')
         self.parser.add_argument('-c', '--compareall', metavar='structure', help='Create distances between all the models between themselves in the structure specified. The comparisons are not repeted if the already exists. For example: -c markov_models_1. You can force a maximun amount of letters to compare with -a.')
@@ -609,10 +648,17 @@ class Group_of_Detections(Module, persistent.Persistent):
 
     def delete_distance(self, distance_id):
         """ Delete a distance """
-        if self.has_distance_id(int(distance_id)):
-            self.main_dict.pop(int(distance_id))
+        if '-' in distance_id:
+            first = int(distance_id.split('-')[0])
+            last = int(distance_id.split('-')[1])
         else:
-            print_error('No such distance available.')
+            first = int(distance_id)
+            last = int(distance_id)
+        for dist_id in range(first, last + 1):
+            if self.has_distance_id(dist_id):
+                self.main_dict.pop(dist_id)
+            else:
+                print_error('No such distance available {}.'.format(dist_id))
 
     def delete_all(self, filter):
         """ Delete all the objects that match the filter """
