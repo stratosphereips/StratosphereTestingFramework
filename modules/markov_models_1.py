@@ -793,7 +793,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                         index += 1
                         # Put a limit in the amount of letters by now. VERIFY THIS
                         if index > 100:
-                            print_warning('Now we are limiting the maximum amount of letters in each string of every model during training to  100')
+                            #print_warning('Now we are limiting the maximum amount of letters in each string of every model during training to  100')
                             break
                     if exit_threshold_for:
                         # We are going to stop computing the threshold for this test model because we found one.
