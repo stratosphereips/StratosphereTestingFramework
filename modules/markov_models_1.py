@@ -826,7 +826,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             train_model.set_threshold(-1)
             if verbose > 1:
                 print '\tSelected: None. No other models matched.'
-        return True
+        return train_model.get_threshold()
 
     def assign_threshold_to_id(self, ids, threshold):
         """ Assign the threshold to the markov models ids"""
