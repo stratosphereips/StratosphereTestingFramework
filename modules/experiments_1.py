@@ -201,6 +201,7 @@ class TimeSlot(persistent.Persistent):
 
     def compute_errors(self, predicted_label, ground_truth_label):
         """ Get the predicted and ground truth labels and figure it out the errors. Both current errors for this time slot and accumulated errors in all time slots."""
+        """ This coded is copied to the distances modules """
         # So we can work with multiple positives and negative labels
         # Set the predicted label
         if 'Botnet' in predicted_label or 'Malware' in predicted_label or 'CC' in predicted_label:
