@@ -765,6 +765,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                         elif train_prob == test_prob:
                             distance = 1
                         # Is distance < threshold? We found a good match.
+                        # index > 2 means that we discard the matching of the first two letters, because is too similar.
                         if index > 2 and distance < threshold and distance > 0:
                             # Compute the errors: TP, TN, FP, FN
                             errors = self.compute_errors(train_label, test_label)
@@ -784,7 +785,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                             # Store this train vector in the threshold vectors
                             prev_threshold.append(train_vector)
                             thresholds_train[threshold] = prev_threshold
-                            # Tell the threshold for to exit
+                            # Tell the threshold for to exit. Means that we matched something
                             exit_threshold_for = False
                             # Exit the test chain of state evaluation
                             break
@@ -792,8 +793,10 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                         index += 1
                         # Put a limit in the amount of letters by now. VERIFY THIS
                         if index > 100:
+                            print_warning('Now we are limiting the maximum amount of letters in each string of every model during training to  100')
                             break
                     if exit_threshold_for:
+                        # We are going to stop computing the threshold for this test model because we found one.
                         break
         # Compute the error metrics for each threshold
         final_errors_metrics = {}
