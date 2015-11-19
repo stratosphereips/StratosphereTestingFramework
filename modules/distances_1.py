@@ -55,7 +55,13 @@ class Detection(persistent.Persistent):
         # The letter index when the error type between MATCHING models ocurr.
         self.error_index = -1
         # The current error type is the error type for the current amount of requested letters. It can be FN if the train label was Botnet and there is NO match.
-        self.nomatching_error_type = ""
+        self.current_error_type = ""
+
+    def get_matching_error_type(self):
+        return self.matching_error_type
+
+    def get_current_error_type(self):
+        return self.current_error_type
 
     def get_id(self):
         return self.id
@@ -250,40 +256,40 @@ class Detection(persistent.Persistent):
             self.distance = self.dict_of_distances[final_position-1]
         if verbose > 1:
             print_info('Letter by letter distance up to {} letters: {}'.format(final_position, red(self.dict_of_distances[final_position-1])))
-        # Return the final distance.
+        # Print the error type
+        try:
+            test = self.error_index
+            if threshold >= self.dict_of_distances[final_position - 1]:
+                # The models matched.
+                self.current_error_type = self.matching_error_type
+                if verbose > 1:
+                    print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
+                    print_info('Models matched on letter {}. '.format(amount) + red('Error Type: {}'.format(self.matching_error_type)) + '. (lastest match is on letter {})'.format(self.error_index))
+                elif verbose > 0:
+                    print_info('Test model {}. Train model {}. Up to {} letters. {}'.format(model_testing.get_id(), model_training.get_id(), amount, self.matching_error_type)), 
+            else:
+                # The threshold was not overcomed by the distance. The models don't match. We miss the detection
+                if 'botnet' in ground_truth_label.lower() or 'malware' in ground_truth_label.lower():
+                    # Because we miss the detection
+                    self.current_error_type = 'FN'
+                elif 'normal' in ground_truth_label.lower():
+                    # Because we detect normal correctly
+                    self.current_error_type = 'TN'
+                if verbose > 1:
+                    print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
+                    print_info('Models don\'t match on letter {}. '.format(amount) + red('Error Type: {}. '.format(self.current_error_type)) + '(Latests match was on letter {} with error type: {})'.format(self.error_index, self.matching_error_type))
+                elif verbose > 0:
+                    print_info('Test model {}. Train model {}. Up to {} letters. {}'.format(model_testing.get_id(), model_training.get_id(), amount, self.current_error_type)), 
+        except AttributeError:
+            # This is an distance object without the index yet. Before the change. Put it in -1
+            self.error_index = -1
         # Ascii plot
         p = ap.AFigure()
         x = range(len(self.dict_of_distances[0:final_position]))
         y = self.dict_of_distances[0:final_position]
         if verbose > 1:
             print p.plot(x, y, marker='_of')
-        # Print the error type
-        try:
-            test = self.error_index
-            if threshold >= self.dict_of_distances[final_position - 1]:
-                # The models matched.
-                if verbose > 1:
-                    print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
-                    print_info('Models matched on letter {}. '.format(amount) + red('Error Type: {}'.format(self.matching_error_type)) + '. (lastest match is on letter {})'.format(self.error_index))
-                elif verbose > 0:
-                    print_info('Test model {}. Train model {}. Up to {} letters. {}'.format(model_testing.get_id(), model_training.get_id(), amount, self.matching_error_type)), 
-
-            else:
-                # The threshold was not overcomed by the distance. The models don't match. We miss the detection
-                if 'botnet' in ground_truth_label.lower() or 'malware' in ground_truth_label.lower():
-                    # Because we miss the detection
-                    self.nomatching_error_type = 'FN'
-                elif 'normal' in ground_truth_label.lower():
-                    # Because we detect normal correctly
-                    self.nomatching_error_type = 'TN'
-                if verbose > 1:
-                    print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
-                    print_info('Models don\'t match on letter {}. '.format(amount) + red('Error Type: {}. '.format(self.nomatching_error_type)) + '(Latests match was on letter {} with error type: {})'.format(self.error_index, self.matching_error_type))
-                elif verbose > 0:
-                    print_info('Test model {}. Train model {}. Up to {} letters. {}'.format(model_testing.get_id(), model_training.get_id(), amount, self.nomatching_error_type)), 
-        except AttributeError:
-            # This is an distance object without the index yet. Before the change. Put it in -1
-            self.error_index = -1
+        # Return the final distance.
         return self.dict_of_distances[final_position-1]
 
     def compute_errors(self, predicted_label, ground_truth_label):
@@ -646,7 +652,10 @@ class Group_of_Detections(Module, persistent.Persistent):
             return False
 
     def get_distance(self, id):
-        return self.main_dict[id]
+        try:
+            return self.main_dict[id]
+        except KeyError:
+            return False
 
     def get_distances(self):
         return self.main_dict.values()
@@ -756,7 +765,9 @@ class Group_of_Detections(Module, persistent.Persistent):
             model_testing_id = raw_input('Id:')
         else:
             test_id = test_id.split(',')
+            test_id.sort()
             # For each test model passed
+            distances_ids = []
             for tid in test_id:
                 # Generate the new id for this distance
                 try:
@@ -765,6 +776,7 @@ class Group_of_Detections(Module, persistent.Persistent):
                     new_id = 1
                 # Create the new object
                 new_distance = Detection(new_id)
+                # Remember the ids of the distances in this execution
                 structures = __database__.get_structures()
                 # Now the structures are fixed
                 model_training_id = train_id
@@ -775,10 +787,86 @@ class Group_of_Detections(Module, persistent.Persistent):
                 # Run the distance rutine
                 if new_distance.detect(training_structure_name, selected_training_structure, model_training_id, testing_structure_name, selected_testing_structure, tid, amount, verbose):
                     # Store on DB the new distance only if the comparison was successful.
+                    distances_ids.append(new_id)
                     self.main_dict[new_id] = new_distance
                     if verbose > 1:
                         print
                         print_info('New distance created with id {}'.format(new_id))
+            # Finish for
+            # Compute the performance metrics based on the errors of the comparison of each training model with its testing model.
+            total_errors = {}
+            total_errors['TP'] = 0
+            total_errors['TN'] = 0
+            total_errors['FN'] = 0
+            total_errors['FP'] = 0
+            for did in distances_ids:
+                distance = self.get_distance(did)
+                try:
+                    test_id = distance.get_model_testing_id()
+                except AttributeError:
+                    return False
+                error = distance.get_current_error_type()
+                #if verbose:
+                #    print_info('Test model id {}, error {}'.format(test_id, error))
+                if error == 'TP':
+                    total_errors['TP'] += 1
+                elif error == 'TN':
+                    total_errors['TN'] += 1
+                elif error == 'FN':
+                    total_errors['FN'] += 1
+                elif error == 'FP':
+                    total_errors['FP'] += 1
+            error_string = ""
+            for error in total_errors:
+                error_string += '{}:{} '.format(error, total_errors[error])
+            print_info(error_string)
+            # Call the performance metrics
+            performance_metrics = self.compute_total_performance_metrics(total_errors)
+            error_string = ""
+            for pmetric in performance_metrics:
+                error_string += '{}:{} '.format(pmetric, performance_metrics[pmetric])
+            print_info(error_string)
+            # Forget the distances ids for this execution
+            del distances_ids
+
+    def compute_total_performance_metrics(self, total_errors):
+        """ Compute the total performance metrics """
+        total_performance_metrics = {}
+        try:
+            total_performance_metrics['TPR'] = ( total_errors['TP'] ) / float(total_errors['TP'] + total_errors['FN'])
+        except ZeroDivisionError:
+            total_performance_metrics['TPR'] = -1
+        try:
+            total_performance_metrics['TNR'] = ( total_errors['TN'] ) / float( total_errors['TN'] + total_errors['FP'] )
+        except ZeroDivisionError:
+            total_performance_metrics['TNR'] = -1
+        try:
+            total_performance_metrics['FPR'] = ( total_errors['FP'] ) / float( total_errors['TN'] + total_errors['FP'] )
+        except ZeroDivisionError:
+            total_performance_metrics['FPR'] = -1
+        try:
+            total_performance_metrics['FNR'] = ( total_errors['FN'] ) / float(total_errors['TP'] + total_errors['FN'])
+        except ZeroDivisionError:
+            total_performance_metrics['FNR'] = -1
+        try:
+            total_performance_metrics['Precision'] = ( total_errors['TP'] ) / float(total_errors['TP'] + total_errors['FP'])
+        except ZeroDivisionError:
+            total_performance_metrics['Precision'] = -1
+        try:
+            total_performance_metrics['Accuracy'] = ( total_errors['TP'] + total_errors['TN'] ) / float( total_errors['TP'] + total_errors['TN'] + total_errors['FP'] + total_errors['FN'] )
+        except ZeroDivisionError:
+            total_performance_metrics['Accuracy'] = -1
+        try:
+            total_performance_metrics['ErrorRate'] = ( total_errors['FN'] + total_errors['FP'] ) / float( total_errors['TP'] + total_errors['TN'] + total_errors['FP'] + total_errors['FN'] )
+        except ZeroDivisionError:
+            total_performance_metrics['ErrorRate'] = -1
+        beta = 1.0
+        # With beta=1 F-Measure is also Fscore
+        try:
+            total_performance_metrics['FMeasure1'] = ( ( (beta * beta) + 1 ) * total_performance_metrics['Precision'] * total_performance_metrics['TPR']  ) / float( ( beta * beta * total_performance_metrics['Precision'] ) + total_performance_metrics['TPR'])
+        except ZeroDivisionError:
+            total_performance_metrics['FMeasure1'] = -1
+        return total_performance_metrics
 
     def detect_letter_by_letter(self, distance_id, amount):
         try:
