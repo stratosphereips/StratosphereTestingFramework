@@ -819,13 +819,15 @@ class Group_of_Detections(Module, persistent.Persistent):
             error_string_1 = ""
             for error in total_errors:
                 error_string_1 += '{}:{} '.format(error, total_errors[error])
-            print_info(error_string_1)
+            if verbose:
+                print_info(error_string_1)
             # Call the performance metrics
             performance_metrics = self.compute_total_performance_metrics(total_errors)
             error_string_2 = ""
             for pmetric in performance_metrics:
                 error_string_2 += '{}:{} '.format(pmetric, performance_metrics[pmetric])
-            print_info(error_string_2)
+            if verbose:
+                print_info(error_string_2)
             # Forget the distances ids for this execution
             del distances_ids
             return error_string_1 + ',' + error_string_2
@@ -871,6 +873,7 @@ class Group_of_Detections(Module, persistent.Persistent):
             total_performance_metrics['FDR'] = total_errors['FP'] / (total_errors['TP'] + total_errors['FP'])
         except ZeroDivisionError:
             total_performance_metrics['FDR'] = -1
+        # Erase this value PPV here, because is the same as Precision
         try:
             # Positive Predicted Value
             total_performance_metrics['PPV'] = total_errors['TP'] / (total_errors['TP'] + total_errors['FP'])
