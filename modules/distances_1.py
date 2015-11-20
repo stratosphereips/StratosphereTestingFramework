@@ -867,6 +867,35 @@ class Group_of_Detections(Module, persistent.Persistent):
             total_performance_metrics['FMeasure1'] = ( ( (beta * beta) + 1 ) * total_performance_metrics['Precision'] * total_performance_metrics['TPR']  ) / float( ( beta * beta * total_performance_metrics['Precision'] ) + total_performance_metrics['TPR'])
         except ZeroDivisionError:
             total_performance_metrics['FMeasure1'] = -1
+        try:
+            total_performance_metrics['FDR'] = total_errors['FP'] / (total_errors['TP'] + total_errors['FP'])
+        except ZeroDivisionError:
+            total_performance_metrics['FDR'] = -1
+        try:
+            # Positive Predicted Value
+            total_performance_metrics['PPV'] = total_errors['TP'] / (total_errors['TP'] + total_errors['FP'])
+        except ZeroDivisionError:
+            total_performance_metrics['PPV'] = -1
+        try:
+            # Negative Predictive Value
+            total_performance_metrics['NPV'] = total_errors['TN'] / (total_errors['TN'] + total_errors['FN'])
+        except ZeroDivisionError:
+            total_performance_metrics['NPV'] = -1
+        try:
+            # Positive likelihood ratio
+            total_performance_metrics['PLR'] = total_performance_metrics['TPR'] / total_performance_metrics['FPR']
+        except ZeroDivisionError:
+            total_performance_metrics['PLR'] = -1
+        try:
+            # Negative likelihood ratio
+            total_performance_metrics['NLR'] = total_performance_metrics['FNR'] / total_performance_metrics['TNR']
+        except ZeroDivisionError:
+            total_performance_metrics['NLR'] = -1
+        try:
+            # Diagnostic odds ratio
+            total_performance_metrics['DOR'] = total_performance_metrics['PLR'] / total_performance_metrics['NLR']
+        except ZeroDivisionError:
+            total_performance_metrics['DOR'] = -1
         return total_performance_metrics
 
     def detect_letter_by_letter(self, distance_id, amount):
