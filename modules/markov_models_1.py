@@ -821,7 +821,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         # Store the trained threshold for this model
         try:
             train_model.set_threshold(sorted_metrics[0][0])
-            print '\tSelected: {}'.format(red(sorted_metrics[0][0]))
+            if verbose:
+                print '\tSelected: {}'.format(red(sorted_metrics[0][0]))
         except IndexError:
             train_model.set_threshold(-1)
             if verbose > 1:
