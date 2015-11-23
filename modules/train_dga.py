@@ -19,29 +19,8 @@ import random
 
 group_normal=[2248,2249,2250,2252,2253,2254,2255,2256,2257]
 group_malware_nodga=[2260,2261,2264,2267,2273,2281,2282,2284,2283]
-group_malware1_dga=[2263,2266,2268,2269,2270,2271,2274] #2264 is missing
-group_malware2_dga=[2236,2238,2240,2239,2241,2242,2243] #2244 is missing
-group_fastflux=[2279,2280,2278]
-
-test=[2251,2262,2272,2237,2235]
-
-allgroups=[]
-allgroups.extend(group_normal)
-allgroups.extend(group_malware_nodga)
-allgroups.extend(group_malware1_dga)
-allgroups.extend(group_malware2_dga)
-allgroups.extend(group_fastflux)
-
-def parse_final_metrics( results_str):
-        final_results={}
-        (confusion_matrix,metrics)=results_str.split(',')
-        final_results['ErrorRate']=float(metrics.split()[0].split(':')[1])
-        final_results['PLR']=float(metrics.split()[1].split(':')[1])
-        final_results['FNR']=float(metrics.split()[2].split(':')[1])
-        final_results['TNR']=float(metrics.split()[3].split(':')[1])
-        final_results['Precision']=float(metrics.split()[4].split(':')[1])
-        final_results['PPV']=float(metrics.split()[5].split(':')[1])
-group_malware2_dga=[2236,2238,2240,2239,2241,2242,2243]
+group_malware1_dga=[2263,2266,2268,2269,2270,2271,2274,2265] 
+group_malware2_dga=[2236,2238,2240,2239,2241,2242,2243,2244] 
 group_fastflux=[2279,2280,2278]
 
 test=[2251,2262,2272,2237,2235]
@@ -79,8 +58,6 @@ def parse_final_metrics( results_str):
         return final_results
 
 
-
-
 class ExperimentDGA(Module):
     cmd = 'experimentdga'
     description = 'Example module to print some statistics about the data in stf'
@@ -110,7 +87,7 @@ class ExperimentDGA(Module):
 
 
     def train(self):
-        fd=open("/home/harpo/dga_results2.dat",'w')
+        fd=open("/home/harpo/dga_train_results.dat",'w')
 
         for model in allgroups:
                 
@@ -181,15 +158,18 @@ class ExperimentDGA(Module):
                 avg_threshold=sum([sorted_metrics[i][1]['threshold']  for i in range(0,10)])/10.0
                 print "avg threshold :",avg_threshold
 
-                if avg_threshold != -1:
-                    __group_of_markov_models__.get_markov_model(model).set_threshold(avg_threshold)
+                if _threshold != -1:
+                    final_threshold=avg_threshold
                 elif model in group_normal and avg_threshold ==-1:
-                    __group_of_markov_models__.get_markov_model(model).set_threshold(2)
+                    final_threshold=2.0 
                 elif model not in group_normal and avg_threshold ==-1:
-                    __group_of_markov_models__.get_markov_model(model).set_threshold(1.1)
+                    final_threshold=1.1
+                __group_of_markov_models__.get_markov_model(model).set_threshold(final_threshold)
 
+                print >>fd,"*"*50
                 print >>fd,"id:",model
                 print >>fd,"avgt:",avg_threshold
+                print >>fd,"finalt:",final_threshold
                 for metric in sorted_metrics:
                     print>>fd,  metric
                 fd.flush()
@@ -201,7 +181,6 @@ class ExperimentDGA(Module):
         # List general info
         def help():
             self.log('train', "train module for DGA")
-            print 'Hi'
 
         # Run?
         super(ExperimentDGA, self).run()
