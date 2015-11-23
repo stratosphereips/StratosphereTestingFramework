@@ -26,18 +26,22 @@ class File(persistent.Persistent):
         self.guess_type()
 
     def get_size_in_megabytes(self):
-        try:
-            size = self.size
-        except (AttributeError, TypeError):
-            self.compute_size()
-
-        return str(self.size / 1024.0 / 1024.0)+' MB'
+        size = self.get_size()
+        if size:
+            return str(size / 1024.0 / 1024.0)+' MB'
+        # We can't even compute the size
+        return "No data"
 
     def get_size(self):
         try:
             size = self.size
         except (AttributeError, TypeError):
-            self.compute_size()
+            size = self.compute_size()
+            if size:
+                self.size = size
+            else:
+                # Could not be computed
+                return False
         return self.size
 
     def set_duration(self,duration):
@@ -56,8 +60,12 @@ class File(persistent.Persistent):
             return ''
 
     def compute_size(self):
-        size = os.path.getsize(self.get_name())
-        self.size = size
+        try:
+            size = os.path.getsize(self.get_name())
+        except OSError:
+            print_error('The file is not available in your disk.')
+            return False
+        return size
 
     def get_id(self):
         return self.id
@@ -82,6 +90,10 @@ class File(persistent.Persistent):
     def guess_type(self):
         short_name = os.path.split(self.filename)[1]
         extension = short_name.split('.')[-1]
+        if 'xz' in extension:
+            # The file is compressed, but argus can deal with it.
+            if 'biargus' in short_name.split('.')[-2]:
+                extension = 'biargus'
         if 'pcap' in extension:
             self.set_type('pcap')
         elif 'netflow' in extension:
@@ -129,8 +141,6 @@ class File(persistent.Persistent):
 
         # Always return true
         return True
-
-
 
     def get_capinfos(self):
         """ Get info with capinfos"""
@@ -202,7 +212,6 @@ class File(persistent.Persistent):
             self.md5 = tshark_data = Popen('md5sum '+self.get_name()+' | awk \'{print $1}\'', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0]
             return self.md5
 
-
     def info(self):
         rows = []
         print_info('Information of file name {} with id {}'.format(self.get_short_name(), self.get_id()))
@@ -211,9 +220,12 @@ class File(persistent.Persistent):
         rows.append(['Creation Time', self.get_modificationtime()])
 
         # Get the file size
-        if not self.get_size():
-            self.compute_size()
-        rows.append(['Size', str(self.get_size()/1024.0/1024)+' MB'])
+        #if not self.get_size():
+            #self.compute_size()
+        size = self.get_size()
+        if not size:
+            return False
+        rows.append(['Size', str(size/1024.0/1024)+' MB'])
 
         # Get more info from pcap files
         if 'pcap' in self.get_type():
@@ -239,3 +251,5 @@ class File(persistent.Persistent):
 
         print(table(header=['Key', 'Value'], rows=rows))
 
+    def __repr__(self):
+        return('File id: {}. Name: {}. Type: {}'.format(self.get_id(), self.get_name(), self.get_type()))

@@ -12,7 +12,7 @@ import transaction
 
 from stf.common.out import *
 from stf.core.dataset import __datasets__
-from stf.core.experiment import __experiments__
+#from stf.core.experiment import __experiments__
 from stf.core.database import __database__
 from stf.core.connections import __group_of_group_of_connections__
 from stf.core.models_constructors import __modelsconstructors__
@@ -27,9 +27,9 @@ class Commands(object):
         # Map commands to their related functions.
         self.commands = dict(
             help=dict(obj=self.cmd_help, description="Show this help message"),
-            info=dict(obj=self.cmd_info, description="Show information on the opened experiment"),
+            #info=dict(obj=self.cmd_info, description="Show information on the opened experiment"),
             clear=dict(obj=self.cmd_clear, description="Clear the console"),
-            experiments=dict(obj=self.cmd_experiments, description="List or switch to existing experiments"),
+            #experiments=dict(obj=self.cmd_experiments, description="List or switch to existing experiments"),
             datasets=dict(obj=self.cmd_datasets, description="Manage the datasets"),
             connections=dict(obj=self.cmd_connections, description="Manage the connections. A dataset should be selected first."),
             models=dict(obj=self.cmd_models, description="Manage the models. A dataset should be selected first."),
@@ -79,17 +79,17 @@ class Commands(object):
     # INFO
     #
     # This command returns information on the open experiment.
-    def cmd_info(self, *args):
-        if __experiments__.is_set() and __experiments__.current:
-            print_info('Information about the current experiment')
-            print(table(
-                ['Name', 'Value'],
-                [
-                    ('Name', __experiments__.current.get_name()),
-                ]
-            ))
-        else:
-            print_info('There is no current experiment')
+    #def cmd_info(self, *args):
+    #    if __experiments__.is_set() and __experiments__.current:
+    #        print_info('Information about the current experiment')
+    #        print(table(
+    #            ['Name', 'Value'],
+    #            [
+    #                ('Name', __experiments__.current.get_name()),
+    #            ]
+    #        ))
+    #    else:
+    #        print_info('There is no current experiment')
 
     ##
     # NOTES
@@ -142,7 +142,7 @@ class Commands(object):
         parser.add_argument('-l', '--listgroups', action="store_true", help="List all the groups of  models. If a dataset is selected it only shows the models in that dataset.")
         parser.add_argument('-g', '--generate', action="store_true", help="Generate the models for the current dataset.")
         parser.add_argument('-d', '--deletegroup', metavar="group_model_id", help="Delete a group of models.")
-        parser.add_argument('-D', '--deletemodel', metavar="group_model_id", help="Delete a model from the group. This is the id of the group. Use -i to give the model id to delete (4-tuple) or -f to use a filter.")
+        parser.add_argument('-D', '--deletemodel', metavar="group_model_id", help="Delete a model (4tuple) from this group. With -D give the id of the group. Use -i to give the model id to delete (4-tuple) or -f to use a filter.")
         parser.add_argument('-i', '--modelid', metavar="model_id", help="Use this model id (4-tuple). Commonly used with -D.")
         parser.add_argument('-L', '--listmodels', metavar="group_model_id", help="List the models inside a group. You can use filters.")
         parser.add_argument('-C', '--countmodels', metavar="group_model_id", help="Count the models inside a group.")
@@ -351,6 +351,7 @@ class Commands(object):
         group.add_argument('-u', '--unselect', action='store_true', help="Unselect the current dataset.")
         group.add_argument('-n', '--editnote', metavar='dataset_id', help="Edit the note related with this dataset id.")
         group.add_argument('-N', '--delnote', metavar='dataset_id', help="Delete completely the note related with this dataset id.")
+        group.add_argument('-o', '--editfolder', metavar='dataset_id', type=str, help="Edit the main folder of this dataset. Useful when you upload files from different machines and then you move them around.")
 
         try:
             args = parser.parse_args(args)
@@ -414,46 +415,10 @@ class Commands(object):
             __datasets__.del_note(args.delnote)
             __database__.root._p_changed = True
 
-        else:
-            parser.print_usage()
-
-
-    ##
-    # EXPERIMENTS
-    #
-    # This command retrieves a list of all experiments.
-    # You can also switch to a different experiments.
-    def cmd_experiments(self, *args):
-        parser = argparse.ArgumentParser(prog="experiments", description="Manage experiments", epilog="Manage experiments")
-        group = parser.add_mutually_exclusive_group()
-        group.add_argument('-l', '--list', action="store_true", help="List all existing experiments")
-        group.add_argument('-s', '--switch', metavar='experiment_name', help="Switch to the specified experiment")
-        group.add_argument('-c', '--create', metavar='experiment_name', help="Create a new experiment")
-        group.add_argument('-d', '--delete', metavar='experiment_id', help="Delete an experiment")
-
-        try:
-            args = parser.parse_args(args)
-        except:
-            return
-
-        # Subcomand to list
-        if args.list:
-            __experiments__.list_all()
-
-        # Subcomand to switch
-        elif args.switch:
-            __experiments__.switch_to(args.switch)
-
-        # Subcomand to create
-        elif args.create:
-            __experiments__.create(args.create)
+        # Subcomand to edit the folder of this dataset
+        elif args.editfolder :
+            __datasets__.edit_folder(args.editfolder)
             __database__.root._p_changed = True
-
-        # Subcomand to delete
-        elif args.delete:
-            __experiments__.delete(args.delete)
-            __database__.root._p_changed = True
-
         else:
             parser.print_usage()
 
@@ -468,6 +433,8 @@ class Commands(object):
         group.add_argument('-r', '--revert', action="store_true", help="Revert the connection of the database to the state before the last pack")
         group.add_argument('-p', '--pack', action="store_true", help="Pack the database")
         group.add_argument('-c', '--commit', action="store_true", help="Commit the changes")
+        group.add_argument('-l', '--list', action="store_true", help="List the structures in the db.")
+        group.add_argument('-d', '--delete', metavar="structurename", help="Delete the given structure from the db. Specify the complete name.")
 
         try:
             args = parser.parse_args(args)
@@ -477,6 +444,14 @@ class Commands(object):
         # Subcomand to get info
         if args.info:
             __database__.info()
+
+        # Subcomand to delete a structures
+        elif args.delete:
+            __database__.delete_structure(args.delete)
+
+        # Subcomand to list the structures
+        elif args.list:
+            __database__.list_structures()
 
         # Subcomand to revert the database
         elif args.revert:
@@ -501,7 +476,7 @@ class Commands(object):
         parser.add_argument('-a', '--add', action="store_true", help="Add a label. Use -c to add to a connection id or -f to add to a group of connections id.")
         parser.add_argument('-c', '--connectionid', metavar="connection_id", help="Together with -a, add a label to the given connection id. You should use -g to specify the id of the group of models.")
         parser.add_argument('-d', '--delete', metavar="label_id", help="Delete a label given the label number id. If you use a dash you can delete ranges of label ids. For example: -d 20-30")
-        parser.add_argument('-D', '--deleteconnection', metavar="connection_id", help="Give a connection id to delete (4-tuple). You must give the group of model id with -g.")
+        parser.add_argument('-D', '--deleteconnection', metavar="connection_id", help="Delete a label given a connection id to delete (4-tuple). You must give the group of model id with -g.")
         parser.add_argument('-g', '--modelgroupid', metavar="modelgroupid", help="Id of the group of models. Used with -a.")
         parser.add_argument('-m', '--migrate', action="store_true", help="Migrate <= 0.1.2alpha labels to the new database.")
         parser.add_argument('-f', '--filter', metavar="filter", nargs='+', default="", help="Use this filter to work with labels. Format: \"variable[!=<>]value\". You can use the variables: name, id, groupid and connid. Example: \"name=Botnet\". If you use -f to add labels, you should also specify -g. the variable connid is only used to assign a label to multiple connections")

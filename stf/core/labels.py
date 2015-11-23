@@ -6,6 +6,9 @@ import BTrees.IOBTree
 import os
 import sys
 import re
+from subprocess import Popen
+from subprocess import PIPE
+import tempfile
 
 from stf.common.out import *
 from stf.core.dataset import __datasets__
@@ -24,6 +27,11 @@ class Label(persistent.Persistent):
         self.name = ''
         # This holds all the connections IDs in the label
         self.connections = {}
+        self.proto = ""
+
+    def get_proto(self):
+        # Horrible rigth? But this way I don't have to modify the DB. Just compute it when asked. The only problem is that the struture of the label should not change.
+        return self.name.split('-')[2]
 
     def get_id(self):
         return self.id
@@ -156,7 +164,7 @@ class Group_Of_Labels(persistent.Persistent):
             return False
 
     def get_label_name_by_id(self, label_id):
-        """ Get the name of the label by its id"""
+        """ Get the name of the label by its id """
         label = self.get_label_by_id(label_id)
         return label.get_name()
 
@@ -167,13 +175,13 @@ class Group_Of_Labels(persistent.Persistent):
                 return label
         return False
 
-    def search_connection_in_label(self, connection_id):
+    def search_connection_in_label(self, connection_id, dataset_id):
         """ Given a connection id, print the label """
         for label in self.get_labels():
             datasets = label.get_group_of_model_id()
             for dataset in datasets:
-                if label.has_connection(dataset, connection_id):
-                    print_info('Found in label: {}'.format(label.get_name()))
+                if label.has_connection(dataset_id, connection_id):
+                    #print_info('Found in label: {}'.format(label.get_name()))
                     return label.get_id()
 
     def search_label_name(self, name, verbose = True, exact = 1):
@@ -183,24 +191,29 @@ class Group_Of_Labels(persistent.Persistent):
         for label in self.get_labels():
             # Take the name of the label except the last id
             temp_name = '-'.join(label.get_name().split('-')[0:-1])
-            # Exact 2 is a complete match with the given string. Original label has the id truncated
+            # Exact 1 is a complete match with the given string. Original label has the last id and - char truncated
             if exact == 1:
                 if str(name) == temp_name:
                     matches.append(label.get_name())
                     rows.append([label.get_id(), label.get_name(), label.get_group_of_model_id(), label.get_connections()])
-            # Exact 2 is a complete match with the given string. Original label has the id truncaed
+            # Exact 2 is a match without the last id. Original label has the id truncaed
             elif exact == 2:
                 # Exact without the last id
+                #try:
                 lastpart = name.split('-')[-1]
                 try:
                     lastpart = int(lastpart)
                     # New name without the last int
                     shortname = '-'.join(name.split('-')[0:-1])
-                    if str(shortname) == temp_name:
-                        matches.append(label.get_name())
-                        rows.append([label.get_id(), label.get_name(), label.get_group_of_model_id(), label.get_connections()])
                 except ValueError:
-                    matches.append(False)
+                    shortname = name
+                #print 'Shortname: {}'.format(shortname)
+                #print 'temp_name: {}'.format(temp_name)
+                if str(shortname) == temp_name:
+                    matches.append(label.get_name())
+                    rows.append([label.get_id(), label.get_name(), label.get_group_of_model_id(), label.get_connections()])
+                #except ValueError:
+                #    matches.append(False)
             # Exact 3 is any partial match with the given string. Original label has the id truncaed
             elif exact == 3:
                 if str(name).lower() in temp_name.lower():
@@ -210,6 +223,8 @@ class Group_Of_Labels(persistent.Persistent):
         if matches and verbose:
             print_info('Labels matching the search criteria')
             print table(header=['Id', 'Label Name', 'Group of Models', 'Connections'], rows=rows)
+        # Return the matches list without the all the Falses. So we can use the variable later in ifs
+        #return filter(lambda x: x != False, matches)
         return matches
 
     def construct_filter(self, filter):
@@ -302,19 +317,36 @@ class Group_Of_Labels(persistent.Persistent):
                     else:
                         responses.append(False)
             elif key == 'groupid':
+                # One label can have more than one groupid. So search for at least one match.
                 groupsid = model.get_groups_id()
                 if operator == '=':
+                    temp_resp = []
                     for gid in groupsid:
-                        if value in gid:
-                            responses.append(True)
+                        if value == gid:
+                            temp_resp.append(True)
                         else:
-                            responses.append(False)
+                            temp_resp.append(False)
+                    # Since we want at lest one 
+                    try:
+                        # It can happend that there is no True
+                        if temp_resp.index(True) >= 0:
+                            responses.append(True)
+                    except ValueError:
+                        responses.append(False)
                 elif operator == '!=':
+                    temp_resp = []
                     for gid in groupsid:
-                        if value not in gid:
-                            responses.append(True)
+                        if value != gid:
+                            temp_resp.append(True)
                         else:
+                            temp_resp.append(False)
+                    # Since one is enough to stop
+                    try:
+                        if temp_resp.index(True) >= 0:
                             responses.append(False)
+                    except ValueError:
+                        # It can happend that there is no True
+                        responses.append(False)
             elif key == 'id':
                 id = float(model.get_id())
                 value = float(value)
@@ -352,12 +384,18 @@ class Group_Of_Labels(persistent.Persistent):
     def list_labels(self, filter):
         """ List all the labels """
         self.construct_filter(filter)
-        rows = []
+        all_text='Id | Label Name | Group of Model | Connection \n'
         for label in self.get_labels():
             if self.apply_filter(label):
                 for group_of_model_id in label.get_group_of_model_id():
-                    rows.append([label.get_id(), label.get_name(), group_of_model_id, label.get_connections(groupofmodelid=group_of_model_id)])
-        print table(header=['Id', 'Label Name', 'Group of Model', 'Connection'], rows=rows)
+                    all_text = all_text + ' | ' + str(label.get_id()) + ' | ' + label.get_name() + ' | ' + str(group_of_model_id) + ' | ' + str(label.get_connections(groupofmodelid=group_of_model_id)) + '\n'
+        f = tempfile.NamedTemporaryFile()
+        f.write(all_text)
+        f.flush()
+        p = Popen('less -R ' + f.name, shell=True, stdin=PIPE)
+        p.communicate()
+        sys.stdout = sys.__stdout__ 
+        f.close()
 
     def check_label_existance(self, group_of_model_id, connection_id):
         """ Get a dataset id and connection id and check if we already have a label for them """
@@ -412,6 +450,7 @@ class Group_Of_Labels(persistent.Persistent):
                         label_id = 1
                     # Obtain the name
                     name = general_name + '-' + str(general_name_id)
+                    proto = general_name.split('-')[2]
                     label = Label(label_id)
                     label.set_name(name)
                     label.add_connection(group_of_model_id, connection_id)
@@ -491,6 +530,10 @@ class Group_Of_Labels(persistent.Persistent):
             print_error('The connection does not have a model. Probably deleted.')
             return False
 
+    def add_model_to_the_label(self, group_of_model_id, connection_id,):
+        """ Add the model id to the label """
+        model = self.get_the_model_of_a_connection(group_of_model_id, connection_id)
+
     def add_label_to_model(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label id and a current dataset, add the label id to the model"""
         model = self.get_the_model_of_a_connection(group_of_model_id, connection_id)
@@ -566,15 +609,19 @@ class Group_Of_Labels(persistent.Persistent):
     def decide_a_label_name(self, connection_id):
         """ Get a connection id and return a label for it. The connection_id can be empty"""
         # First choose amount the current labels
-        print_info('Current Labels')
+        #print_info('Current Labels')
         # List all the labels, i.e. with an empty filter
-        self.list_labels("")
+        # self.list_labels("")
         selection = raw_input('Select a label Id to assign the same label BUT with a new final number to the current connection. Or press Enter to create a new one:')
         try:
             # Get the label selected with an id
             label = self.get_label_by_id(int(selection))
             # Get its name
-            name = label.get_name()
+            try:
+                name = label.get_name()
+            except AttributeError:
+                print_error('The label does not exist.')
+                return False
             # Now get all the labels named the same (except the last number)
             matches = self.search_label_name(name, verbose=False, exact=2)
             last_name = matches[-1]
@@ -635,12 +682,13 @@ class Group_Of_Labels(persistent.Persistent):
         else:
             print_error('Only those options are available. If you need more, please submit a request')
             return False
-
+        # Becareful if you change the structure of the label. In get_proto is harcoded
         name_so_far = direction+'-'+decision+'-'+proto3+'-'+proto4+'-'+details
 
         # Separator id
         # Search for labels with this 'name' so far
-        matches = self.search_label_name(name_so_far, verbose=True, exact = 3)
+        #matches = self.search_label_name(name_so_far, verbose=True, exact = 3)
+        matches = self.search_label_name(name_so_far, verbose=True, exact=2)
         if matches:
             print_info("There are other labels with a similar name. You can enter 'NEW' to create a new label with this name and a new id. Or you can input the label ID to add this connection to that label. Any other input will stop the creation of the label to let you inspect the content of the labels.")
             text = raw_input().strip()
@@ -665,7 +713,7 @@ class Group_Of_Labels(persistent.Persistent):
         return name
 
     def delete_connection(self, group_of_model_id, connection_id):
-        """ Get a group_of_model_id, connection id, find and delete it from the label """
+        """ Get a group_of_model_id, connection id, find its label and delete it"""
         for label in self.get_labels():
             if label.has_connection(group_of_model_id, connection_id):
                 ################??????
@@ -676,7 +724,7 @@ class Group_Of_Labels(persistent.Persistent):
                 # If the label does not have any more connections, we should also delete the label
                 if len(label.get_connections()) == 0:
                     self.labels.pop(label.get_id())
-                print_info('Connection {} in group of models id {} deleted.'.format(connection_id, group_of_model_id))
+                print_info('Label of the connection {} in group of models id {} deleted.'.format(connection_id, group_of_model_id))
                 return True
 
     def migrate_old_labels(self):

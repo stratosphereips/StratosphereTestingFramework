@@ -154,12 +154,13 @@ class Flow(object):
         return self.srcbytes 
 
     def get_srcUdata(self):
-        #try:
-        #    return self.srcUdata
-        #except AttributeError:
-        #    return ''
-        
-        index=self.srcUdata.find('=')+1
+        """ Return the srcUdata. If the data is in unicode, decode it. Else just return the text"""
+        try:
+            # This is supposed to find the This is not working, because some data has = inside.
+            index=self.srcUdata.find('=') + 1
+        except AttributeError:
+            # there is no srcUdata?
+            return ''
         srcUdata_in_ascii=''
         try:
             for character in base64.b64decode(self.srcUdata[index:]):
@@ -174,12 +175,12 @@ class Flow(object):
             return self.srcUdata
 
     def get_dstUdata(self):
-       # try:
-       #     return self.dstUdata
-       # except AttributeError:
-       #     return ''
-        
-        index=self.dstUdata.find('=')+1
+        """ Return the srcUdata. If the data is in unicode, decode it. Else just return the text"""
+        try:
+            index=self.dstUdata.find('=')+1
+        except AttributeError:
+            # there is no dstUdata?
+            return ''
         dstUdata_in_ascii=''
         try:
             for character in base64.b64decode(self.dstUdata[index:]):
@@ -521,7 +522,6 @@ class Group_Of_Connections(object):
 
     def create_connections(self):
         """ Read the flows and creates the connections """
-
         # Open the binetflow file
         file = open(self.filename)
         header_line = file.readline().strip()
@@ -546,7 +546,7 @@ class Group_Of_Connections(object):
     def get_amount_of_connections(self):
         return len(self.connections)
 
-    def construct_filter(self,filter):
+    def construct_filter(self, filter):
         """ Get the filter string and decode all the operations """
         # If the filter string is empty, delete the filter variable
         if not filter:
@@ -555,38 +555,61 @@ class Group_Of_Connections(object):
             except:
                 pass
             return True
-        self.filter = {}
+        self.filter = []
         # Get the individual parts. We only support and's now.
         for part in filter:
             # Get the key
             try:
-                key = re.split('<|>|=|\!=', part)[0]
-                value = re.split('<|>|=|\!=', part)[1]
+                key = re.split('\!=|>=|<=|=|<|>', part)[0]
+                value = re.split('\!=|>=|<=|=|<|>', part)[1]
             except IndexError:
-                # No < or > or = in the string. Just stop.
+                # No < or > or = or != in the string. Just stop.
                 break
+            # We should search for <= before <
             try:
-                part.index('<')
-                operator = '<'
+                part.index('<=')
+                operator = '<='
+                self.filter.append((key, operator, value))
+                continue
             except ValueError:
-                pass
+                # Now we search for <
+                try:
+                    part.index('<')
+                    operator = '<'
+                    self.filter.append((key, operator, value))
+                    continue
+                except ValueError:
+                    pass
+            # We should search for >= before >
             try:
-                part.index('>')
-                operator = '>'
+                part.index('>=')
+                operator = '>='
+                self.filter.append((key, operator, value))
+                continue
             except ValueError:
-                pass
+                # Now we search for >
+                try:
+                    part.index('>')
+                    operator = '>'
+                    self.filter.append((key, operator, value))
+                    continue
+                except ValueError:
+                    pass
             # We should search for != before =
             try:
                 part.index('!=')
                 operator = '!='
+                self.filter.append((key, operator, value))
+                continue
             except ValueError:
                 # Now we search for =
                 try:
                     part.index('=')
                     operator = '='
+                    self.filter.append((key, operator, value))
+                    continue
                 except ValueError:
                     pass
-            self.filter[key] = (operator, value)
 
     def apply_filter(self,connection):
         """ Use the stored filter to know what we should match"""
@@ -597,9 +620,10 @@ class Group_Of_Connections(object):
         except AttributeError:
             # If we don't have any filter string, just return true and show everything
             return True
-        for filter_key in self.filter:
-            operator = self.filter[filter_key][0]
-            value = self.filter[filter_key][1]
+        for filter in self.filter:
+            filter_key = filter[0]
+            operator = filter[1]
+            value = filter[2]
             if filter_key == 'name':
                 name = connection.get_id()
                 if operator == '=':
@@ -868,8 +892,12 @@ class Group_Of_Group_Of_Connections(persistent.Persistent):
     def delete_a_connection_from_the_group_by_id(self, group_id, connection_id):
         """ Delete a unique connection id from a connection group """
         if __datasets__.current:
-            group = self.get_group(int(group_id))
-            group.delete_connection_by_id(connection_id)
+            try:
+                group = self.get_group(int(group_id))
+                group.delete_connection_by_id(connection_id)
+            except ValueError:
+                print_error('The id should be an int.')
+                return False
         else:
             # This is not necesary to work, but is a nice precaution
             print_error('There is no dataset selected.')

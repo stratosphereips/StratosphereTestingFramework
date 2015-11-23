@@ -38,7 +38,7 @@ class Dataset(persistent.Persistent):
 
     def get_file_type(self,type):
         """ Return the file with type x in this dataset"""
-        for file in __datasets__.current.get_files():
+        for file in self.get_files():
             if file.get_type() == type:
                 return file
         return False
@@ -46,6 +46,13 @@ class Dataset(persistent.Persistent):
     def get_files(self):
         """ Return the vector of files of the dataset"""
         return self.files.values()
+    
+    def get_file(self, id):
+        """ Return a file object given its id """
+        try:
+            return self.files[int(id)]
+        except KeyError:
+            print_error('No such file id')
 
     def get_id(self):
         return self.id
@@ -65,18 +72,22 @@ class Dataset(persistent.Persistent):
     def get_main_file(self):
         """ Returns the name of the first file used to create the dataset. Usually the only one"""
         try:
-            return self.files[0]
+            for file in self.files:
+                return self.files[file]
         except KeyError:
             print_error('There is no main file in this dataset!')
             return False
 
     def del_file(self,fileid):
         """ Delete a file from the dataset"""
-        print_info('File {} with id {} deleted from dataset {}'.format(self.files[fileid].get_name(), self.files[fileid].get_id(), self.get_name() ))
-        self.files.pop(fileid)
-        # If this was the last file in the dataset, delete the dataset
-        if len(self.files) == 0:
-            __datasets__.delete(__datasets__.current.get_id())
+        try:
+            print_info('File {} with id {} deleted from dataset {}'.format(self.files[fileid].get_name(), self.files[fileid].get_id(), self.get_name() ))
+            self.files.pop(fileid)
+            # If this was the last file in the dataset, delete the dataset
+            if len(self.files) == 0:
+                __datasets__.delete(__datasets__.current.get_id())
+        except KeyError:
+            print_error('No such file id.')
 
 
     def add_file(self,filename):
@@ -88,6 +99,10 @@ class Dataset(persistent.Persistent):
         # We should have only one file per type
         short_name = os.path.split(filename)[1]
         extension = short_name.split('.')[-1]
+        if 'xz' in extension:
+            # The file is compressed, but argus can deal with it.
+            if 'biargus' in short_name.split('.')[-2]:
+                extension = 'biargus'
         # search for the extensions of the files in the dataset
         for file in self.files:
             if extension in self.files[file].get_type():
@@ -114,10 +129,7 @@ class Dataset(persistent.Persistent):
     def list_files(self):
         rows = []
         for file in self.files.values():
-                #rows.append([file.get_short_name(), file.get_id() , file.get_modificationtime(), file.get_size_in_megabytes(), file.get_duration(), file.get_type()])
                 rows.append([file.get_short_name(), file.get_id() , file.get_modificationtime(), file.get_size_in_megabytes(), file.get_type()])
-
-        #print(table(header=['File Name', 'Id', 'Creation Time', 'Size', 'Duration', 'Type'], rows=rows))
         print(table(header=['File Name', 'Id', 'Creation Time', 'Size', 'Type'], rows=rows))
 
     def info_about_file(self,file_id):
@@ -130,7 +142,11 @@ class Dataset(persistent.Persistent):
         pcap_file_name = self.get_file_type('pcap').get_name()
         pcap_file_name_without_extension = '.'.join(pcap_file_name.split('.')[:-1]) 
         biargus_file_name = pcap_file_name_without_extension + '.biargus'
-        argus_path = Popen('bash -i -c "type argus"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
+        try:
+            argus_path = Popen('bash -i -c "type argus"', shell=True, stdin=PIPE, stdout=PIPE).communicate()[0].split()[0]
+        except IndexError:
+            print_error('argus is not installed. We can not generate the flow files. Download and install from http://qosient.com/argus/dev/argus-clients-latest.tar.gz and http://qosient.com/argus/dev/argus-latest.tar.gz')
+            return False
         if argus_path:
             # If an .biargus file already exist, we must delete it because argus appends the output
             (data, error) = Popen('rm -rf '+biargus_file_name, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate()
@@ -164,6 +180,7 @@ class Dataset(persistent.Persistent):
                 self.add_file(binetflow_file_name)
             else:
                 print_error('There was an error with ra.')
+                print ra_error
                 return False
             return True
         else:
@@ -211,6 +228,22 @@ class Dataset(persistent.Persistent):
         except AttributeError:
             self.note_id = __notes__.new_note()
             __notes__.edit_note(self.note_id)
+
+    def edit_folder(self, new_folder):
+        """ Edit the folder related with this dataset """
+        # First change it in the dataset
+        self.set_folder(new_folder)
+        # Now change it in the files inside the dataset
+        for file in self.get_files():
+            filename = file.get_name()
+            real_file_name = os.path.split(filename)[1]
+            # does the folder has a final / ?
+            current_folder = self.get_folder()
+            if current_folder[-1] != '/':
+                current_folder += '/'
+            newfilenanme = current_folder + real_file_name
+            file.set_name(newfilenanme)
+
 
     def del_note(self):
         """ Delete the note related with this dataset """
@@ -345,8 +378,8 @@ class Datasets(persistent.Persistent):
         print_info("Datasets Available:")
         rows = []
         for dataset in self.datasets.values():
-                main_file = dataset.get_main_file()
-                rows.append([dataset.get_name(), dataset.get_id() , dataset.get_atime() , main_file.get_short_name(), main_file.get_modificationtime(), dataset.get_folder(), True if (self.current and self.current.get_id() == dataset.get_id()) else False, dataset.get_note_id() if dataset.get_note_id() >= 0 else '' ])
+            main_file = dataset.get_main_file()
+            rows.append([dataset.get_name(), dataset.get_id() , dataset.get_atime() , main_file.get_short_name(), main_file.get_modificationtime(), dataset.get_folder(), True if (self.current and self.current.get_id() == dataset.get_id()) else False, dataset.get_note_id() if dataset.get_note_id() >= 0 else '' ])
         print(table(header=['Dataset Name', 'Id', 'Added Time', 'Main File Name', 'Main File Creation Time', 'Folder', 'Current', 'Note'], rows=rows))
 
     def list_files(self):
@@ -419,6 +452,13 @@ class Datasets(persistent.Persistent):
                 print_error('At least a pcap file should be in the dataset.')
 
             # Do we have a pcap file in the folder?
+        else:
+            print_error('No dataset selected. Use -s option.')
+
+    def edit_folder(self, folder_name):
+        """ Get a dataset id and edit its folder """
+        if self.current:
+            self.current.edit_folder(folder_name)
         else:
             print_error('No dataset selected. Use -s option.')
 

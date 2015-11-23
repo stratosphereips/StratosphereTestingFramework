@@ -101,8 +101,25 @@ class Database:
             return False
 
     def list(self):
+        #for structure in self.root:
+        #    print_info('Amount of {} in the DB so far: {}'.format(structure, len(self.root[structure])))
+        pass
+
+    def delete_structure(self, structure_name):
+        """ Delete a structure from the db """
+        try:
+            structure = self.root[structure_name]
+            print_warning('Are you sure you want to delete the structure {} from the db? (YES/NO)'.format(structure_name))
+            input = raw_input()
+            if input == "YES":
+                self.root.pop(structure_name)
+                print_info('Structure {} deleted from the db'.format(structure_name))
+        except KeyError:
+            print_error('No Structure name available.')
+
+    def list_structures(self):
         for structure in self.root:
-            print_info('Amount of {} in the DB so far: {}'.format(structure, len(self.root[structure])))
+            print_info('Structure: {}. Amount of objects in db: {}'.format(structure, len(self.root[structure])))
 
     def close(self):
         """ Close the db """

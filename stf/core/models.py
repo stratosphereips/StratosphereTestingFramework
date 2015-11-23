@@ -25,6 +25,16 @@ class Model(persistent.Persistent):
     def get_id(self):
         return self.id
 
+    def add_last_flow_time(self,time):
+        """ Used to compute during visualizations the time to wait """
+        self.last_flow_time = time
+
+    def get_last_flow_time(self):
+        try:
+            return self.last_flow_time
+        except AttributeError:
+            return False
+
     def add_flow(self,flow):
         """ Get a flow and generate a state to store"""
         state = self.constructor.get_state(flow, self.get_id())
@@ -97,13 +107,20 @@ class Model(persistent.Persistent):
         except AttributeError:
             # No label name? ok.. carry on
             pass
+    def warn_labels(self):
+        labelid = self.get_label_id()
+        if labelid:
+            print_warning('The label {} should be deleted by hand if not used anymore.'.format(self.get_label_id()))
 
     def set_label_id(self, label_id):
         """ Set the label id"""
         self.label_id = label_id
 
     def get_label_id(self):
-        return self.label_id
+        try:
+            return self.label_id
+        except AttributeError:
+            return False
 
     def set_label_name(self, name):
         """ Set the label name. We know that this is not ok and we should only store the label id, but we can not cross import modules, so this is the best way I know how to solve it"""
@@ -115,7 +132,7 @@ class Model(persistent.Persistent):
             return self.label_name
         except:
             return ''
-    
+
     def get_flow_label(self, model_group_id):
         """ Returns the label in the first flow on the connections """
         # Horrible to get the model group id in a parameter... i know
@@ -164,7 +181,10 @@ class Group_of_Models(persistent.Persistent):
         return self.models.values()
 
     def get_model(self,id):
-        return self.models[id]
+        try:
+            return self.models[id]
+        except KeyError:
+            return False
 
     def get_id(self):
         return self.id
@@ -338,6 +358,8 @@ class Group_of_Models(persistent.Persistent):
             model.constructor.del_model(model_id)
             # Delete the notes in the model
             model.del_note()
+            # Say that the labels should be deleted by hand
+            model.warn_labels()
             # Now delete the model
             self.models.pop(model_id)
             return True
@@ -497,7 +519,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
             print(table(header=['Group of Model Id', 'Constructor ID', 'Amount of Models', 'Dataset Id', 'Dataset Name'], rows=rows))
 
     def delete_group_of_models(self, id):
-        """Get the id of a dataset and delete all the models that were generated from it"""
+        """Get the id of a group of models and delete it"""
         try:
             # Get the group
             group = self.group_of_models[id]
@@ -506,9 +528,13 @@ class Group_of_Group_of_Models(persistent.Persistent):
             return False
         # First delete all the the models in the group
         ids_to_delete = []
+        #limit = 1000
         for model in group.get_models():
+            #if limit <= 0:
+            #    break
             model_id = model.get_id()
             ids_to_delete.append(model_id)
+            #limit -= 1
 
         # We should delete the models AFTER finding them, if not, for some reason the following model after a match is missed.
         amount = 0
@@ -658,7 +684,7 @@ class Group_of_Group_of_Models(persistent.Persistent):
         else:
             print_error('There is no dataset selected.')
 
-    def del_note(self, group_of_models_id, model_id):
+    def del_note(self, group_of_models_id, model_id): 
         """ Get a model id and delete its note """
         if __datasets__.current:
             group_of_models = self.group_of_models[group_of_models_id]

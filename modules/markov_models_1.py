@@ -9,15 +9,15 @@ import BTrees.OOBTree
 from subprocess import Popen, PIPE
 import copy
 import re
+import numpy as np
+import tempfile
+import cPickle
 
 from stf.common.out import *
 from stf.common.abstracts import Module
 from stf.core.models import  __groupofgroupofmodels__ 
 from stf.core.labels import __group_of_labels__
 from stf.core.database import __database__
-
-
-
 
 
 
@@ -33,6 +33,16 @@ class Markov_Model(persistent.Persistent):
         self.state = ""
         self.label_id = -1
         self.connections = BTrees.OOBTree.BTree()
+        self.trained_threshold = -1
+
+    def get_threshold(self):
+        try:
+            return self.trained_threshold
+        except AttributeError:
+            return False
+
+    def set_threshold(self, threshold):
+        self.trained_threshold = threshold
 
     def get_id(self):
         return self.mm_id
@@ -99,7 +109,6 @@ class Markov_Model(persistent.Persistent):
         # Generate the MC
         self.init_vector, self.matrix = pykov.maximum_likelihood_probabilities(separated_letters, lag_time=1, separator='#')
 
-
     def get_matrix(self):
         """ Return the matrix """
         return self.matrix
@@ -137,11 +146,13 @@ class Markov_Model(persistent.Persistent):
                 temp_prob = log_temp_prob
                 i += 1
                 if temp_prob != float('-inf'):                
-                    probability = probability + temp_prob # logs should be +
+                    probability = probability + temp_prob # logs should be summed up
                     #print_info('\tTransition [{}:{}]: {} -> Prob:{:.10f}. CumProb: {}'.format(i-1, i,vector, temp_prob, probability))
                 else:
                     # Here is our trick. If two letters are not in the matrix... ignore the transition.
-                    temp_prob = -2.3
+                    # The temp_prob is the penalty we assign if we can't find the transition
+                    #temp_prob = -2.3
+                    temp_prob = -4.6 # Which is approx 0.01 probability
                     probability = probability + temp_prob # logs should be +
                     if '#' not in vector:
                         ignored += 1
@@ -153,6 +164,16 @@ class Markov_Model(persistent.Persistent):
             #print_warning('Ignored transitions: {}'.format(ignored))
             #ignored = 0
         return probability       
+
+    def export(self, path):
+        """ Export the current model to that path """
+        final_file = path + str(self.get_label().get_name()) + '-' + str(self.get_id()) + '.stfm'
+        output = open(final_file, 'wb')
+        cPickle.dump(self.init_vector,output)         
+        cPickle.dump(self.matrix,output)         
+        cPickle.dump(self.get_self_probability(),output)         
+        cPickle.dump(self.get_label().get_name(),output)         
+        output.close()
 
     def get_label(self):
         """ Return the label name"""
@@ -197,8 +218,14 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         self.parser.add_argument('-p', '--printstate', metavar='printstate', help='Print the chain of states of all the models included in this markov chain. Give the markov chain id.')
         self.parser.add_argument('-r', '--regenerate', metavar='regenerate', help='Regenerate the markov chain. Usually because more connections were added to the label. Give the markov chain id.')
         self.parser.add_argument('-a', '--generateall', action='store_true', help='Generate the markov chain for all the labels that don\'t have one already')
-        self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the markov models. For example for listing. Keywords: name. Usage: name=<text>. Partial matching.')
+        self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the markov models. For example for listing. Keywords: name, id. Usage: name=<text> name!=<text> or id=23. Partial matching.')
         self.parser.add_argument('-n', '--numberoffflows', metavar='numberofflows', default="3", help='When creating the markov models, this is the minimum number of flows that the connection should have. Less than this and the connection will be ignored. Be default 3.')
+        self.parser.add_argument('-t', '--train', metavar='markovmodelid', help='Train the distance threshold for this Markov Model Id. Use -f to filter the list of Markov Models to use in the training or use -i to specify a list of markov models id.')
+        self.parser.add_argument('-i', '--train_ids', metavar='train_ids', default="", help='Specify the Ids of the markov models to use. Can be used together with -t and -T. You can specify a singled id or a comma separated list. You can use \'all\' to specify all the models.')
+        self.parser.add_argument('-v', '--verbose', metavar='verbose_val', default=0, type=int, help='Make the train process more verbose, printing the details of the models matched. Give an integer value.')
+        self.parser.add_argument('-T', '--threshold', metavar='threshold', type=float, help='Change the threshold of a markov model to this value. Use -i to designate the ids of target markov models.')
+        self.parser.add_argument('-e', '--export', metavar='model_id', type=int, help='Export the given markov model id to an object on disk. Give the model id here. You must use -E to give an export path.')
+        self.parser.add_argument('-E', '--exportpath', metavar='path', type=str, help='The folder path were to export the markov model.')
 
     # Mandatory Method!
     def get_name(self):
@@ -219,6 +246,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         """ Search a markov model by label id """
         for markov_model in self.get_markov_models():
             if markov_model.get_label_id() == id:
+                # Shouldn't this be the model returned?
                 return True
         return False
 
@@ -312,6 +340,36 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                         responses.append(True)
                     else:
                         responses.append(False)
+            elif key == 'id':
+                id = int(model.get_id())
+                value = int(value)
+                if operator == '=':
+                    if value == id:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if value != id:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            elif key == 'statelength':
+                state = model.get_state()
+                if operator == '<':
+                    if len(state) < int(value):
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '>':
+                    if len(state) > int(value):
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '=':
+                    if len(state) == int(value):
+                        responses.append(True)
+                    else:
+                        responses.append(False)
             else:
                 return False
 
@@ -322,8 +380,8 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
 
     def list_markov_models(self, filter):
         self.construct_filter(filter)
-        print_info('First Order Markov Models')
-        rows = []
+        all_text = 'First Order Markov Models\n'
+        all_text += ' Id  | State Len | # Conn | Label \t\t\t\t       | Needs Regen? | Thres | First 100 Letters in State\n'
         for markov_model in self.get_markov_models():
             if self.apply_filter(markov_model):
                 label = markov_model.get_label()
@@ -337,8 +395,15 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 # Do we need to regenerate this mc?
                 if current_connections == markov_model.get_connections():
                     needs_regenerate = False
-                rows.append([ markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate, markov_model.get_state()[0:100]])
-        print(table(header=['Id', 'State Len', '# Connections', 'Label', 'Needs Regenerate', 'First 100 Letters in State'], rows=rows))
+                all_text += '{: < 5} | {: > 7} | {} | {:50} | {} | {:3} | {}\n'.format(markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate, markov_model.get_threshold(), markov_model.get_state()[0:100])
+        # Print with less
+        f = tempfile.NamedTemporaryFile()
+        f.write(all_text)
+        f.flush()
+        p = Popen('less -R ' + f.name, shell=True, stdin=PIPE)
+        p.communicate()
+        sys.stdout = sys.__stdout__ 
+        f.close()
 
     def create_new_model(self, label_name, number_of_flows):
         """ Given a label name create a new markov chain object"""
@@ -394,7 +459,17 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
     def delete(self, markov_model_id):
         """ Delete the markvov chain """
         try:
-            self.markov_models.pop(int(markov_model_id))
+            if '-' in markov_model_id:
+                # There is a range
+                start = int(markov_model_id.split('-')[0])
+                end = int(markov_model_id.split('-')[1])
+                for temp_id in range(start, end + 1):
+                    self.markov_models.pop(temp_id)
+            elif ',' in markov_model_id:
+                for temp_id in markov_model_id.split(','):
+                    self.markov_models.pop(int(temp_id))
+            else:
+                self.markov_models.pop(int(markov_model_id))
         except KeyError:
             print_error('No such markov model id')
 
@@ -407,7 +482,11 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             return False
         print_info('Markov Chain ID {}'.format(markov_model_id))
         print_info('Label')
-        label_name = __group_of_labels__.get_label_name_by_id(markov_model.get_label_id())
+        try:
+            label_name = __group_of_labels__.get_label_name_by_id(markov_model.get_label_id())
+        except AttributeError:
+            print_error('The id does not exists.')
+            return False
         print '\t', 
         print_info(label_name)
         state = markov_model.get_state()
@@ -461,7 +540,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         # Create the MM itself
         markov_model.create(markov_model.get_state())
         print_info('Markov model {} regenerated.'.format(markov_model_id))
-
+####
     def generate_all_models(self, number_of_flows):
         """ Read all the labels and generate all the markov models if they dont already have one """
         labels = __group_of_labels__.get_labels()
@@ -470,7 +549,310 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 # We dont have it
                 self.create_new_model(label.get_name(), number_of_flows)
 
+    def compute_errors(self, train_label, test_label):
+        """ Get the train and test labels and figure it out the errors. A TP is when we detect CC not Botnet."""
+        errors = {}
+        errors['TP'] = 0.0
+        errors['TN'] = 0.0
+        errors['FN'] = 0.0
+        errors['FP'] = 0.0
+        # So we can work with multiple positives and negative labels
+        if 'Botnet' in train_label or 'Malware' in train_label:
+            train_label_positive = True
+        elif 'Normal' in train_label:
+            train_label_positive = False
+        if 'Botnet' in test_label or 'Malware' in test_label:
+            test_label_positive = True
+        elif 'Normal' in test_label:
+            test_label_positive = False
 
+        if train_label_positive and test_label_positive:
+            errors['TP'] += 1
+        elif train_label_positive and not test_label_positive:
+            errors['FP'] += 1
+        elif not train_label_positive and not test_label_positive:
+            errors['TN'] += 1
+        elif not train_label_positive and test_label_positive:
+            errors['FN'] += 1
+        return errors
+
+    def compute_error_metrics(self, sum_errors):
+        """ Given the sum up errors, compute the performance metrics """
+        TP = sum_errors['TP']
+        TN = sum_errors['TN']
+        FN = sum_errors['FN']
+        FP = sum_errors['FP']
+        """ Get the errors and compute the metrics """
+        metrics = {}
+        # The order is important, because later we sort based on the order. More important to take a decision should be up
+        # The fallback to inf or -inf depends if the metric is _good_ up or _good_ down. Should be the opposite.
+        try:
+            metrics['FMeasure1'] = 2 * TP / ((2 * TP) + FP + FN)
+        except ZeroDivisionError:
+            metrics['FMeasure1'] = float('-Inf')
+        try:
+            metrics['FPR'] = FP / (FP + TN) 
+        except ZeroDivisionError:
+            metrics['FPR'] = float('Inf')
+        try:
+            metrics['TPR'] = TP / (TP + FN)
+        except ZeroDivisionError:
+            metrics['TPR'] = float('-Inf')
+        try:
+            metrics['FNR'] = FN / (TP + FN)
+        except ZeroDivisionError:
+            metrics['FNR'] = float('Inf')
+        try:
+            metrics['TNR'] = TN / (TN + FP)
+        except ZeroDivisionError:
+            metrics['TNR'] = float('-Inf')
+        try:
+            metrics['Precision'] = TP / (TP + FN)
+        except ZeroDivisionError:
+            metrics['Precision'] = float('-Inf')
+        try:
+            # False discovery rate
+            metrics['FDR'] = FP / (TP + FP)
+        except ZeroDivisionError:
+            metrics['FDR'] = float('Inf')
+        try:
+            # Positive Predicted Value
+            metrics['PPV'] = TP / (TP + FP)
+        except ZeroDivisionError:
+            metrics['PPV'] = float('-Inf')
+        try:
+            # Negative Predictive Value
+            metrics['NPV'] = TN / (TN + FN)
+        except ZeroDivisionError:
+            metrics['NPV'] = float('-Inf')
+        try:
+            metrics['Accuracy'] = (TP + TN) / (TP + TN + FP + FN)
+        except ZeroDivisionError:
+            metrics['Accuracy'] = float('-Inf')
+        try:
+            # Positive likelihood ratio
+            metrics['PLR'] = metrics['TPR'] / metrics['FPR']
+        except ZeroDivisionError:
+            metrics['PLR'] = float('-Inf')
+        try:
+            # Negative likelihood ratio
+            metrics['NLR'] = metrics['FNR'] / metrics['TNR']
+        except ZeroDivisionError:
+            metrics['NLR'] = float('-Inf')
+        try:
+            # Diagnostic odds ratio
+            metrics['DOR'] = metrics['PLR'] / metrics['NLR']
+        except ZeroDivisionError:
+            metrics['DOR'] = float('-Inf')
+        # Store the sums
+        metrics['TP'] = TP
+        metrics['TN'] = TN
+        metrics['FN'] = FN
+        metrics['FP'] = FP
+        return metrics
+
+    def sum_up_errors(self, vector):
+        """ Given a vector of values, sum up the errors """
+        sum_errors = {}
+        sum_errors['TP'] = 0.0
+        sum_errors['TN'] = 0.0
+        sum_errors['FN'] = 0.0
+        sum_errors['FP'] = 0.0
+        for i in vector:
+            errors = i['Errors']
+            sum_errors['TP'] += errors['TP']
+            sum_errors['TN'] += errors['TN']
+            sum_errors['FN'] += errors['FN']
+            sum_errors['FP'] += errors['FP']
+        return sum_errors
+
+    def train(self, model_id_to_train, filter, test_ids, verbose):
+        """ Train the distance threshold of a model. The models to train with can be determined by the filter or by a list of comma separated ids """
+        # Create the filter and the list of ids
+        if filter and test_ids == "":
+            self.construct_filter(filter)
+            test_models_ids = []
+        # If we don't have a filter, maybe the user specified a list of models ids to match
+        elif test_ids != "" and not filter:
+            # When calling directly markov_model is a string
+            if type(test_ids) == str:
+                if test_ids == 'all':
+                    # If all was specified, create a range with all of them
+                    test_ids = range(0,len(self.get_markov_models()))
+                elif ',' in test_ids:
+                    test_models_ids = map(int, test_ids.split(','))
+            # When calling this function from other modules, can be a vector
+            else:
+                test_models_ids = map(int, test_ids)
+        else:
+            print_error('No test ids were specified using a filter OR a number. Dont specify both.')
+            return False
+        train_model = self.get_markov_model(model_id_to_train)
+        # Check that the train model id exists
+        try:
+            train_model_id = train_model.get_id()
+        except AttributeError:
+            print_error('No such training id is available')
+            return False
+        if verbose > 1:
+            print_info('Training model: {}. Amount of letters used for training: {}'.format(train_model, 100)) # The 100 is hardcoded. See the number below.
+        # To store the training data
+        thresholds_train = {}
+        for test_model in self.get_markov_models():
+            # Check that the models exist
+            try:
+                test_model_id = test_model.get_id()
+            except AttributeError:
+                print_error('No such testing id is available')
+                return False
+            # Get the labels from the models
+            try:
+                train_label = train_model.get_label().get_name()
+                test_label = test_model.get_label().get_name()
+            except AttributeError:
+                # The model was deleted. Ignore this and continue
+                continue
+            # Get the protocols for the labels
+            try:
+                train_protocol = train_label.split('-')[2]
+            except IndexError:
+                # The label is not complete, maybe because now is "Deleted". Ignore
+                return False
+            try:
+                test_protocol = test_label.split('-')[2]
+            except IndexError:
+                # The label is not complete, maybe because now is "Deleted". Ignore
+                return False
+            # Apply the filter and avoid training with itself and only if the protocols match
+            if ( (filter != "" and self.apply_filter(test_model)) or (test_models_ids != "" and test_model_id in test_models_ids)) and test_model_id != train_model_id and train_protocol == test_protocol:
+                if verbose > 1:
+                    print_info('\tTraining with model {}'.format(test_model))
+                # Store info about this particular test training. Later stored within the threshold vector
+                # train_vector = [test model id, distance, N flow that matched, errors, errors metrics]
+                train_vector = {}
+                train_vector['ModelId'] = test_model_id
+                if verbose:
+                        print '\t', test_model
+                # For each threshold to train
+                # Now we go from 1.1 to 2
+                exit_threshold_for = False
+                for threshold in np.arange(1.1,2.1,0.1):
+                    # Store the original matrix and prob for later
+                    original_matrix = train_model.get_matrix()
+                    original_self_prob = test_model.get_self_probability()
+                    # For each test state
+                    index = 0
+                    while index < len(test_model.get_state()):
+                        # Get the states so far
+                        train_sequence = train_model.get_state()[0:index+1]
+                        test_sequence = test_model.get_state()[0:index+1]
+                        # First re-create the matrix only for this sequence
+                        train_model.create(train_sequence)
+                        # Prob of the states so far
+                        train_prob = float(train_model.compute_probability(train_sequence))
+                        test_prob = float(train_model.compute_probability(test_sequence))
+                        # Compute distance
+                        if train_prob < test_prob:
+                            try:
+                                distance = train_prob / test_prob
+                            except ZeroDivisionError:
+                                distance = -1
+                        elif train_prob > test_prob:
+                            try:
+                                distance = test_prob / train_prob
+                            except ZeroDivisionError:
+                                distance = -1
+                        elif train_prob == test_prob:
+                            distance = 1
+                        # Is distance < threshold? We found a good match.
+                        # index > 2 means that we discard the matching of the first two letters, because is too similar.
+                        if index > 2 and distance < threshold and distance > 0:
+                            # Compute the errors: TP, TN, FP, FN
+                            errors = self.compute_errors(train_label, test_label)
+                            if verbose > 1:
+                                print '\t\tTraining with threshold: {}. Distance: {}. Errors: {}'.format(threshold, distance, errors)
+                            # Store the info
+                            train_vector['Distance'] = distance
+                            train_vector['IndexFlow'] = index
+                            train_vector['Errors'] = errors
+                            # Get the old vector for this threshold
+                            try:
+                                prev_threshold = thresholds_train[threshold]
+                            except KeyError:
+                                # First time for this threshold
+                                thresholds_train[threshold] = []
+                                prev_threshold = thresholds_train[threshold]
+                            # Store this train vector in the threshold vectors
+                            prev_threshold.append(train_vector)
+                            thresholds_train[threshold] = prev_threshold
+                            # Tell the threshold for to exit. Means that we matched something
+                            exit_threshold_for = False
+                            # Exit the test chain of state evaluation
+                            break
+                        # Next letter
+                        index += 1
+                        # Put a limit in the amount of letters by now. VERIFY THIS
+                        if index > 100:
+                            #print_warning('Now we are limiting the maximum amount of letters in each string of every model during training to  100')
+                            break
+                    if exit_threshold_for:
+                        # We are going to stop computing the threshold for this test model because we found one.
+                        break
+        # Compute the error metrics for each threshold
+        final_errors_metrics = {}
+        for threshold in thresholds_train:
+            # 1st sum up together all the errors for this threshold
+            sum_errors = self.sum_up_errors(thresholds_train[threshold])
+            # Compute the metrics
+            metrics = self.compute_error_metrics(sum_errors)
+            final_errors_metrics[threshold] = metrics 
+        # Sort according to hierarchy shown
+        sorted_metrics = sorted(final_errors_metrics.items(), key=lambda x: (x[1]['FMeasure1'], -x[1]['FPR'], x[1]['TPR'], x[1]['PPV'], x[1]['NPV'], x[1]['TP'], x[1]['TN'], -x[1]['FP'], -x[1]['FN'], x[1]['Precision'], -x[0]), reverse=True)
+        criteria='FMeasure1'
+        best_criteria = float('-Inf')
+        # We can have multiple 'best' so find them all
+        for threshold in sorted_metrics:
+            current_criteria = threshold[1][criteria]
+            # Only  print the best FM1s
+            if current_criteria >= best_criteria:
+                if verbose > 2:
+                    print '\t\tThreshold {}: FM1:{:.3f}, FPR:{:.3f}, TPR:{:.3f}, TNR:{:.3f}, FNR:{:.3f}, PPV:{:.3f}, NPV:{:.3f}, Prec:{:.3f}, TP:{}, FP:{}, TN:{}, FN:{}'.format(threshold[0], threshold[1]['FMeasure1'], threshold[1]['FPR'], threshold[1]['TPR'], threshold[1]['TNR'], threshold[1]['FNR'], threshold[1]['PPV'], threshold[1]['NPV'], threshold[1]['Precision'], threshold[1]['TP'], threshold[1]['FP'], threshold[1]['TN'], threshold[1]['FN'])
+                best_criteria = current_criteria
+        # Store the trained threshold for this model
+        try:
+            train_model.set_threshold(sorted_metrics[0][0])
+            if verbose:
+                print '\tSelected: {}'.format(red(sorted_metrics[0][0]))
+        except IndexError:
+            train_model.set_threshold(-1)
+            if verbose > 1:
+                print '\tSelected: None. No other models matched.'
+        return train_model.get_threshold()
+
+    def assign_threshold_to_id(self, ids, threshold):
+        """ Assign the threshold to the markov models ids"""
+        # ids can be a single id, a range or 'all'
+        if type(ids) == str and 'all' in ids:
+            ids = range(0,len(self.get_markov_models()))
+        elif type(ids) == str and ',' in ids:
+            ids = map(int, ids.split(','))
+        elif type(ids) == str and '-' in ids:
+            first = int(ids.split('-')[0])
+            last = int(ids.split('-')[1])
+            ids = range(first,last + 1)
+        else:
+            ids = [ids]
+        for id in ids:
+            markov_model = self.get_markov_model(int(id))
+            try:
+                markov_model.set_threshold(threshold)
+            except AttributeError:
+                print_error('Model id {} does not exists. Continuing...'.format(id))
+
+    def export_model(self, model_id, path):
+        """ Get a model id and path, and export that model there """
+        model = self.get_markov_model(model_id)
+        model.export(path)
 
     # The run method runs every time that this command is used
     def run(self):
@@ -495,7 +877,11 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
         if self.args.list:
             self.list_markov_models(self.args.filter)
         elif self.args.generate:
-            self.create_new_model(self.args.generate, self.args.numberofflows)
+            try:
+                self.create_new_model(self.args.generate, self.args.numberofflows)
+            except AttributeError:
+                numberofflows = 3
+                self.create_new_model(self.args.generate, numberofflows)
         elif self.args.printmatrix:
             self.print_matrix(self.args.printmatrix)
         elif self.args.simulate:
@@ -506,10 +892,28 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             self.printstate(self.args.printstate)
         elif self.args.regenerate:
             self.regenerate(self.args.regenerate)
+        elif self.args.train:
+            if '-' in self.args.train:
+                # There is a range of ids to train
+                first = int(self.args.train.split('-')[0])
+                last = int(self.args.train.split('-')[1])
+                train_ids = range(first,last + 1)
+            else:
+                train_ids = [self.args.train]
+            for train_id in train_ids:
+                self.train(int(train_id), self.args.filter, self.args.train_ids, self.args.verbose)
         elif self.args.generateall:
-            self.generate_all_models(self.args.numberofflows)
-        else:
-            print_error('At least one of the parameter is required in this module')
-            self.usage()
+            try:
+                self.create_new_model(self.args.generate, self.args.numberofflows)
+            except AttributeError:
+                numberofflows = 3
+                self.generate_all_models(numberofflows)
+        elif self.args.export and self.args.exportpath:
+            self.export_model(self.args.export, self.args.exportpath)
+        elif self.args.threshold:
+            if not self.args.train_ids:
+                print_error('You must specify some markov model id to apply the threshold.')
+                return False
+            self.assign_threshold_to_id(self.args.train_ids, self.args.threshold)
 
 __group_of_markov_models__ = Group_of_Markov_Models_1()
