@@ -76,10 +76,11 @@ class ExperimentDGA(Module):
             metrics_dict={}
             testset_str=','.join(str(i) for i in test)
             final_errors_metrics=__group_of_distances__.create_new_distance(100,model,testset_str,0)
-            print >>fd,model
+            threshold=__group_of_markov_models__.get_markov_model(model).get_threshold()
+            print >>fd,"*"*50
+            print >>fd,"id:",model
+            print >>fd,"threshold:",threshold
             print >>fd,final_errors_metrics
-            print >>fd,threshold
-            print >>fd
             fd.flush()
 
         fd.close()
@@ -158,7 +159,7 @@ class ExperimentDGA(Module):
                 avg_threshold=sum([sorted_metrics[i][1]['threshold']  for i in range(0,10)])/10.0
                 print "avg threshold :",avg_threshold
 
-                if _threshold != -1:
+                if avg_threshold != -1:
                     final_threshold=avg_threshold
                 elif model in group_normal and avg_threshold ==-1:
                     final_threshold=2.0 
