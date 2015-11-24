@@ -902,10 +902,10 @@ class Group_of_Detections(Module, persistent.Persistent):
             total_performance_metrics['DOR'] = -1
         return total_performance_metrics
 
-    def detect_letter_by_letter(self, distance_id, amount):
+    def detect_letter_by_letter(self, distance_id, amount, verbose):
         try:
             distance = self.main_dict[distance_id]
-            distance.detect_letter_by_letter(amount)
+            distance.detect_letter_by_letter(amount, verbose)
         except KeyError:
             print_error('No such distance id exists.')
             return False
@@ -999,7 +999,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         elif self.args.delete:
             self.delete_distance(self.args.delete)
         elif self.args.letterbyletter:
-            self.detect_letter_by_letter(self.args.letterbyletter, self.args.amount)
+            self.detect_letter_by_letter(self.args.letterbyletter, self.args.amount, self.args.verbose)
         elif self.args.regenerate:
             self.regenerate(self.args.regenerate, self.args.filter)
         elif self.args.print_comparison:
