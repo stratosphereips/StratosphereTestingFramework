@@ -445,6 +445,14 @@ class TimeSlot(persistent.Persistent):
                 matching.append(tuple)
         return matching
 
+    def get_unmatching_tuples(self):
+        """ Return the unmatching tuples in this time slot """
+        unmatching = []
+        for tuple in self.tuples:
+            if not self.tuples[tuple]:
+                unmatching.append(tuple)
+        return unmatching
+
     def get_errors(self):
         return self.acc_errors
 
@@ -585,8 +593,10 @@ class Experiment(persistent.Persistent):
         # Methodology 4.4. The first flow case and the case where the flow should be in a new flow because it is outside the last slot. All in one!
         new_slot = TimeSlot(starttime, self.time_slot_width)
         if self.time_slots:
-            # Move the state windows in the tuples that already matched in this time slot. Before closing the time windoows!
+            # Move the state windows in the tuples that already matched in the current time slot. Before closing the time windoows!
             self.move_windows_in_matched_tuples()
+            # Move the state windows in the tuples that did not matched.
+            self.move_windows_in_unmatched_tuples()
             # We created a slot because the flow is outside the width, so we should close the previous time slot
             # Close the last slot
             if self.verbose > 1:
@@ -899,8 +909,10 @@ class Experiment(persistent.Persistent):
                 raw_input()
         # Close the file
         file.close()
-        # Move the state windows in the tuples that already matched in this time slot. Before closing the time windoows!
+        # Move the state windows in the tuples that already matched in this LAST time slot. Before closing the time windoows!
         self.move_windows_in_matched_tuples()
+        # Move the state windows in the tuples that did not matched.
+        self.move_windows_in_unmatched_tuples()
         # Methodology 7 Compute the results of the last time slot
         self.time_slots[-1].close(self.verbose)
         # After closing the time slot, we should get some info back
@@ -955,6 +967,18 @@ class Experiment(persistent.Persistent):
             # 'move' the start of the letters to where it finished in the last time slot that matched.
             self.tuples[tuple4].update_min_state_len()
             #print '\tMatched tuple {}. Min len moved to {}'.format(tuple4, self.tuples[tuple4].get_min_state_len())
+
+    def move_windows_in_unmatched_tuples(self):
+        """ Ask for all the tuples that didn't had matches in this time slot and move their state letters windows if the state len so far is more than a threshold. This is run after the closing of the time slot. Be careful """
+        unmatching_tuples = self.time_slots[-1].get_unmatching_tuples()
+        #print_info('Un matching tuples: {}'.format(unmatching_tuples))
+        for tuple4 in unmatching_tuples:
+            # If the amount of letters in the states is more that a threshold, update its state and forget the letters so far.
+            #print self.tuples[tuple4]
+            diff = self.tuples[tuple4].get_max_state_len() - self.tuples[tuple4].get_min_state_len()
+            if diff >= 100:
+                self.tuples[tuple4].update_min_state_len()
+                #print '\tUN-Matched tuple {}. The current len diff is: {}. Min len moved to {}'.format(tuple4, diff, self.tuples[tuple4].get_min_state_len())
 
     def get_tuple(self, tuple4, dataset_id):
         """ Get the values and return the correct tuple for them """
