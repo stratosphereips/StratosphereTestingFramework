@@ -186,18 +186,22 @@ class Detection(persistent.Persistent):
         """
         # Get the group of labels for later
         group_labels = __group_of_labels__
-        # Get the models. But don't store them... they are 'heavy'
+        # Get the model of training
         model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
+        # Get the train model id
         train_label_id = model_training.get_label_id()
+        # Get the train label, that is the predicted label if we match
         predicted_label = group_labels.get_label_name_by_id(train_label_id)
         threshold = model_training.get_threshold()
+        # Get the test model
         model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
+        # Test model id
         test_label_id = model_testing.get_label_id()
+        # Test label. The ground truth if we match
         ground_truth_label = group_labels.get_label_name_by_id(test_label_id)
         self.matching_error_type = self.compute_errors(predicted_label, ground_truth_label)
         # amouunt == -1 means that we should use all the letters available, no limit.
         if amount == -1:
-            # Move along...
             amount = len(self.testing_states)
         # If the amount is not > than what we already have stored, just print what we have and don't compute something new.
         if amount != -1 and amount > len(self.dict_of_distances):
@@ -236,11 +240,12 @@ class Detection(persistent.Persistent):
                         self.prob_distance = -1
                 elif self.training_original_prob == test_prob:
                     self.prob_distance = 1
+                # Store the distance
                 self.dict_of_distances.insert(index, self.prob_distance)
-                # Compute the confusion matrix errors
-                # If the threshold is less than the distance
+                # Compute the confusion matrix values
+                # If the threshold is less than the distance... move the index. Move the 'window'
                 if threshold != -1 and self.prob_distance != -1 and threshold >= self.prob_distance:
-                    self.error_index = index + 1 # Because letter 10 is index 9 + 1 # Because letter 10 is index 9
+                    self.error_index = index + 1 # Because letter 10 is index 9 + 1 
                 # Go to the next letter
                 index += 1
             final_position = index
@@ -282,7 +287,7 @@ class Detection(persistent.Persistent):
                 elif verbose > 0:
                     print_info('Test model {}. Train model {}. Up to {} letters. {}'.format(model_testing.get_id(), model_training.get_id(), amount, self.current_error_type)), 
         except AttributeError:
-            # This is an distance object without the index yet. Before the change. Put it in -1
+            # This is a distance object without the index yet. Before the change. Put it in -1
             self.error_index = -1
         # Ascii plot
         p = ap.AFigure()
