@@ -189,11 +189,11 @@ class Detection(persistent.Persistent):
         # Get the models. But don't store them... they are 'heavy'
         model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
         train_label_id = model_training.get_label_id()
-        ground_truth_label = group_labels.get_label_name_by_id(train_label_id)
+        predicted_label = group_labels.get_label_name_by_id(train_label_id)
         threshold = model_training.get_threshold()
         model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
         test_label_id = model_testing.get_label_id()
-        predicted_label = group_labels.get_label_name_by_id(test_label_id)
+        ground_truth_label = group_labels.get_label_name_by_id(test_label_id)
         self.matching_error_type = self.compute_errors(predicted_label, ground_truth_label)
         # amouunt == -1 means that we should use all the letters available, no limit.
         if amount == -1:
@@ -239,7 +239,7 @@ class Detection(persistent.Persistent):
                 self.dict_of_distances.insert(index, self.prob_distance)
                 # Compute the confusion matrix errors
                 # If the threshold is less than the distance
-                if threshold and threshold >= self.prob_distance:
+                if threshold != -1 and self.prob_distance != -1 and threshold >= self.prob_distance:
                     self.error_index = index + 1 # Because letter 10 is index 9 + 1 # Because letter 10 is index 9
                 # Go to the next letter
                 index += 1
@@ -259,7 +259,7 @@ class Detection(persistent.Persistent):
         # Print the error type
         try:
             test = self.error_index
-            if threshold >= self.dict_of_distances[final_position - 1]:
+            if threshold !=-1 and self.dict_of_distances[final_position - 1] != -1 and threshold >= self.dict_of_distances[final_position - 1]:
                 # The models matched.
                 self.current_error_type = self.matching_error_type
                 if verbose > 1:
@@ -269,6 +269,7 @@ class Detection(persistent.Persistent):
                     print_info('Test model {}. Train model {}. Up to {} letters. {}'.format(model_testing.get_id(), model_training.get_id(), amount, self.matching_error_type)), 
             else:
                 # The threshold was not overcomed by the distance. The models don't match. We miss the detection
+                print ground_truth_label
                 if 'botnet' in ground_truth_label.lower() or 'malware' in ground_truth_label.lower():
                     # Because we miss the detection
                     self.current_error_type = 'FN'
