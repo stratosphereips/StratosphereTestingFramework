@@ -100,9 +100,6 @@ class Detection(persistent.Persistent):
     def get_model_training_id(self):
         return self.model_training_id
 
-    def get_model_testing_id(self):
-        return self.model_testing_id
-
     def set_model_training_id(self, model_training_id):
         self.model_training_id = model_training_id
 
@@ -487,7 +484,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         self.parser.add_argument('-c', '--compareall', metavar='structure', help='Create distances between all the models between themselves in the structure specified. The comparisons are not repeted if the already exists. For example: -c markov_models_1. You can force a maximun amount of letters to compare with -a.')
         self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the distance. For example for listing. Keywords: testname, trainname, distance, id. Usage: testname=<text> distance<2. The names are partial matching. The operator for distances are <, >, = and !=. The operator for id is = and !=')
         self.parser.add_argument('-D', '--deleteall', action='store_true', help='Delete all the distance object that matches the -f filter. Must provide a -f filter.')
-        self.parser.add_argument('-t', '--trainid', type=int, metavar='train_id', help='Id of the model to train.')
+        self.parser.add_argument('-t', '--trainid', metavar='train_id', help='Id of the model to train.')
         self.parser.add_argument('-T', '--testid', metavar='test_id', help='Ids of the models to test against the train id. You can specfiy a single id or a comma separated list of ids.')
         self.parser.add_argument('-v', '--verbose', metavar='verbose', type=int, default=1, help='The verbose level of the printing.')
 
@@ -754,65 +751,13 @@ class Group_of_Detections(Module, persistent.Persistent):
             self.main_dict.pop(id)
         print_info('Amount of objects deleted: {}'.format(len(ids)))
 
-    def create_new_distance(self, amount, train_id, test_id, verbose):
+    def create_new_distance(self, amount, train_id, temp_test_id, verbose):
         """ Create a new distance. We must select the trained model and the unknown model. The amount is the max amount of letters to compare. """
-        # If the ids were specified, then suppose the markov_models_1 structure and don't ask for the models ids
-        if not train_id and not test_id:
-            # Generate the new id for this distance
-            try:
-                new_id = self.main_dict[list(self.main_dict.keys())[-1]].get_id() + 1
-            except (KeyError, IndexError):
-                new_id = 1
-            # Create the new object
-            new_distance = Detection(new_id)
-            # Structures to ignore
-            exceptions = ['models', 'database', 'datasets', 'notes', 'connections', 'experiments', 'template_example_module', 'labels']
-            # Get the training module
-            # 1- List all the structures in the db, so we can pick our type of module
-            structures = __database__.get_structures()
-            print_info('From which structure you want to pick up the trained model?:')
-            for structure in structures:
-                if structure not in exceptions:
-                    print_info('\t'+structure)
-            training_structure_name = raw_input('Name:')
-            training_structure_name = training_structure_name.strip()
-            # 2- Verify is there
-            try:
-                selected_training_structure = structures[training_structure_name]
-            except KeyError:
-                print_error('No such structure available.')
-                return False
-            # 3- Get the main dict and list the 'objects'
-            print_info('Select the training module to use:')
-            for object in selected_training_structure:
-                print '\t',
-                print_info(selected_training_structure[object])
-            model_training_id = raw_input('Id:')
-
-            print
-            # Get the testing module
-            # 1- List all the structures in the db, so we can pick our type of module
-            structures = __database__.get_structures()
-            print_info('From which structure you want to pick up the testing model?:')
-            for structure in structures:
-                if structure not in exceptions:
-                    print_info('\t'+structure)
-            testing_structure_name = raw_input('Name:')
-            testing_structure_name = testing_structure_name.strip()
-            # 2- Verify is there
-            try:
-                selected_testing_structure = structures[testing_structure_name]
-            except KeyError:
-                print_error('No such structure available.')
-                return False
-            # 3- Get the main dict and list the 'objects'
-            print_info('Select the testing module to use:')
-            for object in selected_testing_structure:
-                print '\t',
-                print_info(selected_testing_structure[object])
-            model_testing_id = raw_input('Id:')
-        else:
-            test_id = test_id.split(',')
+        train_id = train_id.split(',')
+        train_id.sort()
+        # For each train model passed
+        for train_id in train_id:
+            test_id = temp_test_id.split(',')
             test_id.sort()
             # For each test model passed
             distances_ids = []
@@ -828,8 +773,10 @@ class Group_of_Detections(Module, persistent.Persistent):
                 structures = __database__.get_structures()
                 # Now the structures are fixed
                 model_training_id = train_id
+                # Suppose the markov_models_1 structure and don't ask 
                 training_structure_name = "markov_models_1"
                 selected_training_structure = structures[training_structure_name]
+                # Suppose the markov_models_1 structure and don't ask 
                 testing_structure_name = "markov_models_1"
                 selected_testing_structure = structures[testing_structure_name]
                 # Run the distance rutine
@@ -849,10 +796,7 @@ class Group_of_Detections(Module, persistent.Persistent):
             total_errors['FP'] = 0
             for did in distances_ids:
                 distance = self.get_distance(did)
-                try:
-                    test_id = distance.get_model_testing_id()
-                except AttributeError:
-                    return False
+                test_id = distance.get_model_testing_id()
                 error = distance.get_current_error_type()
                 #if verbose:
                 #    print_info('Test model id {}, error {}'.format(test_id, error))
@@ -878,7 +822,7 @@ class Group_of_Detections(Module, persistent.Persistent):
                 print_info(error_string_2)
             # Forget the distances ids for this execution
             del distances_ids
-            return error_string_1 + ',' + error_string_2
+        return error_string_1 + ',' + error_string_2
 
     def compute_total_performance_metrics(self, total_errors):
         """ Compute the total performance metrics """
