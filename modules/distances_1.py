@@ -58,7 +58,7 @@ class Detection(persistent.Persistent):
         self.current_error_type = ""
 
     def get_error_index(self):
-        try;
+        try:
             test = self.error_index
         except AttributeError:
             self.error_index = -1
