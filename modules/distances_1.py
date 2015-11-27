@@ -65,10 +65,16 @@ class Detection(persistent.Persistent):
         return self.error_index
 
     def get_matching_error_type(self):
-        return self.matching_error_type
+        try:
+            return self.matching_error_type
+        except AttributeError:
+            return ""
 
     def get_current_error_type(self):
-        return self.current_error_type
+        try:
+            return self.current_error_type
+        except AttributeError:
+            return ""
 
     def get_id(self):
         return self.id
