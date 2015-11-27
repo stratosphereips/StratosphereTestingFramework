@@ -656,6 +656,26 @@ class Group_of_Detections(Module, persistent.Persistent):
                         responses.append(True)
                     else:
                         responses.append(False)
+                elif operator == '>':
+                    if id > value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '>=':
+                    if id >= value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '<':
+                    if id < value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '<=':
+                    if id <= value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
             elif key == 'merror':
                 error = model.get_matching_error_type()
                 value = value
