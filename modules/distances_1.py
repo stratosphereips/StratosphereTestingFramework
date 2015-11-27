@@ -255,12 +255,11 @@ class Detection(persistent.Persistent):
                 if len(test_sequence) > 1 and threshold != -1 and self.prob_distance != -1 and threshold >= self.prob_distance:
                     # Update matching errors
                     self.error_index = index + 1 # Because letter 10 is index 9 + 1 
-                    self.matching_error_type = self.error_matching(predicted_label, True)
+                    self.matching_error_type = self.compute_errors(predicted_label, ground_truth_label, True)
                     self.current_error_type = self.matching_error_type
                 else:
                     # Update the current error
-                    #self.current_error_type = self.compute_errors(predicted_label, ground_truth_label)
-                    self.current_error_type = self.error_matching(predicted_label, False)
+                    self.current_error_type = self.compute_errors(predicted_label, ground_truth_label, False)
                 # Go to the next letter
                 index += 1
             final_position = index
@@ -300,18 +299,7 @@ class Detection(persistent.Persistent):
         # Return the final distance.
         return self.dict_of_distances[final_position-1]
 
-    def error_matching(self, error, match):
-        """ Given a label and if it matched or not, tell me the supposed result """
-        if ('botnet' in error.lower() or 'malware' in error.lower()) and match:
-            return 'TP'
-        elif ('botnet' in error.lower() or 'malware' in error.lower() ) and not match:
-            return 'FN'
-        elif 'normal' in error.lower() and match:
-            return 'TN'
-        elif 'normal' in error.lower() and not match:
-            return 'FP'
-
-    def compute_errors(self, predicted_label, ground_truth_label):
+    def compute_errors(self, predicted_label, ground_truth_label, match=True):
         """ Get the predicted and ground truth labels and figure it out the errors. Both current errors for this time slot and accumulated errors in all time slots."""
         """ This coded is copied in the experiments_1.py file. """
         # So we can work with multiple positives and negative labels
@@ -330,13 +318,25 @@ class Detection(persistent.Persistent):
             return 'NN'
         # Compute the actual errors
         if predicted_label_positive and ground_truth_label_positive:
-            return 'TP'
+            if match:
+                return 'TP'
+            elif not match:
+                return 'FN'
         elif predicted_label_positive and not ground_truth_label_positive:
-            return 'FP'
+            if match:
+                return 'FP'
+            elif not match:
+                return 'TN'
         elif not predicted_label_positive and not ground_truth_label_positive:
-            return 'TN'
+            if match:
+                return 'TN'
+            elif not match:
+                return 'TN'
         elif not predicted_label_positive and ground_truth_label_positive:
-            return 'FN'
+            if match:
+                return 'FN'
+            elif not match:
+                return 'FN'
 
     def check_need_for_regeneration(self):
         """ Check if the training or testing of this comparison changed since we use them """
