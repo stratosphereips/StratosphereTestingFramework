@@ -58,6 +58,10 @@ class Detection(persistent.Persistent):
         self.current_error_type = ""
 
     def get_error_index(self):
+        try;
+            test = self.error_index
+        except AttributeError:
+            self.error_index = -1
         return self.error_index
 
     def get_matching_error_type(self):
@@ -248,7 +252,6 @@ class Detection(persistent.Persistent):
                 if len(test_sequence) > 1 and threshold != -1 and self.prob_distance != -1 and threshold >= self.prob_distance:
                     # Update matching errors
                     self.error_index = index + 1 # Because letter 10 is index 9 + 1 
-                    #self.matching_error_type = self.compute_errors(predicted_label, ground_truth_label)
                     self.matching_error_type = self.error_matching(predicted_label, True)
                     self.current_error_type = self.matching_error_type
                 else:
@@ -270,34 +273,21 @@ class Detection(persistent.Persistent):
             self.distance = self.dict_of_distances[final_position-1]
         if verbose > 1:
             print_info('Letter by letter distance up to {} letters: {}'.format(final_position, red(self.dict_of_distances[final_position-1])))
-        # Print the error type
-        try:
-            # Store the potential result if the threshold is matched
-            test = self.error_index
-            if threshold !=-1 and self.dict_of_distances[final_position - 1] != -1 and threshold >= self.dict_of_distances[final_position - 1]:
-                # The models matched.
-                #self.matching_error_type = self.current_error_type
-                if verbose > 1:
-                    print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
-                    print_info('Models matched on letter {}. '.format(amount) + red('Error Type: {}'.format(self.get_matching_error_type())) + '. (lastest match is on letter {})'.format(self.get_error_index()))
-                elif verbose > 0:
-                    print_info('Test model {}. Train model {}. Up to {} letters. {}'.format(model_testing.get_id(), model_training.get_id(), amount, self.matching_error_type)), 
-            else:
-                # The threshold was not overcomed by the distance. The models don't match. We miss the detection
-                #if 'botnet' in ground_truth_label.lower() or 'malware' in ground_truth_label.lower():
-                    # Because we miss the detection
-                    #self.current_error_type = 'FN'
-                #elif 'normal' in ground_truth_label.lower():
-                    # Because we detect normal correctly
-                    #self.current_error_type = 'TN'
-                if verbose > 1:
-                    print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
-                    print_info('Models don\'t match on letter {}. '.format(amount) + red('Error Type: {}. '.format(self.get_current_error_type())) + '(Latests match was on letter {} with error type: {})'.format(self.get_error_index(), self.get_matching_error_type()))
-                if verbose > 0:
-                    print_info('Test model {}. Train model {}. Up to {} letters. {}'.format(model_testing.get_id(), model_training.get_id(), amount, self.current_error_type)), 
-        except AttributeError:
-            # This is a distance object without the index yet. Before the change. Put it in -1
-            self.error_index = -1
+        # Print the errors
+        if threshold !=-1 and self.dict_of_distances[final_position - 1] != -1 and threshold >= self.dict_of_distances[final_position - 1]:
+            # The models matched.
+            if verbose > 1:
+                print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
+                print_info('Models matched on letter {}. '.format(amount) + red('Error Type: {}'.format(self.get_matching_error_type())) + '. (lastest match is on letter {})'.format(self.get_error_index()))
+            elif verbose > 0:
+                print_info('Test model {}. Train model {}. Up to {} letters. {}'.format(model_testing.get_id(), model_training.get_id(), amount, self.matching_error_type)), 
+        else:
+            # The threshold was not overcomed by the distance. The models don't match. We miss the detection
+            if verbose > 1:
+                print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
+                print_info('Models don\'t match on letter {}. '.format(amount) + red('Error Type: {}. '.format(self.get_current_error_type())) + '(Latests match was on letter {} with error type: {})'.format(self.get_error_index(), self.get_matching_error_type()))
+            if verbose > 0:
+                print_info('Test model {}. Train model {}. Up to {} letters. {}'.format(model_testing.get_id(), model_training.get_id(), amount, self.current_error_type)), 
         # Ascii plot
         p = ap.AFigure()
         x = range(len(self.dict_of_distances[0:final_position]))
