@@ -57,6 +57,9 @@ class Detection(persistent.Persistent):
         # The current error type is the error type for the current amount of requested letters. It can be FN if the train label was Botnet and there is NO match.
         self.current_error_type = ""
 
+    def get_error_index(self):
+        return self.error_index
+
     def get_matching_error_type(self):
         return self.matching_error_type
 
@@ -199,7 +202,6 @@ class Detection(persistent.Persistent):
         test_label_id = model_testing.get_label_id()
         # Test label. The ground truth if we match
         ground_truth_label = group_labels.get_label_name_by_id(test_label_id)
-        self.matching_error_type = self.compute_errors(predicted_label, ground_truth_label)
         # amouunt == -1 means that we should use all the letters available, no limit.
         if amount == -1:
             amount = len(self.testing_states)
@@ -242,10 +244,17 @@ class Detection(persistent.Persistent):
                     self.prob_distance = 1
                 # Store the distance
                 self.dict_of_distances.insert(index, self.prob_distance)
-                # Compute the confusion matrix values
-                # If the threshold is less than the distance... move the index. Move the 'window'
-                if threshold != -1 and self.prob_distance != -1 and threshold >= self.prob_distance:
+                # Do we match? If the threshold is less than the distance... move the index. Move the 'window'. And the amount of letters is more than 1.
+                if len(test_sequence) > 1 and threshold != -1 and self.prob_distance != -1 and threshold >= self.prob_distance:
+                    # Update matching errors
                     self.error_index = index + 1 # Because letter 10 is index 9 + 1 
+                    #self.matching_error_type = self.compute_errors(predicted_label, ground_truth_label)
+                    self.matching_error_type = self.error_matching(predicted_label, True)
+                    self.current_error_type = self.matching_error_type
+                else:
+                    # Update the current error
+                    #self.current_error_type = self.compute_errors(predicted_label, ground_truth_label)
+                    self.current_error_type = self.error_matching(predicted_label, False)
                 # Go to the next letter
                 index += 1
             final_position = index
@@ -263,28 +272,28 @@ class Detection(persistent.Persistent):
             print_info('Letter by letter distance up to {} letters: {}'.format(final_position, red(self.dict_of_distances[final_position-1])))
         # Print the error type
         try:
+            # Store the potential result if the threshold is matched
             test = self.error_index
             if threshold !=-1 and self.dict_of_distances[final_position - 1] != -1 and threshold >= self.dict_of_distances[final_position - 1]:
                 # The models matched.
-                self.current_error_type = self.matching_error_type
+                #self.matching_error_type = self.current_error_type
                 if verbose > 1:
                     print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
-                    print_info('Models matched on letter {}. '.format(amount) + red('Error Type: {}'.format(self.matching_error_type)) + '. (lastest match is on letter {})'.format(self.error_index))
+                    print_info('Models matched on letter {}. '.format(amount) + red('Error Type: {}'.format(self.get_matching_error_type())) + '. (lastest match is on letter {})'.format(self.get_error_index()))
                 elif verbose > 0:
                     print_info('Test model {}. Train model {}. Up to {} letters. {}'.format(model_testing.get_id(), model_training.get_id(), amount, self.matching_error_type)), 
             else:
                 # The threshold was not overcomed by the distance. The models don't match. We miss the detection
-                print ground_truth_label
-                if 'botnet' in ground_truth_label.lower() or 'malware' in ground_truth_label.lower():
+                #if 'botnet' in ground_truth_label.lower() or 'malware' in ground_truth_label.lower():
                     # Because we miss the detection
-                    self.current_error_type = 'FN'
-                elif 'normal' in ground_truth_label.lower():
+                    #self.current_error_type = 'FN'
+                #elif 'normal' in ground_truth_label.lower():
                     # Because we detect normal correctly
-                    self.current_error_type = 'TN'
+                    #self.current_error_type = 'TN'
                 if verbose > 1:
                     print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
-                    print_info('Models don\'t match on letter {}. '.format(amount) + red('Error Type: {}. '.format(self.current_error_type)) + '(Latests match was on letter {} with error type: {})'.format(self.error_index, self.matching_error_type))
-                elif verbose > 0:
+                    print_info('Models don\'t match on letter {}. '.format(amount) + red('Error Type: {}. '.format(self.get_current_error_type())) + '(Latests match was on letter {} with error type: {})'.format(self.get_error_index(), self.get_matching_error_type()))
+                if verbose > 0:
                     print_info('Test model {}. Train model {}. Up to {} letters. {}'.format(model_testing.get_id(), model_training.get_id(), amount, self.current_error_type)), 
         except AttributeError:
             # This is a distance object without the index yet. Before the change. Put it in -1
@@ -297,6 +306,17 @@ class Detection(persistent.Persistent):
             print p.plot(x, y, marker='_of')
         # Return the final distance.
         return self.dict_of_distances[final_position-1]
+
+    def error_matching(self, error, match):
+        """ Given a label and if it matched or not, tell me the supposed result """
+        if ('botnet' in error.lower() or 'malware' in error.lower()) and match:
+            return 'TP'
+        elif ('botnet' in error.lower() or 'malware' in error.lower() ) and not match:
+            return 'FN'
+        elif 'normal' in error.lower() and match:
+            return 'TN'
+        elif 'normal' in error.lower() and not match:
+            return 'FP'
 
     def compute_errors(self, predicted_label, ground_truth_label):
         """ Get the predicted and ground truth labels and figure it out the errors. Both current errors for this time slot and accumulated errors in all time slots."""
@@ -643,6 +663,32 @@ class Group_of_Detections(Module, persistent.Persistent):
                         responses.append(True)
                     else:
                         responses.append(False)
+            elif key == 'merror':
+                error = model.get_matching_error_type()
+                value = value
+                if operator == '=':
+                    if error == value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if error != value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            elif key == 'cerror':
+                error = model.get_current_error_type()
+                value = value
+                if operator == '=':
+                    if error == value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if error != value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
             else:
                 return False
 
@@ -668,16 +714,16 @@ class Group_of_Detections(Module, persistent.Persistent):
 
     def list_distances(self, filter):
         self.construct_filter(filter)
-        all_text=' Id | Training | Testing | Distance (amount of letters)| Needs Regenerate \n'
+        all_text=' Id | Training | Testing | Distance (amount of letters)| Needs Regenerate | Current Error with the current amount of letters | Potential type of error if the threshold is overcomed (last letter when the threshold was overcomed)\n'
         for distance in self.get_distances():
             if self.apply_filter(distance):
                 regenerate = distance.check_need_for_regeneration()
-                #if not regenerate:
-                    #print_warning('Deleting distance {}'.format(distance.get_id()))
-                    #self.delete_distance(distance.get_id())
                 training_label = distance.get_training_label()
                 testing_label = distance.get_testing_label()
-                all_text += ' {:<4} | {:75} | {:75} | {:8.3f} ({:>5}) | {}\n'.format(distance.get_id(), distance.get_training_structure_name() + ': ' + str(distance.get_model_training_id()) + ' (' + training_label + ')', distance.get_testing_structure_name() + ': ' + str(distance.get_model_testing_id()) + ' (' + testing_label + ')', distance.get_distance(), distance.get_amount(), regenerate)
+                error_index = distance.get_error_index()
+                error_matching = distance.get_matching_error_type()
+                error_current = distance.get_current_error_type()
+                all_text += ' {:<4} | {:75} | {:75} | {:8.3f} ({:>5}) | {} | {} | {} ({}) \n'.format(distance.get_id(), distance.get_training_structure_name() + ': ' + str(distance.get_model_training_id()) + ' (' + training_label + ')', distance.get_testing_structure_name() + ': ' + str(distance.get_model_testing_id()) + ' (' + testing_label + ')', distance.get_distance(), distance.get_amount(), regenerate, error_current, error_matching, error_index)
         f = tempfile.NamedTemporaryFile()
         f.write(all_text)
         f.flush()
@@ -942,7 +988,7 @@ class Group_of_Detections(Module, persistent.Persistent):
                 break
         return response
 
-    def compare_all(self, structure_name, amount):
+    def compare_all(self, structure_name, amount, verbose):
         """ Compare all the models between themselves in the specified structure. Do not repeat the comparison if it already exists """
         structures = __database__.get_structures()
         try:
@@ -969,7 +1015,7 @@ class Group_of_Detections(Module, persistent.Persistent):
                     # Create the new object
                     new_distance = Detection(new_id)
                     # Run the distance rutine
-                    if new_distance.detect(structure_name, structure, train_model_id, structure_name, structure, test_model_id, amount):
+                    if new_distance.detect(structure_name, structure, train_model_id, structure_name, structure, test_model_id, amount, verbose):
                         # Store on DB the new distance only if the comparison was successful
                         self.main_dict[new_id] = new_distance
                         print_info('\tNew distance created with id {}'.format(new_id))
@@ -1010,7 +1056,7 @@ class Group_of_Detections(Module, persistent.Persistent):
         elif self.args.print_comparison:
             self.print_comparison(self.args.print_comparison)
         elif self.args.compareall:
-            self.compare_all(self.args.compareall, self.args.amount)
+            self.compare_all(self.args.compareall, self.args.amount, self.args.verbose)
         elif self.args.deleteall:
             if self.args.filter:
                 self.delete_all(self.args.filter)
