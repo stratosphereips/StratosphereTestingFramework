@@ -498,6 +498,7 @@ Now stf can import external modules that implement new functionality.
 - For bug reports please fill an issue on the [github page](https://github.com/stratosphereips/StratosphereTestingFramework/issues)
 
 ### TODO
+- The filter of flowamount in connections does not seem to work properly when using >=
 - When we leave the DB, there is an error when storing the relationship between the letters in the model and in the connections. Specifically, when using -F to see the flows in a connection, the letter is NOT shown. If we recreate the models, the letters are shown, but if we exit and enter again, they are not. This only happens in some datasets (like dataset 71)
 - When creating connections, use filters to create a subset of the connections (so we don't have to delete them later)
 - When we trim flows from the connections, store the original amount of flows on each connection.
