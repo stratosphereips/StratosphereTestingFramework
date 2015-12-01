@@ -251,8 +251,9 @@ class Detection(persistent.Persistent):
                     self.prob_distance = 1
                 # Store the distance
                 self.dict_of_distances.insert(index, self.prob_distance)
-                # Do we match? If the threshold is less than the distance... move the index. Move the 'window'. And the amount of letters is more than 2 so we have some periodicity computation and not only numbers.
-                if len(test_sequence) > 2 and threshold != -1 and self.prob_distance != -1 and threshold >= self.prob_distance:
+                # Do we match? If the threshold is less than the distance... move the index. Move the 'window'. And the amount of letters is more than 3 so we have some periodicity computation and not only numbers. Up to 3 letters we have
+                # two numbers and a symbol. Only with 4 letters we have 2 numbers, a symbol and a real letter.
+                if len(test_sequence) > 3 and threshold != -1 and self.prob_distance != -1 and threshold >= self.prob_distance:
                     # Update matching errors
                     self.error_index = index + 1 # Because letter 10 is index 9 + 1 
                     self.matching_error_type = self.compute_errors(predicted_label, ground_truth_label, True)
@@ -730,7 +731,7 @@ class Group_of_Detections(Module, persistent.Persistent):
 
     def list_distances(self, filter):
         self.construct_filter(filter)
-        all_text=' Id | Training | Testing | Distance (amount of letters)| Needs Regenerate | Current Error with the current amount of letters | Potential type of error if the threshold is overcomed (last letter when the threshold was overcomed)\n'
+        all_text=' Id | Training | Testing | Distance (current amount of letters)| Needs Regenerate | Current Error on the current amount of letters | Potential type of error if the threshold has been overcommed once (last letter when the threshold has been overcomed)\n'
         for distance in self.get_distances():
             if self.apply_filter(distance):
                 regenerate = distance.check_need_for_regeneration()
