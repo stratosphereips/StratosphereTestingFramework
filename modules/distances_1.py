@@ -251,8 +251,8 @@ class Detection(persistent.Persistent):
                     self.prob_distance = 1
                 # Store the distance
                 self.dict_of_distances.insert(index, self.prob_distance)
-                # Do we match? If the threshold is less than the distance... move the index. Move the 'window'. And the amount of letters is more than 1.
-                if len(test_sequence) > 1 and threshold != -1 and self.prob_distance != -1 and threshold >= self.prob_distance:
+                # Do we match? If the threshold is less than the distance... move the index. Move the 'window'. And the amount of letters is more than 2 so we have some periodicity computation and not only numbers.
+                if len(test_sequence) > 2 and threshold != -1 and self.prob_distance != -1 and threshold >= self.prob_distance:
                     # Update matching errors
                     self.error_index = index + 1 # Because letter 10 is index 9 + 1 
                     self.matching_error_type = self.compute_errors(predicted_label, ground_truth_label, True)
@@ -268,6 +268,9 @@ class Detection(persistent.Persistent):
             model_training.set_self_probability(original_self_prob)
         else:
             final_position = amount
+        # When the for finneshed, if there was not matching after all the letters, the matching_error_type should be the current error type. so it is not empty.
+        if self.error_index == -1:
+            self.matching_error_type = self.current_error_type
         # Store the amount used if it is larger than the previous one stored
         if self.get_amount() < final_position:
             self.set_amount(final_position)
