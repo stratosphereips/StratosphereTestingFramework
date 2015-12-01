@@ -44,12 +44,16 @@ class Tuple(object):
         # It could be that the tuple does not have a ground truth label
         if self.ground_truth_label_id:
             self.ground_truth_label = __group_of_labels__.get_label_name_by_id(self.ground_truth_label_id)
+        # The state of the tuple so far (because it can still grow)
         self.state_so_far = ""
         # Used to move the amount of letters considered for this tuple in the time slot
         self.min_state_len = 0
         self.winner_model_id = False
         self.winner_model_distance = float('inf')
         self.proto = ""
+
+    def get_state_len(self):
+        return len(self.state_so_far)
 
     def get_proto(self):
         return self.proto
@@ -842,65 +846,68 @@ class Experiment(persistent.Persistent):
             # Take the letters from the test model, but not all of them, just the ones inside this time slot. This way we 'move' the letters used from time windows to time windows, but only if there was a model match.
             # Store the state so far in the tuple. Now we are cutting the original state. Min is the amount defined if this tuple had already matched before. Max is just the amount of flows recived so far.
             tuple.set_state_so_far(model.get_state()[tuple.get_min_state_len():tuple.get_max_state_len()])
-            # Reset the winner variables.
-            time_slot.set_winner_model_id_for_ip(tuple.get_src_ip(), False)
-            time_slot.set_winner_model_distance_for_ip(tuple.get_src_ip(),'inf')
-            # Methodology 4.5 Compute the distance of the chain of states from this 4-tuple so far, with all the training models. Don't store a new distance object.
-            # For each traininig model
-            for model_training_id in self.models_ids:
-                # First, only continue if the protocols are the same
-                test_proto = tuple.get_proto().lower()
-                train_proto = self.training_models[model_training_id]['proto'].lower()
-                if test_proto != train_proto:
-                    continue
-                # Letters for the train model. They should not be 'cut' like the test ones. Train models should be complete.
-                train_sequence = self.training_models[model_training_id]['model_training'].get_state()[tuple.get_min_state_len():tuple.get_amount_of_flows()]
-                # First re-create the matrix only for this sequence
-                self.training_models[model_training_id]['model_training'].create(train_sequence)
-                # Get the new original prob so far...
-                training_original_prob = self.training_models[model_training_id]['model_training'].compute_probability(train_sequence)
-                # Now obtain the probability for testing
-                test_prob = self.training_models[model_training_id]['model_training'].compute_probability(tuple.get_state_so_far())
-                # Get the distance
-                prob_distance = -1
-                if training_original_prob != -1 and test_prob != -1 and training_original_prob <= test_prob:
-                    try:
-                        prob_distance = training_original_prob / test_prob
-                    except ZeroDivisionError:
-                        prob_distance = -1
-                elif training_original_prob != -1 and test_prob != -1 and training_original_prob > test_prob:
-                    try:
-                        prob_distance = test_prob / training_original_prob
-                    except ZeroDivisionError:
-                        prob_distance = -1
-                if self.verbose > 4:
-                    print_info('\tTraining Seq: {}'.format(train_sequence))
-                    print_info('\tTesting  Seq: {}'.format(tuple.get_state_so_far()))
-                    print_info('\tTrain prob: {}. Test prob: {}. Distance: {}'.format(training_original_prob, test_prob, prob_distance))
-                # Methodology 4.6. Decide upon a winner model.
-                # Is the probability just computed for this model lower than the threshold for that same model?
-                color=cyan
-                if prob_distance >= 1 and prob_distance <= self.training_models[model_training_id]['threshold']:
-                    # The model is a candidate
-                    if prob_distance < time_slot.get_winner_model_distance_for_ip(tuple.get_src_ip()):
-                        # The model is the winner so far
-                        time_slot.set_winner_model_id_for_ip(tuple.get_src_ip(), model_training_id)
-                        time_slot.set_winner_model_distance_for_ip(tuple.get_src_ip(), prob_distance)
-                        color=red
-                if self.verbose > 3:
-                    print_info(color('\tTuple {} ({}). Distance to model id {:6} ({:50}) (thres: {}):\t{}'.format(tuple.get_id(), tuple.get_ground_truth_label(), model_training_id, self.training_models[model_training_id]['labelname'], self.training_models[model_training_id]['threshold'], prob_distance)))
-            # If there is a winning model, just assign it.
-            if time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()):
-                #print_info('Winner model for IP {}: {} ({}) with distance {}'.format(tuple.get_src_ip(), time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()), self.training_models[time_slot.get_winner_model_id_for_ip(tuple.get_src_ip())]['labelname'], time_slot.get_winner_model_distance_for_ip(tuple.get_src_ip())))
-                # Methodology 4.7. Extract the label and assign it
-                time_slot.set_predicted_label_for_ip(tuple.get_src_ip(), self.training_models[time_slot.get_winner_model_id_for_ip(tuple.get_src_ip())]['labelname'], tuple.get_amount_of_flows(), tuple.get_id())
-                # Methodology 4.8. Mark the 4tuple as 'matched' in the time slot. This is used later to know, from all the 4tuples, which ones we should move their states window.
-                time_slot.set_4tuple_match(tuple4)
-            # Did we have a winner in the past, but not now anymore??? Erase its label as the current winner.
-            elif time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()) == False:
-                #print_info('Erase the winner model for IP {}'.format(tuple.get_src_ip()))
-                time_slot.unset_predicted_label_for_ip(tuple.get_src_ip(), False, tuple.get_amount_of_flows(), tuple.get_id())
-                time_slot.set_4tuple_unmatch(tuple.get_id())
+            # Only compare the models when the START of the test state has more than 3 letters. So avoid mathching numbers and the first symbol. We want letters.
+            if tuple.get_state_len() > 3:
+                # Reset the winner variables.
+                time_slot.set_winner_model_id_for_ip(tuple.get_src_ip(), False)
+                time_slot.set_winner_model_distance_for_ip(tuple.get_src_ip(),'inf')
+                # Methodology 4.5 Compute the distance of the chain of states from this 4-tuple so far, with all the training models. Don't store a new distance object.
+                # For each traininig model
+                for model_training_id in self.models_ids:
+                    # First, only continue if the protocols are the same
+                    test_proto = tuple.get_proto().lower()
+                    train_proto = self.training_models[model_training_id]['proto'].lower()
+                    if test_proto != train_proto:
+                        continue
+                    # Letters for the train model. They should not be 'cut' like the test ones. Train models should be complete.
+                    train_sequence = self.training_models[model_training_id]['model_training'].get_state()[tuple.get_min_state_len():tuple.get_amount_of_flows()]
+                    # First re-create the matrix only for this sequence
+                    self.training_models[model_training_id]['model_training'].create(train_sequence)
+                    # Get the new original prob so far...
+                    training_original_prob = self.training_models[model_training_id]['model_training'].compute_probability(train_sequence)
+                    # Now obtain the probability for testing. The prob is computed by using the API on the train model, which knows its own matrix
+                    test_prob = self.training_models[model_training_id]['model_training'].compute_probability(tuple.get_state_so_far())
+                    # Get the distance
+                    prob_distance = -1
+                    if training_original_prob != -1 and test_prob != -1 and training_original_prob <= test_prob:
+                        try:
+                            prob_distance = training_original_prob / test_prob
+                        except ZeroDivisionError:
+                            prob_distance = -1
+                    elif training_original_prob != -1 and test_prob != -1 and training_original_prob > test_prob:
+                        try:
+                            prob_distance = test_prob / training_original_prob
+                        except ZeroDivisionError:
+                            prob_distance = -1
+                    if self.verbose > 4:
+                        print_info('\tTraining Seq: {}'.format(train_sequence))
+                        print_info('\tTesting  Seq: {}'.format(tuple.get_state_so_far()))
+                        print_info('\tTrain prob: {}. Test prob: {}. Distance: {}'.format(training_original_prob, test_prob, prob_distance))
+                    # Methodology 4.6. Decide upon a winner model.
+                    # Is the probability just computed for this model lower than the threshold for that same model?
+                    color=cyan
+                    # See if the thorsold was overcomed. Also see if there are > 3 letters in the state
+                    if prob_distance >= 1 and prob_distance <= self.training_models[model_training_id]['threshold']:
+                        # The model is a candidate
+                        if prob_distance < time_slot.get_winner_model_distance_for_ip(tuple.get_src_ip()):
+                            # The model is the winner so far
+                            time_slot.set_winner_model_id_for_ip(tuple.get_src_ip(), model_training_id)
+                            time_slot.set_winner_model_distance_for_ip(tuple.get_src_ip(), prob_distance)
+                            color=red
+                    if self.verbose > 3:
+                        print_info(color('\tTuple {} ({}). Distance to model id {:6} ({:50}) (thres: {}):\t{}'.format(tuple.get_id(), tuple.get_ground_truth_label(), model_training_id, self.training_models[model_training_id]['labelname'], self.training_models[model_training_id]['threshold'], prob_distance)))
+                # If there is a winning model, just assign it.
+                if time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()):
+                    #print_info('Winner model for IP {}: {} ({}) with distance {}'.format(tuple.get_src_ip(), time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()), self.training_models[time_slot.get_winner_model_id_for_ip(tuple.get_src_ip())]['labelname'], time_slot.get_winner_model_distance_for_ip(tuple.get_src_ip())))
+                    # Methodology 4.7. Extract the label and assign it
+                    time_slot.set_predicted_label_for_ip(tuple.get_src_ip(), self.training_models[time_slot.get_winner_model_id_for_ip(tuple.get_src_ip())]['labelname'], tuple.get_amount_of_flows(), tuple.get_id())
+                    # Methodology 4.8. Mark the 4tuple as 'matched' in the time slot. This is used later to know, from all the 4tuples, which ones we should move their states window.
+                    time_slot.set_4tuple_match(tuple4)
+                # Did we have a winner in the past, but not now anymore??? Erase its label as the current winner.
+                elif time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()) == False:
+                    #print_info('Erase the winner model for IP {}'.format(tuple.get_src_ip()))
+                    time_slot.unset_predicted_label_for_ip(tuple.get_src_ip(), False, tuple.get_amount_of_flows(), tuple.get_id())
+                    time_slot.set_4tuple_unmatch(tuple.get_id())
             # Read next line
             # Line without the src and dst data
             line = ','.join(file.readline().strip().split(',')[:14])
