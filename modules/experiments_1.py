@@ -1045,18 +1045,19 @@ class Experiment(persistent.Persistent):
         # Move the state windows in the tuples that did not matched.
         self.move_windows_in_unmatched_tuples()
         # Methodology 7 Compute the results of the last time slot
-        self.time_slots[-1].close(self.verbose)
-        # After closing the time slot, we should get some info back
-        tp_ips_in_last_time_slot = self.time_slots[-1].get_tp_ips()
-        fp_ips_in_last_time_slot = self.time_slots[-1].get_fp_ips()
-        fn_ips_in_last_time_slot = self.time_slots[-1].get_fn_ips()
-        tn_ips_in_last_time_slot = self.time_slots[-1].get_tn_ips()
-        self.add_tp_ips(tp_ips_in_last_time_slot)
-        self.add_fp_ips(fp_ips_in_last_time_slot)
-        self.add_fn_ips(fn_ips_in_last_time_slot)
-        self.add_tn_ips(tn_ips_in_last_time_slot)
-        # Store the errors in the experiment
-        self.add_errors(self.time_slots[-1].get_errors())
+        if self.time_slots:
+            self.time_slots[-1].close(self.verbose)
+            # After closing the time slot, we should get some info back
+            tp_ips_in_last_time_slot = self.time_slots[-1].get_tp_ips()
+            fp_ips_in_last_time_slot = self.time_slots[-1].get_fp_ips()
+            fn_ips_in_last_time_slot = self.time_slots[-1].get_fn_ips()
+            tn_ips_in_last_time_slot = self.time_slots[-1].get_tn_ips()
+            self.add_tp_ips(tp_ips_in_last_time_slot)
+            self.add_fp_ips(fp_ips_in_last_time_slot)
+            self.add_fn_ips(fn_ips_in_last_time_slot)
+            self.add_tn_ips(tn_ips_in_last_time_slot)
+            # Store the errors in the experiment
+            self.add_errors(self.time_slots[-1].get_errors())
         finish_time = datetime.now()
         print_info('Finish Time: {} (Duration: {})'.format(unicode(finish_time), unicode(finish_time - start_time)))
         self.print_final_values()
@@ -1092,7 +1093,11 @@ class Experiment(persistent.Persistent):
 
     def move_windows_in_matched_tuples(self):
         """ Ask for all the tuples that had matches in this time slot and move their state letters windows. This is run after the closing of the time slot. Be careful """
-        matching_tuples = self.time_slots[-1].get_matching_tuples()
+        try:
+            matching_tuples = self.time_slots[-1].get_matching_tuples()
+        except IndexError:
+            # It is possible that there are no time slots yet.
+            return True
         for tuple4 in matching_tuples:
             # First get how far the state has gone in the current time slot. Not the state number when it was detected first, but the state number when the time slot finished.
             # 'move' the start of the letters to where it finished in the last time slot that matched.
@@ -1101,7 +1106,11 @@ class Experiment(persistent.Persistent):
 
     def move_windows_in_unmatched_tuples(self):
         """ Ask for all the tuples that didn't had matches in this time slot and move their state letters windows if the state len so far is more than a threshold. This is run after the closing of the time slot. Be careful """
-        unmatching_tuples = self.time_slots[-1].get_unmatching_tuples()
+        try:
+            unmatching_tuples = self.time_slots[-1].get_unmatching_tuples()
+        except IndexError:
+            # It is possible that there are no time slots yet.
+            return True
         #print_info('Un matching tuples: {}'.format(unmatching_tuples))
         for tuple4 in unmatching_tuples:
             # If the amount of letters in the states is more that a threshold, update its state and forget the letters so far.
