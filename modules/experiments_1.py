@@ -1251,6 +1251,8 @@ class Group_of_Experiments(Module, persistent.Persistent):
         self.parser.add_argument('-v', '--verbose', default=0, metavar='verbose', type=int, help='An integer expressing how verbose should we be while running the experiment. For example -v 1.')
         self.parser.add_argument('-r', '--reduce', metavar='experiment_id', type=int, help='Reduce the size of the given experiment. Strongly suggested to be used before storing the experiment by leaving the program. It deletes the timeslots from the experiment. Before this command you can use -p and -v > 3 to see the info of the time slots in an experiment. After this commend you can only use -v < 3.')
         self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filters for creating the experiment. They are used to select which tuples should be matched in the current testing dataset specified. Keywords: conn. Usage: conn=<text>. Also conn!=<text>. For example conn=1.1.1.1-2.2.2.2-80-tcp conn!=3.3.3.3-4.4.4.4-443-tcp. The names are partial matching. The operator for conn are = and !=.')
+        self.parser.add_argument('-o', '--onebyone', action='store_true', default=False, help='Specify if the training models provided with -m should be used one by one with the testing dataset, or in group. By default it is done in groups. With this option it is done one by one.')
+        self.parser.add_argument('-D', '--description', metavar='text', default="", help='An optional description of the experiment between double quotes.')
 
 
     def get_name(self):
@@ -1285,16 +1287,17 @@ class Group_of_Experiments(Module, persistent.Persistent):
             rows.append([ experiment.get_id(), experiment.get_description(), experiment.get_fancy_performance_metrics() ])
         print(table(header=['Id', 'Description','Performance Metrics'], rows=rows))
 
-    def create_new_experiment(self, models_ids, testing_id, timeslotwidth, verbose, filter):
+    def create_new_experiment(self, models_ids, testing_id, timeslotwidth, verbose, filter, desc):
         """ Create a new experiment """
         # Generate the new id
         try:
             new_id = self.main_dict[list(self.main_dict.keys())[-1]].get_id() + 1
         except (KeyError, IndexError):
             new_id = 1
-        # Set the description
-        desc = raw_input("Description: ")
+        ## Set the description
         # Create the new object
+        print
+        print_info('Starting experiment id: {}'.format(new_id))
         new_experiment = Experiment(new_id, desc, timeslotwidth, filter)
         # Methodology 1. We receive the markov_models ids for the training, and the id of the dataset of the tetsing. (We may not have markov models for the testing. A binetflow file and labels are enough)
         # Add info
@@ -1460,13 +1463,22 @@ class Group_of_Experiments(Module, persistent.Persistent):
         if self.args.list:
             self.list_experiments()
         elif self.args.new:
-            try:
-                models_ids = self.args.models_ids
-                testing_id = self.args.testing_id
-            except AttributeError:
-                print_error('You should provide both the ids of the models to use for detection (with -m) and the testing dataset id (with -t).')
-                return False
-            self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth, self.args.verbose, self.args.filter)
+            if self.args.onebyone:
+                try:
+                    testing_id = self.args.testing_id
+                    for models_ids in self.args.models_ids.split(','):
+                        self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth, self.args.verbose, self.args.filter, self.args.description)
+                except AttributeError:
+                    print_error('You should provide both the ids of the models to use for detection (with -m) and the testing dataset id (with -t).')
+                    return False
+            else:
+                try:
+                    models_ids = self.args.models_ids
+                    testing_id = self.args.testing_id
+                    self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth, self.args.verbose, self.args.filter, self.args.description)
+                except AttributeError:
+                    print_error('You should provide both the ids of the models to use for detection (with -m) and the testing dataset id (with -t).')
+                    return False
         elif self.args.delete:
             self.delete_experiment(self.args.delete)
         elif self.args.printstate:
