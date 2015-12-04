@@ -1249,7 +1249,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
         self.parser.add_argument('-t', '--testing_id', metavar='testing_id', type=int, help='Dataset id to be used as testing when creating a new experiment with -n.')
         self.parser.add_argument('-T', '--timeslotwidth', default=300, metavar='timeslotwidth', type=int, help='The width of the time slot in seconds.')
         self.parser.add_argument('-v', '--verbose', default=0, metavar='verbose', type=int, help='An integer expressing how verbose should we be while running the experiment. For example -v 1.')
-        self.parser.add_argument('-r', '--reduce', metavar='experiment_id', type=int, help='Reduce the size of the given experiment. Strongly suggested to be used before storing the experiment by leaving the program. It deletes the timeslots from the experiment. Before this command you can use -p and -v > 3 to see the info of the time slots in an experiment. After this commend you can only use -v < 3.')
+        self.parser.add_argument('-r', '--reduce', metavar='experiment_id', type=str, help='Reduce the size of the given experiment. Strongly suggested to be used before storing the experiment by leaving the program. It deletes the timeslots from the experiment. Before this command you can use -p and -v > 3 to see the info of the time slots in an experiment. After this commend you can only use -v < 3.')
         self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filters for creating the experiment. They are used to select which tuples should be matched in the current testing dataset specified. Keywords: conn. Usage: conn=<text>. Also conn!=<text>. For example conn=1.1.1.1-2.2.2.2-80-tcp conn!=3.3.3.3-4.4.4.4-443-tcp. The names are partial matching. The operator for conn are = and !=.')
         self.parser.add_argument('-o', '--onebyone', action='store_true', default=False, help='Specify if the training models provided with -m should be used one by one with the testing dataset, or in group. By default it is done in groups. With this option it is done one by one.')
         self.parser.add_argument('-D', '--description', metavar='text', default="", help='An optional description of the experiment between double quotes.')
@@ -1484,7 +1484,14 @@ class Group_of_Experiments(Module, persistent.Persistent):
         elif self.args.printstate:
             self.print_experiment(self.args.printstate, self.args.verbose)
         elif self.args.reduce:
-            self.reduce_experiment(self.args.reduce)
+            if '-' in self.args.reduce:
+                first_id = int(self.args.reduce.split('-')[0])
+                last_id = int(self.args.reduce.split('-')[1])
+            else:
+                first_id = int(self.args.reduce)
+                last_id = int(self.args.reduce)
+            for id in range(first_id, last_id):
+                self.reduce_experiment(id)
         else:
             print_error('At least one parameter is required in this module')
             self.usage()
