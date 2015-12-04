@@ -23,9 +23,6 @@ from stf.core.database import __database__
 from stf.common import ap
 
 
-
-
-
 #################
 #################
 #################
@@ -304,8 +301,11 @@ class Detection(persistent.Persistent):
         return self.dict_of_distances[final_position-1]
 
     def compute_errors(self, predicted_label, ground_truth_label, match=True):
-        """ Get the predicted and ground truth labels and figure it out the errors. Both current errors for this time slot and accumulated errors in all time slots."""
-        """ This coded is copied in the experiments_1.py file. """
+        """
+        Get the predicted and ground truth labels and figure it out the errors.
+        Both current errors for this time slot and accumulated errors in all time slots.
+        This coded is copied in the experiments_1.py file.
+        """
         # So we can work with multiple positives and negative labels
         # Set the predicted label
         if 'Botnet' in predicted_label or 'Malware' in predicted_label or 'CC' in predicted_label:
