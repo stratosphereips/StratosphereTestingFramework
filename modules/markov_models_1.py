@@ -690,6 +690,9 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                     test_ids = range(0,len(self.get_markov_models()))
                 elif ',' in test_ids:
                     test_models_ids = map(int, test_ids.split(','))
+                else:
+                    # We need a vector, so just create it with the same id
+                    test_models_ids = [int(test_ids), int(test_ids)]
             # When calling this function from other modules, can be a vector
             else:
                 test_models_ids = map(int, test_ids)
@@ -737,7 +740,6 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 if verbose > 1:
                     print_info('\tTraining with model {}'.format(test_model))
                 # Store info about this particular test training. Later stored within the threshold vector
-                # train_vector = [test model id, distance, N flow that matched, errors, errors metrics]
                 train_vector = {}
                 train_vector['ModelId'] = test_model_id
                 if verbose:
@@ -774,13 +776,13 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                         elif train_prob == test_prob:
                             distance = 1
                         # Is distance < threshold? We found a good match.
-                        # index > 2 means that we discard the matching of the first two letters, because is too similar.
-                        if index > 2 and distance < threshold and distance > 0:
+                        # index > 3 means that we discard the matching of the first three letters, because we don't have a letter with periodicity yet.
+                        if index > 3 and distance < threshold and distance > 0:
                             # Compute the errors: TP, TN, FP, FN
                             errors = self.compute_errors(train_label, test_label)
                             if verbose > 1:
                                 print '\t\tTraining with threshold: {}. Distance: {}. Errors: {}'.format(threshold, distance, errors)
-                            # Store the info
+                            # Store the info, if it matched, for each letter in the test state
                             train_vector['Distance'] = distance
                             train_vector['IndexFlow'] = index
                             train_vector['Errors'] = errors
@@ -795,8 +797,9 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                             prev_threshold.append(train_vector)
                             thresholds_train[threshold] = prev_threshold
                             # Tell the threshold for to exit. Means that we matched something
+                            # This is never working, ... should we put it out? What was the idea? Not to try all the thresholds?
                             exit_threshold_for = False
-                            # Exit the test chain of state evaluation
+                            # Exit the test chain of state evaluation. We don't compare more letters.
                             break
                         # Next letter
                         index += 1
@@ -807,6 +810,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                     if exit_threshold_for:
                         # We are going to stop computing the threshold for this test model because we found one.
                         break
+        # After finishing wiht all the test models...
         # Compute the error metrics for each threshold
         final_errors_metrics = {}
         for threshold in thresholds_train:
