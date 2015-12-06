@@ -180,8 +180,10 @@ class Markov_Model(persistent.Persistent):
         output = open(final_file, 'wb')
         cPickle.dump(self.init_vector,output)         
         cPickle.dump(self.matrix,output)         
+        cPickle.dump(self.get_state(),output)         
         cPickle.dump(self.get_self_probability(),output)         
         cPickle.dump(self.get_label().get_name(),output)         
+        cPickle.dump(self.get_threshold(),output)         
         output.close()
 
     def get_label(self):
