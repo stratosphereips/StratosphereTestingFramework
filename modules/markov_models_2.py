@@ -117,17 +117,6 @@ class Markov_Model(persistent.Persistent):
         for first in self.matrix:
             print first, self.matrix[first]
 
-    def simulate(self, amount):
-        print type(self.matrix.walk(5))
-        """ Generate a simulated chain using this markov chain """
-        chain = ''
-        chain += state[0]
-        chain += state[1]
-        chain += state[2]
-        chain += ''.join(self.matrix.walk(amount))
-        print chain
-        return True
-
     def compute_probability(self, state_string):
         """
             res = 0
@@ -213,7 +202,6 @@ class Group_of_Markov_Models_2(Module, persistent.Persistent):
         self.parser.add_argument('-l', '--list', action='store_true', help='List the markov models already applied. You can use a filter with -f.')
         self.parser.add_argument('-g', '--generate', metavar='generate', help='Generate the markov chain for this label. Give label name.')
         self.parser.add_argument('-m', '--printmatrix', metavar='printmatrix', help='Print the markov chains matrix of the given markov model id.')
-        self.parser.add_argument('-S', '--simulate', metavar='simulate', help='Use this markov chain to generate a new simulated chain of states. Give the markov chain id. The length is now fixed in 100 states.')
         self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete this markov chain. Give the markov chain id.')
         self.parser.add_argument('-p', '--printstate', metavar='printstate', help='Print the chain of states of all the models included in this markov chain. Give the markov chain id.')
         self.parser.add_argument('-r', '--regenerate', metavar='regenerate', help='Regenerate the markov chain. Usually because more connections were added to the label. Give the markov chain id.')
@@ -398,14 +386,6 @@ class Group_of_Markov_Models_2(Module, persistent.Persistent):
         else:
             print_error('No label with that name')
 
-    def simulate(self, markov_model_id):
-        """ Generate a new simulated chain of states for this markov chain """
-        try:
-            markov_model = self.get_markov_model(int(markov_model_id))
-            markov_model.simulate(100)
-        except KeyError:
-            print_error('No such markov model id')
-
     def delete(self, markov_model_id):
         """ Delete the markvov chain """
         try:
@@ -487,7 +467,6 @@ class Group_of_Markov_Models_2(Module, persistent.Persistent):
                 self.create_new_model(label.get_name())
 
 
-
     # The run method runs every time that this command is used
     def run(self):
         # Register the structure in the database, so it is stored and use in the future. 
@@ -514,8 +493,6 @@ class Group_of_Markov_Models_2(Module, persistent.Persistent):
             self.create_new_model(self.args.generate)
         elif self.args.printmatrix:
             self.print_matrix(self.args.printmatrix)
-        elif self.args.simulate:
-            self.simulate(self.args.simulate)
         elif self.args.delete:
             self.delete(self.args.delete)
         elif self.args.printstate:
