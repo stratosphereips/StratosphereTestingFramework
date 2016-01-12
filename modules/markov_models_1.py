@@ -456,6 +456,7 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
             markov_model.set_self_probability(prob)
             # Store
             self.markov_models[mm_id] = markov_model
+            print_info('New model created with id {}'.format(markov_model.get_id()))
         else:
             print_error('No label with that name')
 
