@@ -475,7 +475,10 @@ class Group_of_Markov_Models_1(Module, persistent.Persistent):
                 start = int(markov_model_id.split('-')[0])
                 end = int(markov_model_id.split('-')[1])
                 for temp_id in range(start, end + 1):
-                    self.markov_models.pop(temp_id)
+                    try:
+                        self.markov_models.pop(temp_id)
+                    except KeyError:
+                        print_error('No such markov model id, continuing...')
             elif ',' in markov_model_id:
                 for temp_id in markov_model_id.split(','):
                     self.markov_models.pop(int(temp_id))
