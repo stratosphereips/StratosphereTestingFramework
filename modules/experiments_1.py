@@ -1062,6 +1062,11 @@ class Experiment(persistent.Persistent):
         print_info('Finish Time: {} (Duration: {})'.format(unicode(finish_time), unicode(finish_time - start_time)))
         self.print_final_values()
         self.tuples = {}
+        # Before finishing we need to put back the original information in the models
+        for model_training_id in self.models_ids:
+            self.training_models[model_training_id]['model_training'].set_matrix(self.training_models[model_training_id]['original_matrix']) 
+            self.training_models[model_training_id]['model_training'].set_self_probability(self.training_models[model_training_id]['original_self_prob'])  
+
 
     def clean_experiment_for_storage(self):
         # After we printed everything, we should clean the experiment of all the stuff we don't want stored in the db.
