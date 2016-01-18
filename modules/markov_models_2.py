@@ -129,7 +129,7 @@ class Markov_Model(persistent.Persistent):
     def get_new_first_order_states(self, states):
         """ Get the first order states """
         print 'Receiving to analyze: {}'.format(states)
-        raw_input()
+        #raw_input()
         # Help functions
         def is_number_19(state):
             try:
@@ -160,7 +160,7 @@ class Markov_Model(persistent.Persistent):
         # The first number is always a state by itself. It is considered to have an empty symbol
         if is_number_19(states[0]) and is_number_19(states[1]):
             new_states.append(states[0])
-            print 'New states so far: {}'.format(new_states)
+            #print 'New states so far: {}'.format(new_states)
             # Take the first letter out
             i = 1 # i is the start of the next state in the string
             while i < len(states):
@@ -168,15 +168,21 @@ class Markov_Model(persistent.Persistent):
                     # The state is not number. Actually should be a letter. Rest of the chain
                     if is_symbol(states[ i + 1 ]):
                         # We had only one letter and the symbol next. Most common case. Cases: a, b, C. D* X+
-                        if is_zero(states[ i + 2 ]):
-                            # Get all the zeros!. Case: a,00000000
-                            j = i + 1
-                            while is_zero(states[ j + 1 ]):
-                                j += 1
-                            new_states.append(''.join(states[ i : j + 1 ]))
-                            # Update i to the next index after this state finished
-                            i = j + 1
-                        else:
+                        try:
+                            if is_zero(states[ i + 2 ]):
+                                # Get all the zeros!. Case: a,00000000
+                                j = i + 1
+                                while is_zero(states[ j + 1 ]):
+                                    j += 1
+                                new_states.append(''.join(states[ i : j + 1 ]))
+                                # Update i to the next index after this state finished
+                                i = j + 1
+                            else:
+                                new_states.append(''.join(states[ i : i + 2 ]))
+                                # Update i to the next index after this state finished
+                                i = i + 2
+                        except IndexError:
+                            # We run out of letters. There is no i + 2. Just return what we have
                             new_states.append(''.join(states[ i : i + 2 ]))
                             # Update i to the next index after this state finished
                             i = i + 2
@@ -238,9 +244,8 @@ class Markov_Model(persistent.Persistent):
                     print 'Warning. There are numbers in the middle of the state. This should not happend'
                     return False
                 print 'New states so far: {}'.format(new_states)
-                raw_input()
+                #raw_input()
             # End while
-            print new_states
         else:
             # The first two states are not numbers, broken states?
             print 'Warning. Not sure we should be here. The state started without numbers.'
