@@ -2,7 +2,6 @@
 # See the file 'LICENSE' for copying permission.
 
 import time
-import datetime
 import base64
 import string
 import persistent
@@ -414,7 +413,6 @@ class Group_Of_Connections(object):
         temp_values = original_values
         if len(temp_values) > len(self.columns_names):
             # If there is only one occurrence of the separator char, then try to recover...
-
             # Find the index of srcudata
             srcudata_index_starts = 0
             for values in temp_values:

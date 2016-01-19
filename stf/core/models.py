@@ -21,6 +21,10 @@ class Model(persistent.Persistent):
         self.id = id
         self.state = ''
         self.note_id = False
+        self.last_flow_time = ''
+        self.constructor = ''
+        self.label_id = ''
+        self.label_name = ''
 
     def get_id(self):
         return self.id
@@ -154,6 +158,9 @@ class Group_of_Models(persistent.Persistent):
         self.id = id
         self.models = BTrees.OOBTree.BTree()
         self.constructor_id = -1
+        self.dataset_id = -1
+        self.group_connection_id = -1
+
 
     def set_constructor_id(self, constructor_id):
         self.constructor_id = constructor_id
@@ -528,13 +535,9 @@ class Group_of_Group_of_Models(persistent.Persistent):
             return False
         # First delete all the the models in the group
         ids_to_delete = []
-        #limit = 1000
         for model in group.get_models():
-            #if limit <= 0:
-            #    break
             model_id = model.get_id()
             ids_to_delete.append(model_id)
-            #limit -= 1
 
         # We should delete the models AFTER finding them, if not, for some reason the following model after a match is missed.
         amount = 0
