@@ -504,7 +504,6 @@ Now stf can import external modules that implement new functionality.
 - When we trim flows from the connections, store the original amount of flows on each connection.
 - When creating a new dataset, copy the README.md file as main note for the dataset
 - Change the name of a dataset
-- In experiments, what happen if the train models can't be trained because the rest of the train models are very stupid???? should we discard them??
 - How to change the Ground Truth label when the same machine is normal and infected???? Some tuples are infected and some are normal...
 - The experiment can only be run from the machine that has the netflow file. Unless we transfer the netflow file...?
 - Delete all the labels from one group-id
@@ -519,11 +518,13 @@ Now stf can import external modules that implement new functionality.
 - Put a limit when searching markov_models: amount of flows, or amount of time or maybe a specific string of letters that should be looked up.
 - When deleting a label, delete its note too.
 - Add notes to distances
-- Live analysis
 - Fix argus timeout
 - Concurrency in db?
 - Copy between dbs?
 - When the stf is used from several locations, it can happend that some dataset commands do not work because the pcap file is not there. Capture these issues.
 - Relate the notes with the objects they reference. So after a search you can find the object again.
+
+### CHANGELOG
+- [2016/01/19]. Important change to how the letters are assigned in the models. After these date it is recommended to re-do the models. Version released 0.1.6alpha
 
 [stf]:https://stratosphereips.org/development-of-the-stratosphere-testing-framework.html "The Stratosphere Testing Framework"
