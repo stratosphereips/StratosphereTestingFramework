@@ -2,7 +2,6 @@
 # See the file 'LICENSE' for copying permission.
 
 import time
-import datetime
 import base64
 import string
 import persistent
