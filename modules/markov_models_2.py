@@ -131,6 +131,15 @@ class Markov_Model(persistent.Persistent):
         print 'Receiving to analyze: {}'.format(states)
         #raw_input()
         # Help functions
+        def is_letter(state):
+            try:
+                if str(state) in 'abcdefghiABCDEFGHIrstuvwxyzRSTUVWXYZ':
+                    return True
+                else:
+                    return False
+            except ValueError:
+                return False
+
         def is_number_19(state):
             try:
                 if int(state) != 0:
@@ -156,94 +165,33 @@ class Markov_Model(persistent.Persistent):
             else:
                 return False
         # End help functions
+
         new_states = []
-        # The first number is always a state by itself. It is considered to have an empty symbol
+        # The first number is always a state by itself. It is considered to have an empty symbol.
         if is_number_19(states[0]) and is_number_19(states[1]):
             new_states.append(states[0])
-            #print 'New states so far: {}'.format(new_states)
+            print 'New states so far: {}'.format(new_states)
             # Take the first letter out
             i = 1 # i is the start of the next state in the string
             while i < len(states):
-                if not is_number_19(states[i]):
-                    # The state is not number. Actually should be a letter. Rest of the chain
-                    if is_symbol(states[ i + 1 ]):
-                        # We had only one letter and the symbol next. Most common case. Cases: a, b, C. D* X+
-                        try:
-                            if is_zero(states[ i + 2 ]):
-                                # Get all the zeros!. Case: a,00000000
-                                j = i + 1
-                                while is_zero(states[ j + 1 ]):
-                                    j += 1
-                                new_states.append(''.join(states[ i : j + 1 ]))
-                                # Update i to the next index after this state finished
-                                i = j + 1
-                            else:
-                                new_states.append(''.join(states[ i : i + 2 ]))
-                                # Update i to the next index after this state finished
-                                i = i + 2
-                        except IndexError:
-                            # We run out of letters. There is no i + 2. Just return what we have
-                            new_states.append(''.join(states[ i : i + 2 ]))
-                            # Update i to the next index after this state finished
-                            i = i + 2
-                    elif is_zero(states[ i + 1 ]):
-                        # We had only one letter an a zero. Get all the zeros. Case: A0000, A0
-                        j = i 
-                        while is_zero(states[ j + 1 ]):
-                            j += 1
-                        new_states.append(''.join(states[ i : j + 1]))
+                # It must follow a number19 or letter
+                if is_number_19(states[i]) or is_letter(states[i]):
+                    # Get the symbol
+                    if is_symbol(states[ i + 1]):
+                        new_states.append(''.join(states[ i : i + 2]))
                         # Update i to the next index after this state finished
-                        i = j + 1
-                    elif not is_symbol(states[ i + 1 ]):
-                        # We are coming from a sequence of 0s and this letter does not have a symbol next. Case: AA
-                        if is_symbol(states[ i + 2 ]):
-                            # Two letters and a symbol. Case: AA,
-                            new_states.append(''.join(states[ i : i + 3]))
-                            # Update i to the next index after this state finished
-                            i = i + 3
-                        elif is_zero(states[ i + 2 ]):
-                            # Case: AA0   AA00000
-                            # Get all the zeros
-                            j = i + 1
-                            while is_zero(states[ j + 1 ]):
-                                j += 1
-                            new_states.append(''.join(states[ i : j + 1]))
-                            # Update i to the next index after this state finished
-                            i = j + 1
-                        else:
-                            # We should not be here! three letters in a row???
-                            print 'Warning, we should not have three letters in a row!'
-                            return False
-                elif i == 1 and is_number_19(states[i]):
-                    # The state is the second number. Get the following symbol
-                    if is_symbol(states[ i + 1 ]):
-                        if is_zero(states[ i + 2 ]):
-                            # We have zeros, get all of them. j should be the letter previous to the first zero that we already know about
-                            j = i + 1
-                            while is_zero(states[ j + 1 ]):
-                                j += 1
-                            new_states.append(''.join(states[ i : j + 1]))
-                            # Update i to the next index after this state finished
-                            i = j + 1
-                        else:
-                            # After the second number was a symbol and the state finished
-                            new_states.append(''.join(states[i : i + 2]))
-                            # Update i to the next index after this state finished
-                            i = i + 2
-                    elif is_zero(states[ i + 1 ]):
-                        # Search all the zeros
-                        j = i 
+                        i = i + 2
+                    elif is_zero(states[ i + 1]):
+                        j = i
                         while is_zero(states[ j + 1 ]):
                             j += 1
-                        # Get the states
-                        new_states.append(''.join(states[ i : j + 1]))
+                        new_states.append(''.join(states[ i : j + 1 ]))
                         # Update i to the next index after this state finished
                         i = j + 1
                 else:
-                    # There are numbers in the middle of the state??
-                    print 'Warning. There are numbers in the middle of the state. This should not happend'
+                    print 'Warning. We should not have these combination of letters in the state.'
                     return False
-                print 'New states so far: {}'.format(new_states)
+                #print 'New states so far: {}'.format(new_states)
                 #raw_input()
             # End while
         else:
