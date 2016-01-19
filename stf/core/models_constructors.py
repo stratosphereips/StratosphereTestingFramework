@@ -82,17 +82,13 @@ class Model_Constructor(object):
         # It can happend that the time between the first and second flows is very large.
         elif model['T1'] >= self.get_tto():
             # We convert it to int because we count the amount of complete hours that timeouted. The remaining time is not a timeout... 
-            #t2_in_hours = model['T1'].total_seconds() / 3600.0
             t1_in_hours = model['T1'].total_seconds() / self.get_tto().total_seconds()
-            #tto_in_hours = self.get_tto().total_seconds() / 3600.0
             # Should be int always
             for i in range(int(t1_in_hours)):
                 state += '0'
         elif model['T2'] >= self.get_tto():
             # We convert it to int because we count the amount of complete hours that timeouted. The remaining time is not a timeout... 
-            #t2_in_hours = model['T2'].total_seconds() / 3600.0
             t2_in_hours = model['T2'].total_seconds() / self.get_tto().total_seconds()
-            #tto_in_hours = self.get_tto().total_seconds() / 3600.0
             # Should be int always
             for i in range(int(t2_in_hours)):
                 state += '0'
