@@ -55,6 +55,9 @@ class Markov_Model(persistent.Persistent):
     def get_state(self):
         return self.state
 
+    def get_text_state(self):
+        return ''.join(self.state)
+
     def set_state(self, state):
         self.state = state
 
@@ -112,88 +115,13 @@ class Markov_Model(persistent.Persistent):
         # Deprecated pykov
         #self.init_vector, self.matrix = pykov.maximum_likelihood_probabilities(separated_letters, lag_time=1, separator='#')
         # Mimicking old version where a state is any letter
-        new_states = self.get_old_first_order_states(states)
-        # New states where we differentiate how they were created
-        #new_states = self.get_new_first_order_states(states)
-        self.init_vector, self.matrix = mc.maximum_likelihood_probabilities(new_states, order=1)
+        #new_states = self.get_old_first_order_states(states)
+        #self.init_vector, self.matrix = mc.maximum_likelihood_probabilities(new_states, order=1)
+        self.init_vector, self.matrix = mc.maximum_likelihood_probabilities(states, order=1)
 
     def get_old_first_order_states(self, states):
         """ Get the first order states """
         return list(states)
-
-    def get_new_first_order_states(self, states):
-        """ Get the first order states """
-        #print 'Receiving to analyze: {} (len {})'.format(states, len(states))
-        #raw_input()
-        # Help functions
-        def is_letter(state):
-            try:
-                if str(state) in 'abcdefghiABCDEFGHIrstuvwxyzRSTUVWXYZ':
-                    return True
-                else:
-                    return False
-            except ValueError:
-                return False
-
-        def is_number_19(state):
-            try:
-                if int(state) != 0:
-                    return True
-                else:
-                    return False
-            except ValueError:
-                return False
-
-        def is_zero(state):
-            try:
-                if int(state) == 0:
-                    return True
-                else:
-                    return False
-                return True
-            except ValueError:
-                return False
-
-        def is_symbol(state):
-            if str(state) in '.,+*':
-                return True
-            else:
-                return False
-        # End help functions
-
-        new_states = []
-        # The first number is always a state by itself. It is considered to have an empty symbol.
-        if is_number_19(states[0]) and is_number_19(states[1]):
-            new_states.append(states[0])
-            print 'New states so far: {}'.format(new_states)
-            # Take the first letter out
-            i = 1 # i is the start of the next state in the string
-            while i < len(states):
-                # It must follow a number19 or letter
-                if is_number_19(states[i]) or is_letter(states[i]):
-                    # Get the symbol
-                    if is_symbol(states[ i + 1]):
-                        new_states.append(''.join(states[ i : i + 2]))
-                        # Update i to the next index after this state finished
-                        i = i + 2
-                    elif is_zero(states[ i + 1]):
-                        j = i
-                        while is_zero(states[ j + 1 ]):
-                            j += 1
-                        new_states.append(''.join(states[ i : j + 1 ]))
-                        # Update i to the next index after this state finished
-                        i = j + 1
-                else:
-                    print 'Warning. We should not have these combination of letters in the state.'
-                    return False
-                #print 'New states so far: {}'.format(new_states)
-                #raw_input()
-            # End while
-        else:
-            # The first two states are not numbers, broken states?
-            print 'Warning. Not sure we should be here. The state started without numbers.'
-            return False
-        return new_states
 
     def get_matrix(self):
         """ Return the matrix """
@@ -234,8 +162,9 @@ class Markov_Model(persistent.Persistent):
         # We should have more than 2 states at least
         while i < len(state) and len(state) > 1:
             try:
-                vector = state[i] + state[i+1]
-                growing_v = state[0:i+2]
+                vector = []
+                vector.append(state[i])
+                vector.append(state[i+1])
                 # The transitions that include the # char will be automatically excluded
                 temp_prob = self.matrix.walk_probability(vector)
                 i += 1
@@ -286,7 +215,7 @@ class Markov_Model(persistent.Persistent):
         else:
             label_name = 'Deleted'
         #current_connections = label.get_connections_complete()
-        response = "Id:"+str(self.get_id())+", Label: "+label_name+", State Len:"+str(len(self.get_state()))+", #Conns:"+str(self.count_connections())+", First 50 states: "+self.get_state()[0:50]
+        response = "Id:"+str(self.get_id())+", Label: "+label_name+", State Len:"+str(len(self.get_state()))+", #Conns:"+str(self.count_connections())+", First 50 states: "+self.get_text_state()[0:50]
         return(response)
 
 
@@ -490,7 +419,7 @@ class Group_of_Markov_Models_2(Module, persistent.Persistent):
                 # Do we need to regenerate this mc?
                 if current_connections == markov_model.get_connections():
                     needs_regenerate = False
-                all_text += '{: < 5} | {: > 7} | {} | {:50} | {} | {:3} | {}\n'.format(markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate, markov_model.get_threshold(), markov_model.get_state()[0:100])
+                all_text += '{: < 5} | {: > 7} | {} | {:50} | {} | {:3} | {}\n'.format(markov_model.get_id(), len(markov_model.get_state()), markov_model.count_connections(), label_name, needs_regenerate, markov_model.get_threshold(), markov_model.get_text_state()[0:100])
         # Print with less
         f = tempfile.NamedTemporaryFile()
         f.write(all_text)
@@ -530,8 +459,11 @@ class Group_of_Markov_Models_2(Module, persistent.Persistent):
                     state += model.get_state() 
             # Delete the last #
             #state = state[:-1]
+            # New states where we differentiate how they were created
+            new_state = self.get_new_first_order_states(state)
             # Store the state
-            markov_model.set_state(state)
+            #markov_model.set_state(state)
+            markov_model.set_state(new_state)
             # Store the connections
             markov_model.set_connections(connections)
             # Create the MM itself
@@ -544,6 +476,80 @@ class Group_of_Markov_Models_2(Module, persistent.Persistent):
             print_info('New model created with id {}'.format(markov_model.get_id()))
         else:
             print_error('No label with that name')
+
+    def get_new_first_order_states(self, states):
+        """ Get the first order states """
+        #print 'Receiving to analyze: {} (len {})'.format(states, len(states))
+        #raw_input()
+        # Help functions
+        def is_letter(state):
+            try:
+                if str(state) in 'abcdefghiABCDEFGHIrstuvwxyzRSTUVWXYZ':
+                    return True
+                else:
+                    return False
+            except ValueError:
+                return False
+
+        def is_number_19(state):
+            try:
+                if int(state) != 0:
+                    return True
+                else:
+                    return False
+            except ValueError:
+                return False
+
+        def is_zero(state):
+            try:
+                if int(state) == 0:
+                    return True
+                else:
+                    return False
+                return True
+            except ValueError:
+                return False
+
+        def is_symbol(state):
+            if str(state) in '.,+*':
+                return True
+            else:
+                return False
+        # End help functions
+
+        new_states = []
+        # The first number is always a state by itself. It is considered to have an empty symbol.
+        if is_number_19(states[0]) and is_number_19(states[1]):
+            new_states.append(states[0])
+            #print 'New states so far: {}'.format(new_states)
+            # Take the first letter out
+            i = 1 # i is the start of the next state in the string
+            while i < len(states):
+                # It must follow a number19 or letter
+                if is_number_19(states[i]) or is_letter(states[i]):
+                    # Get the symbol
+                    if is_symbol(states[ i + 1]):
+                        new_states.append(''.join(states[ i : i + 2]))
+                        # Update i to the next index after this state finished
+                        i = i + 2
+                    elif is_zero(states[ i + 1]):
+                        j = i
+                        while is_zero(states[ j + 1 ]):
+                            j += 1
+                        new_states.append(''.join(states[ i : j + 1 ]))
+                        # Update i to the next index after this state finished
+                        i = j + 1
+                else:
+                    print 'Warning. We should not have these combination of letters in the state.'
+                    return False
+                #print 'New states so far: {}'.format(new_states)
+                #raw_input()
+            # End while
+        else:
+            # The first two states are not numbers, broken states?
+            print 'Warning. Not sure we should be here. The state started without numbers.'
+            return False
+        return new_states
 
     def simulate(self, markov_model_id):
         """ Generate a new simulated chain of states for this markov chain """
@@ -630,11 +636,13 @@ class Group_of_Markov_Models_2(Module, persistent.Persistent):
                 # Get the model
                 model = group.get_model(conn)
                 # Get each state
-                state += model.get_state() + '#'
+                state += model.get_state() #+ '#'
         # Delete the last #
-        state = state[:-1]
+        #state = state[:-1]
+        # New states where we differentiate how they were created
+        new_state = self.get_new_first_order_states(state)
         # Store the state
-        markov_model.set_state(state)
+        markov_model.set_state(new_state)
         # Store the connections
         markov_model.set_connections(connections)
         # Create the MM itself
