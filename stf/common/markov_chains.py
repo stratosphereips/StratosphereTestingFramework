@@ -45,7 +45,7 @@ def maximum_likelihood_probabilities(states, order=1):
     initial_vector = {}
     total_transitions = 0
     amount_of_states = len(states)
-    print 'Receiving {} states to compute the Markov Matrix of {} order'.format(amount_of_states, order)
+    #print 'Receiving {} states to compute the Markov Matrix of {} order'.format(amount_of_states, order)
     # 1st order
     if order == 1:
         # Create matrix
