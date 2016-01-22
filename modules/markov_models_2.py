@@ -4,7 +4,6 @@
 
 # This module implements markov chains of first order over the letters in the chain of states of the behavioral models.
 import persistent
-import pykov
 import BTrees.OOBTree
 from subprocess import Popen, PIPE
 import copy
