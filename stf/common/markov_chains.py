@@ -3,17 +3,40 @@
 
 # Library to compute some markov chain functions for the Stratosphere Project. We created them because pykov lacked the second order markov chains
 
+import math
+import sys
+
 class Matrix(dict):
     """ The basic matrix object """
     def __init__(self, *args, **kw):
         super(Matrix,self).__init__(*args, **kw)
         self.itemlist = super(Matrix,self).keys()
 
+    def set_init_vector(self, init_vector):
+        self.init_vector = init_vector
+
     def walk_probability(self, states):
-        prob = 0
-        #for i in self:
-        #    print self[i]
-        return prob
+        """ Compute the probability of generating these states using ourselves """
+        try:
+            prob = 0
+            index = 0
+            while index < len(states) - 1 and len(states) > 1:
+                statestuple = (states[index], states[index + 1])
+                try:
+                    prob12 = float(self[statestuple])
+                except IndexError:
+                    prob12 = float('-inf')
+                    prob = float('-inf')
+                    break
+                prob += math.log(prob12)
+                index += 1
+            #print 'Final Prob: {}'.format(prob)
+            return prob
+        except Exception as err:
+            print type(err)
+            print err.args
+            print err
+            sys.exit(-1)
 
 
 def maximum_likelihood_probabilities(states, order=1):
@@ -51,7 +74,6 @@ def maximum_likelihood_probabilities(states, order=1):
             # Move along
             index += 1
         # Normalize using the initial vector
-        #matrix = {}
         matrix = Matrix()
         init_vector = {}
         for state1 in initial_matrix:
@@ -62,6 +84,7 @@ def maximum_likelihood_probabilities(states, order=1):
                 initial_matrix[state1][state2] = value / float(initial_vector[state1])
                 # Change the style of the matrix
                 matrix[(state1,state2)] = initial_matrix[state1][state2]
+        matrix.set_init_vector(init_vector)
         #print init_vector
         #for value in matrix:
         #    print value, matrix[value]
