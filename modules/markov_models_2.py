@@ -13,12 +13,14 @@ import numpy as np
 import tempfile
 import cPickle
 import math
+import numpy
 
 from stf.common.out import *
 from stf.common.abstracts import Module
 from stf.core.models import  __groupofgroupofmodels__ 
 from stf.core.labels import __group_of_labels__
 from stf.core.database import __database__
+import stf.common.markov_chains as mc
 
 
 
@@ -97,30 +99,24 @@ class Markov_Model(persistent.Persistent):
     def get_matrix(self):
         return self.matrix
 
-    def create(self, state):
+    def create(self, states):
         """ Create the Markov chain itself. We use the parameter instead of the attribute so we can compute the matrix for different states """
         # Separete the letters considering the letter and the symbol as a unique state:
         # So from "88,a,b," we get: '8' '8,' 'a,' 'b,'
         try:
             # This is a first order markov model. Each individual object (letter, number, etc.) is a state
-            separated_letters = list(state)
+            separated_letters = list(states)
         except AttributeError:
             print_error('There is no state yet')
             return False
         # Generate the MC
+        # Deprecated pykov
         #self.init_vector, self.matrix = pykov.maximum_likelihood_probabilities(separated_letters, lag_time=1, separator='#')
-        self.init_vector, self.matrix = self.maximum_likelihood_probabilities(separated_letters)
-
-    def maximum_likelihood_probabilities(self, states):
-        """ Our own second order Markov Chain implementation """
-        init_vector = []
-        matrix = []
-        #new_states = self.get_first_order_states(states)
-        new_states = self.get_new_first_order_states(states)
-        print 'Answer from the new states: {}'.format(new_states)
-        #amount_of_states = len(set(new_states))
-        # Create matrix
-        return (init_vector, matrix)
+        # Mimicking old version where a state is any letter
+        new_states = self.get_old_first_order_states(states)
+        # New states where we differentiate how they were created
+        #new_states = self.get_new_first_order_states(states)
+        self.init_vector, self.matrix = mc.maximum_likelihood_probabilities(new_states, order=1)
 
     def get_old_first_order_states(self, states):
         """ Get the first order states """
@@ -128,7 +124,7 @@ class Markov_Model(persistent.Persistent):
 
     def get_new_first_order_states(self, states):
         """ Get the first order states """
-        print 'Receiving to analyze: {}'.format(states)
+        #print 'Receiving to analyze: {} (len {})'.format(states, len(states))
         #raw_input()
         # Help functions
         def is_letter(state):
