@@ -4,7 +4,6 @@
 
 # This module implements markov chains of first order over the letters in the chain of states of the behavioral models.
 import persistent
-import pykov
 import BTrees.OOBTree
 from subprocess import Popen, PIPE
 import copy
@@ -19,6 +18,7 @@ from stf.common.abstracts import Module
 from stf.core.models import  __groupofgroupofmodels__ 
 from stf.core.labels import __group_of_labels__
 from stf.core.database import __database__
+import stf.common.markov_chains as mc
 
 
 
@@ -108,7 +108,7 @@ class Markov_Model(persistent.Persistent):
             print_error('There is no state yet')
             return False
         # Generate the MC
-        self.init_vector, self.matrix = pykov.maximum_likelihood_probabilities(separated_letters, lag_time=1, separator='#')
+        self.init_vector, self.matrix = mc.maximum_likelihood_probabilities(separated_letters, order=1)
 
     def get_matrix(self):
         """ Return the matrix """
