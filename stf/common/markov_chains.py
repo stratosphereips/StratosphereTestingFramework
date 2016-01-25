@@ -15,23 +15,40 @@ class Matrix(dict):
     def set_init_vector(self, init_vector):
         self.init_vector = init_vector
 
+    def get_init_vector(self):
+        return self.init_vector
+
     def walk_probability(self, states):
-        """ Compute the probability of generating these states using ourselves """
+        """ Compute the probability of generating these states using ourselves. The returned value must be log. """
         try:
-            prob = 0
+            #print '\t\twalk_probability'
+            #print '\t\tReceived states {}'.format(states)
+            #print '\t\tself init_vector: {}'.format(self.get_init_vector())
+            #print '\t\tself matrix: {}'.format(self)
+            cum_prob = 0
             index = 0
+            # index should be < that len - 1 because index starts in 0, and a two position vector has len 2, but the index of the last position is 1.
+            # The len of the states should be > 1 because a state of only one char does NOT have any transition.
             while index < len(states) - 1 and len(states) > 1:
                 statestuple = (states[index], states[index + 1])
+                #print '\t\ttuple to search: {}'.format(statestuple)
                 try:
-                    prob12 = float(self[statestuple])
-                except IndexError:
-                    prob12 = float('-inf')
-                    prob = float('-inf')
+                    prob12 = math.log(float(self[statestuple]))
+                    #print '\t\tValue for this tuple: {}'.format(self[statestuple])
+                    #print '\t\tprob12 inside {} (decimal {})'.format(prob12, math.exp(prob12))
+                except KeyError:
+                    # The transition is not in the matrix
+                    #print '\t\twalk key error. The transition is not in the matrix'
+                    #prob12 = float('-inf')
+                    cum_prob = float('-inf')
                     break
-                prob += math.log(prob12)
+                #except IndexError:
+                    #print '\t\twalk index error'
+                cum_prob += prob12
+                #print '\t\ttotal prob so far {}'.format(cum_prob)
                 index += 1
-            #print 'Final Prob: {}'.format(prob)
-            return prob
+            #print '\t\tFinal Prob (log): {}'.format(cum_prob)
+            return cum_prob
         except Exception as err:
             print type(err)
             print err.args
