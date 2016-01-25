@@ -149,7 +149,9 @@ class Markov_Model(persistent.Persistent):
             value = self.init_vector[state[i]]
         except KeyError:
             # The State is not in the init vector. So apply the penalty
-            #print 'Key Error'
+            value = -4.6
+        except IndexError:
+            # When the state is deleted after X letters, it can happen that the sate is empty. Apply the penalty.
             value = -4.6
 
         try:
