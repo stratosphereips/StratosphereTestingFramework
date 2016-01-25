@@ -12,6 +12,7 @@ import numpy as np
 import tempfile
 import cPickle
 import math
+import pykov
 
 from stf.common.out import *
 from stf.common.abstracts import Module
@@ -109,6 +110,10 @@ class Markov_Model(persistent.Persistent):
             return False
         # Generate the MC
         self.init_vector, self.matrix = mc.maximum_likelihood_probabilities(separated_letters, order=1)
+        #self.init_vector, self.matrix = pykov.maximum_likelihood_probabilities(separated_letters)
+        #print 'In create() in markov models. State received: {}'.format(state)
+        #print 'Init vector created: {}'.format(self.init_vector)
+        #print 'Matrix created: {}'.format(self.matrix)
 
     def get_matrix(self):
         """ Return the matrix """
@@ -138,14 +143,23 @@ class Markov_Model(persistent.Persistent):
         probability = 0
         ignored = 0
         # Get the initial probability of this letter in the IV.
+        #print 'Inside compute_probability (markov_models)'
+        #print 'self.init_vector : {}'.format(self.init_vector)
+        #print 'state received: {}'.format(state)
+        # First get the value of the init prob of the first letter
         try:
-            init_letter_prob = math.log(self.init_vector[state[i]])
+            value = self.init_vector[state[i]]
+        except KeyError:
+            # The State is not in the init vector. So apply the penalty
+            #print 'Key Error'
+            value = -4.6
+
+        try:
+            init_letter_prob = math.log(value)
         except ValueError:
-            # There is not enough data to even create a matrix
+            # The value is -inf, so we can not really compute the log.
             init_letter_prob = 0
-        except IndexError:
-            # The first letter is not in the matrix, so penalty...
-            init_letter_prob = -4.6
+        #print 'out of excepts'
         # We should have more than 2 states at least
         while i < len(state) and len(state) > 1:
             try:
@@ -172,6 +186,7 @@ class Markov_Model(persistent.Persistent):
         #if ignored:
             #print_warning('Ignored transitions: {}'.format(ignored))
             #ignored = 0
+        #print 'Returned prob (in log): {}'.format(probability)
         return probability       
 
     def export(self, path):
