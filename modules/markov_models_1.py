@@ -12,7 +12,6 @@ import numpy as np
 import tempfile
 import cPickle
 import math
-import pykov
 
 from stf.common.out import *
 from stf.common.abstracts import Module
@@ -110,7 +109,6 @@ class Markov_Model(persistent.Persistent):
             return False
         # Generate the MC
         self.init_vector, self.matrix = mc.maximum_likelihood_probabilities(separated_letters, order=1)
-        #self.init_vector, self.matrix = pykov.maximum_likelihood_probabilities(separated_letters)
         #print 'In create() in markov models. State received: {}'.format(state)
         #print 'Init vector created: {}'.format(self.init_vector)
         #print 'Matrix created: {}'.format(self.matrix)
