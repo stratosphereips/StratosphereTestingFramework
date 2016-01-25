@@ -223,14 +223,22 @@ class Detection(persistent.Persistent):
             while index < len(self.testing_states) and index < amount:
                 test_sequence = self.testing_states[0:index+1]
                 train_sequence = self.training_states[0:index+1]
+                #print '\nDistances detect letter by letter'
+                #print 'Next Test sequence: {}'.format(test_sequence)
+                #print 'Next Train sequence: {}'.format(train_sequence)
                 # First re-create the matrix only for the current sequence
                 model_training.create(train_sequence)
                 # Compute the new original prob so far...
+                #print 'Training model recreated with the next train state'
+                #print 'Now trying to get the training prob for this next train state'
                 self.training_original_prob = model_training.compute_probability(train_sequence)
+                #print 'Training original probability recreated: {}'.format(str(self.training_original_prob))
                 # Store the orig prob for this string for future verification
                 self.train_prob_vector.insert(index, self.training_original_prob)
                 # Now obtain the probability for testing
+                #print 'Now get the test prob using the train matrix'
                 test_prob = model_training.compute_probability(test_sequence)
+                #print 'Test prob using the next train matrix: {}'.format(test_prob)
                 # Store the test prob for this string for future verification
                 self.test_prob_vector.insert(index, test_prob)
                 # Compute the distance
@@ -260,6 +268,7 @@ class Detection(persistent.Persistent):
                     self.current_error_type = self.compute_errors(predicted_label, ground_truth_label, False)
                 # Go to the next letter
                 index += 1
+                #raw_input()
             final_position = index
             # Put back the original matrix and values in the model
             model_training.set_matrix(original_matrix)
