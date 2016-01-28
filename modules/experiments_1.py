@@ -493,12 +493,14 @@ class TimeSlot(persistent.Persistent):
 ######################
 class Experiment(persistent.Persistent):
     """ An individual experiment """
-    def __init__(self, id, description, timeslotwidth, filter):
+    def __init__(self, id, description, timeslotwidth, filter, structure_name):
         self.filter = filter
         self.id = id
         self.description = description
         # Dict of tuples in this experiment during testing
         self.tuples = {}
+        # The name of the structure where the trainings ids should be taken from
+        self.structure_name = structure_name
         # The vect of time slots
         self.time_slots = []
         self.time_slot_width = timeslotwidth
@@ -871,13 +873,16 @@ class Experiment(persistent.Persistent):
             return False
         # Get the structures
         structures = __database__.get_structures()
-        training_structure_name = 'markov_models_1' # Same as before, now it is hardcoded, but warning!
-        training_structure = structures[training_structure_name]
+        try:
+            training_structure = structures[self.structure_name]
+        except KeyError:
+            print_error('That structure name is invalid.')
+            return False
         # Store some info about each training model, do it here and only once
         self.training_models = {}
         for model_training_id in self.models_ids:
             self.training_models[model_training_id] = {}
-            self.training_models[model_training_id]['traininig_structure_name'] = training_structure_name
+            self.training_models[model_training_id]['traininig_structure_name'] = self.structure_name
             self.training_models[model_training_id]['traininig_structure'] = training_structure
             try:
                 self.training_models[model_training_id]['model_training'] = training_structure[int(model_training_id)]
@@ -1251,6 +1256,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
         self.parser.add_argument('-n', '--new', action='store_true', help='Create a new experiment. Use -m to assign the models to use for detection. Use -t to select a testing dataset.')
         self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete an experiment given the id. You can give a range with -. Ej: -d 10-20')
         self.parser.add_argument('-m', '--models_ids', metavar='models_ids', help='Ids of the models (e.g. Markov Models) to be used when creating a new experiment with -n. Comma separated.')
+        self.parser.add_argument('-s', '--structure_of_models_ids', metavar='structure_of_models_ids', help='Name of the structure where the models id belong. For example: markov_models_1.')
         self.parser.add_argument('-t', '--testing_id', metavar='testing_id', type=int, help='Dataset id to be used as testing when creating a new experiment with -n.')
         self.parser.add_argument('-T', '--timeslotwidth', default=300, metavar='timeslotwidth', type=int, help='The width of the time slot in seconds.')
         self.parser.add_argument('-v', '--verbose', default=0, metavar='verbose', type=int, help='An integer expressing how verbose should we be while running the experiment. For example -v 1.')
@@ -1292,7 +1298,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
             rows.append([ experiment.get_id(), experiment.get_description(), experiment.get_fancy_performance_metrics() ])
         print(table(header=['Id', 'Description','Performance Metrics'], rows=rows))
 
-    def create_new_experiment(self, models_ids, testing_id, timeslotwidth, verbose, filter, desc):
+    def create_new_experiment(self, models_ids, testing_id, timeslotwidth, verbose, filter, desc, structure_name):
         """ Create a new experiment """
         # Generate the new id
         try:
@@ -1303,7 +1309,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
         # Create the new object
         print
         print_info('Starting experiment id: {}'.format(new_id))
-        new_experiment = Experiment(new_id, desc, timeslotwidth, filter)
+        new_experiment = Experiment(new_id, desc, timeslotwidth, filter, structure_name)
         # Methodology 1. We receive the markov_models ids for the training, and the id of the dataset of the tetsing. (We may not have markov models for the testing. A binetflow file and labels are enough)
         # Add info
         new_experiment.add_models_ids(models_ids)
@@ -1468,11 +1474,15 @@ class Group_of_Experiments(Module, persistent.Persistent):
         if self.args.list:
             self.list_experiments()
         elif self.args.new:
+            # Do we have the name of the structure?
+            if not self.args.structure_of_models_ids:
+                print_error('The name of the structure for the trainings ids should be provided. For example: markov_models_1')
+                return False
             if self.args.onebyone:
                 try:
                     testing_id = self.args.testing_id
                     for models_ids in self.args.models_ids.split(','):
-                        self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth, self.args.verbose, self.args.filter, self.args.description)
+                        self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth, self.args.verbose, self.args.filter, self.args.description, self.args.structure_of_models_ids)
                 except AttributeError:
                     print_error('You should provide both the ids of the models to use for detection (with -m) and the testing dataset id (with -t).')
                     return False
@@ -1480,7 +1490,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
                 try:
                     models_ids = self.args.models_ids
                     testing_id = self.args.testing_id
-                    self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth, self.args.verbose, self.args.filter, self.args.description)
+                    self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth, self.args.verbose, self.args.filter, self.args.description, self.args.structure_of_models_ids)
                 except AttributeError:
                     print_error('You should provide both the ids of the models to use for detection (with -m) and the testing dataset id (with -t).')
                     return False
