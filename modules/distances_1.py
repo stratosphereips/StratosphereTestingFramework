@@ -498,7 +498,9 @@ class Group_of_Detections(Module, persistent.Persistent):
         self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the distance. For example for listing. Keywords: testname, trainname, distance, id, merror, cerror. (merror is matching error, cerror is current error). Usage: testname=<text> distance<2. The names are partial matching. The operator for distances are <, >, = and !=. The operator for id is =, !=, <, <=, >, >=')
         self.parser.add_argument('-D', '--deleteall', action='store_true', help='Delete all the distance object that matches the -f filter. Must provide a -f filter.')
         self.parser.add_argument('-t', '--trainid', metavar='train_id', help='Id of the model to train.')
+        self.parser.add_argument('-s', '--trainidstructure', metavar='train_id_structure', help='Structure name of the train id. For example: markov_models_1')
         self.parser.add_argument('-T', '--testid', metavar='test_id', help='Ids of the models to test against the train id. You can specfiy a single id or a comma separated list of ids.')
+        self.parser.add_argument('-S', '--testidstructure', metavar='test_id_structure', help='Structure name of the test id. For example: markov_models_1')
         self.parser.add_argument('-v', '--verbose', metavar='verbose', type=int, default=1, help='The verbose level of the printing.')
 
     def get_name(self):
@@ -784,7 +786,7 @@ class Group_of_Detections(Module, persistent.Persistent):
             self.main_dict.pop(id)
         print_info('Amount of objects deleted: {}'.format(len(ids)))
 
-    def create_new_distance(self, amount, train_id, temp_test_id, verbose):
+    def create_new_distance(self, amount, train_id, temp_test_id, verbose, training_structure_name, testing_structure_name):
         """ Create a new distance. We must select the trained model and the unknown model. The amount is the max amount of letters to compare. """
         train_id = train_id.split(',')
         train_id.sort()
@@ -807,10 +809,10 @@ class Group_of_Detections(Module, persistent.Persistent):
                 # Now the structures are fixed
                 model_training_id = train_id
                 # Suppose the markov_models_1 structure and don't ask 
-                training_structure_name = "markov_models_1"
+                #training_structure_name = "markov_models_1"
                 selected_training_structure = structures[training_structure_name]
                 # Suppose the markov_models_1 structure and don't ask 
-                testing_structure_name = "markov_models_1"
+                #testing_structure_name = "markov_models_1"
                 selected_testing_structure = structures[testing_structure_name]
                 # Run the distance rutine
                 if new_distance.detect(training_structure_name, selected_training_structure, model_training_id, testing_structure_name, selected_testing_structure, tid, amount, verbose):
@@ -1019,7 +1021,11 @@ class Group_of_Detections(Module, persistent.Persistent):
         if self.args.list:
             self.list_distances(self.args.filter)
         elif self.args.new:
-            self.create_new_distance(self.args.amount, self.args.trainid, self.args.testid, self.args.verbose)
+            # Do we have the structures names?
+            if not self.args.trainidstructure or not self.args.testidstructure:
+                print_error('You must provive the names of the train and test id structure names. For example: markov_model_1')
+                return False
+            self.create_new_distance(self.args.amount, self.args.trainid, self.args.testid, self.args.verbose, self.args.trainidstructure, self.args.testidstructure)
         elif self.args.delete:
             self.delete_distance(self.args.delete)
         elif self.args.letterbyletter:
