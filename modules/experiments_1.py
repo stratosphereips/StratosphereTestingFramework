@@ -965,7 +965,7 @@ class Experiment(persistent.Persistent):
                 # Store the state so far in the tuple. Now we are cutting the original state. Min is the amount defined if this tuple had already matched before. Max is just the amount of flows recived so far.
                 tuple.set_state_so_far(model.get_state()[tuple.get_min_state_len():tuple.get_max_state_len()])
                 # Only compare the models when the START of the test state has more than 3 letters. So avoid mathching numbers and the first symbol. We want letters. After an update, compare all.
-                if tuple.get_state_len() > 3 or tuple.is_updated():
+                if tuple.get_state_len() >= 3 or tuple.is_updated():
                     # Put these variables to default values. Used for the first time and to reset the winner variables.
                     time_slot.set_winner_model_id_for_ip(tuple.get_src_ip(), False)
                     time_slot.set_winner_model_distance_for_ip(tuple.get_src_ip(),'inf')
