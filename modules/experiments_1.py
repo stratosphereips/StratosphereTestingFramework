@@ -1035,7 +1035,7 @@ class Experiment(persistent.Persistent):
             # Read next line
             # Line without the src and dst data
             line = ','.join(file.readline().strip().split(',')[:14])
-            if self.verbose > 10:
+            if self.verbose > 12:
                 # Stop after each flow
                 raw_input()
         # Close the file
