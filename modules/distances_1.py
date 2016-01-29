@@ -22,7 +22,6 @@ from stf.core.labels import __group_of_labels__
 from stf.core.database import __database__
 from stf.common import ap
 
-
 #################
 #################
 #################
@@ -142,7 +141,7 @@ class Detection(persistent.Persistent):
         except AttributeError:
             return -1
 
-    def detect(self, training_structure_name,  structure_training, model_training_id, testing_structure_name, structure_testing, model_testing_id, amount, verbose):
+    def detect(self, training_structure_name, structure_training, model_training_id, testing_structure_name, structure_testing, model_testing_id, amount, verbose):
         """ Setup the environment prior the actual detection. Check everyting """
         # Store the data
         self.set_model_training_id(model_training_id)
@@ -206,7 +205,7 @@ class Detection(persistent.Persistent):
         test_label_id = model_testing.get_label_id()
         # Test label. The ground truth if we match
         ground_truth_label = group_labels.get_label_name_by_id(test_label_id)
-        # amouunt == -1 means that we should use all the letters available, no limit.
+        # amount == -1 means that we should use all the letters available, no limit.
         if amount == -1:
             amount = len(self.testing_states)
         # If the amount is not > than what we already have stored, just print what we have and don't compute something new.
@@ -404,6 +403,7 @@ class Detection(persistent.Persistent):
         # Print the matrix
         all_text += 'Train Markov Chain matrix\n'
         model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
+        print model_training
         try:
             train_matrix = model_training.get_matrix()
             for line in train_matrix:
@@ -808,11 +808,7 @@ class Group_of_Detections(Module, persistent.Persistent):
                 structures = __database__.get_structures()
                 # Now the structures are fixed
                 model_training_id = train_id
-                # Suppose the markov_models_1 structure and don't ask 
-                #training_structure_name = "markov_models_1"
                 selected_training_structure = structures[training_structure_name]
-                # Suppose the markov_models_1 structure and don't ask 
-                #testing_structure_name = "markov_models_1"
                 selected_testing_structure = structures[testing_structure_name]
                 # Run the distance rutine
                 if new_distance.detect(training_structure_name, selected_training_structure, model_training_id, testing_structure_name, selected_testing_structure, tid, amount, verbose):
