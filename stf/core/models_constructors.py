@@ -76,30 +76,13 @@ class Model_Constructor(object):
             self.models[model_id]['LastTime'] = newtime
             model = self.models[model_id]
 
-        # Compute the periodicity
-        if (isinstance(model['T1'], bool) and model['T1'] == False) or (isinstance(model['T2'], bool) and model['T2'] == False):
-            periodic = -1
-        # It can happend that the time between the first and second flows is very large.
-        elif model['T1'] >= self.get_tto():
-            # We convert it to int because we count the amount of complete hours that timeouted. The remaining time is not a timeout... 
-            #t2_in_hours = model['T1'].total_seconds() / 3600.0
-            t1_in_hours = model['T1'].total_seconds() / self.get_tto().total_seconds()
-            #tto_in_hours = self.get_tto().total_seconds() / 3600.0
-            # Should be int always
-            for i in range(int(t1_in_hours)):
-                state += '0'
-        elif model['T2'] >= self.get_tto():
-            # We convert it to int because we count the amount of complete hours that timeouted. The remaining time is not a timeout... 
-            #t2_in_hours = model['T2'].total_seconds() / 3600.0
-            t2_in_hours = model['T2'].total_seconds() / self.get_tto().total_seconds()
-            #tto_in_hours = self.get_tto().total_seconds() / 3600.0
-            # Should be int always
-            for i in range(int(t2_in_hours)):
-                state += '0'
 
         # We should get inside the next if only when T2 and T1 are not False. However, since also datatime(0) matches a False, we can only check to see if it is bool or not. 
         # We are only using False when we start, so it is not necessary to check if it is False also.
-        if not isinstance(model['T1'], bool) and not isinstance(model['T2'], bool):
+        # Compute the periodicity
+        if (isinstance(model['T1'], bool) and model['T1'] == False) or (isinstance(model['T2'], bool) and model['T2'] == False):
+            periodic = -1
+        elif not isinstance(model['T1'], bool) and not isinstance(model['T2'], bool):
             # We have some values. See which is larger
             try:
                 if model['T2'] >= model['T1']:
@@ -261,6 +244,12 @@ class Model_Constructor(object):
                 state += '+'
             elif model['T2'] <= datetime.timedelta(seconds=3600):
                 state += '*'
+            elif model['T2'] >= self.get_tto():
+                # We convert it to int because we count the amount of complete hours that timeouted. The remaining time is not a timeout... 
+                t2_in_hours = model['T2'].total_seconds() / self.get_tto().total_seconds()
+                # Should be int always
+                for i in range(int(t2_in_hours)):
+                    state += '0'
 
         # We store permanently the T1, T2 and TD values on each flow, so we can later analyze it
         flow.set_t1(model['T1'])

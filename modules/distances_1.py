@@ -22,7 +22,6 @@ from stf.core.labels import __group_of_labels__
 from stf.core.database import __database__
 from stf.common import ap
 
-
 #################
 #################
 #################
@@ -142,7 +141,7 @@ class Detection(persistent.Persistent):
         except AttributeError:
             return -1
 
-    def detect(self, training_structure_name,  structure_training, model_training_id, testing_structure_name, structure_testing, model_testing_id, amount, verbose):
+    def detect(self, training_structure_name, structure_training, model_training_id, testing_structure_name, structure_testing, model_testing_id, amount, verbose):
         """ Setup the environment prior the actual detection. Check everyting """
         # Store the data
         self.set_model_training_id(model_training_id)
@@ -206,7 +205,7 @@ class Detection(persistent.Persistent):
         test_label_id = model_testing.get_label_id()
         # Test label. The ground truth if we match
         ground_truth_label = group_labels.get_label_name_by_id(test_label_id)
-        # amouunt == -1 means that we should use all the letters available, no limit.
+        # amount == -1 means that we should use all the letters available, no limit.
         if amount == -1:
             amount = len(self.testing_states)
         # If the amount is not > than what we already have stored, just print what we have and don't compute something new.
@@ -223,14 +222,22 @@ class Detection(persistent.Persistent):
             while index < len(self.testing_states) and index < amount:
                 test_sequence = self.testing_states[0:index+1]
                 train_sequence = self.training_states[0:index+1]
+                #print '\nDistances detect letter by letter'
+                #print 'Next Test sequence: {}'.format(test_sequence)
+                #print 'Next Train sequence: {}'.format(train_sequence)
                 # First re-create the matrix only for the current sequence
                 model_training.create(train_sequence)
                 # Compute the new original prob so far...
+                #print 'Training model recreated with the next train state'
+                #print 'Now trying to get the training prob for this next train state'
                 self.training_original_prob = model_training.compute_probability(train_sequence)
+                #print 'Training original probability recreated: {}'.format(str(self.training_original_prob))
                 # Store the orig prob for this string for future verification
                 self.train_prob_vector.insert(index, self.training_original_prob)
                 # Now obtain the probability for testing
+                #print 'Now get the test prob using the train matrix'
                 test_prob = model_training.compute_probability(test_sequence)
+                #print 'Test prob using the next train matrix: {}'.format(test_prob)
                 # Store the test prob for this string for future verification
                 self.test_prob_vector.insert(index, test_prob)
                 # Compute the distance
@@ -260,6 +267,7 @@ class Detection(persistent.Persistent):
                     self.current_error_type = self.compute_errors(predicted_label, ground_truth_label, False)
                 # Go to the next letter
                 index += 1
+                #raw_input()
             final_position = index
             # Put back the original matrix and values in the model
             model_training.set_matrix(original_matrix)
@@ -395,6 +403,7 @@ class Detection(persistent.Persistent):
         # Print the matrix
         all_text += 'Train Markov Chain matrix\n'
         model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
+        print model_training
         try:
             train_matrix = model_training.get_matrix()
             for line in train_matrix:
@@ -489,7 +498,9 @@ class Group_of_Detections(Module, persistent.Persistent):
         self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the distance. For example for listing. Keywords: testname, trainname, distance, id, merror, cerror. (merror is matching error, cerror is current error). Usage: testname=<text> distance<2. The names are partial matching. The operator for distances are <, >, = and !=. The operator for id is =, !=, <, <=, >, >=')
         self.parser.add_argument('-D', '--deleteall', action='store_true', help='Delete all the distance object that matches the -f filter. Must provide a -f filter.')
         self.parser.add_argument('-t', '--trainid', metavar='train_id', help='Id of the model to train.')
+        self.parser.add_argument('-s', '--trainidstructure', metavar='train_id_structure', help='Structure name of the train id. For example: markov_models_1')
         self.parser.add_argument('-T', '--testid', metavar='test_id', help='Ids of the models to test against the train id. You can specfiy a single id or a comma separated list of ids.')
+        self.parser.add_argument('-S', '--testidstructure', metavar='test_id_structure', help='Structure name of the test id. For example: markov_models_1')
         self.parser.add_argument('-v', '--verbose', metavar='verbose', type=int, default=1, help='The verbose level of the printing.')
 
     def get_name(self):
@@ -775,7 +786,7 @@ class Group_of_Detections(Module, persistent.Persistent):
             self.main_dict.pop(id)
         print_info('Amount of objects deleted: {}'.format(len(ids)))
 
-    def create_new_distance(self, amount, train_id, temp_test_id, verbose):
+    def create_new_distance(self, amount, train_id, temp_test_id, verbose, training_structure_name, testing_structure_name):
         """ Create a new distance. We must select the trained model and the unknown model. The amount is the max amount of letters to compare. """
         train_id = train_id.split(',')
         train_id.sort()
@@ -797,11 +808,7 @@ class Group_of_Detections(Module, persistent.Persistent):
                 structures = __database__.get_structures()
                 # Now the structures are fixed
                 model_training_id = train_id
-                # Suppose the markov_models_1 structure and don't ask 
-                training_structure_name = "markov_models_1"
                 selected_training_structure = structures[training_structure_name]
-                # Suppose the markov_models_1 structure and don't ask 
-                testing_structure_name = "markov_models_1"
                 selected_testing_structure = structures[testing_structure_name]
                 # Run the distance rutine
                 if new_distance.detect(training_structure_name, selected_training_structure, model_training_id, testing_structure_name, selected_testing_structure, tid, amount, verbose):
@@ -1010,7 +1017,11 @@ class Group_of_Detections(Module, persistent.Persistent):
         if self.args.list:
             self.list_distances(self.args.filter)
         elif self.args.new:
-            self.create_new_distance(self.args.amount, self.args.trainid, self.args.testid, self.args.verbose)
+            # Do we have the structures names?
+            if not self.args.trainidstructure or not self.args.testidstructure:
+                print_error('You must provive the names of the train and test id structure names. For example: markov_model_1')
+                return False
+            self.create_new_distance(self.args.amount, self.args.trainid, self.args.testid, self.args.verbose, self.args.trainidstructure, self.args.testidstructure)
         elif self.args.delete:
             self.delete_distance(self.args.delete)
         elif self.args.letterbyletter:
