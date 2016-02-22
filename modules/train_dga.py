@@ -75,7 +75,8 @@ class ExperimentDGA(Module):
         for model in allgroups:
             metrics_dict={}
             testset_str=','.join(str(i) for i in test)
-            final_errors_metrics=__group_of_distances__.create_new_distance(100,model,testset_str,0)
+            __group_of_markov_models__.run()
+            final_errors_metrics=__group_of_distances__.create_new_distance(200,model,testset_str,0)
             threshold=__group_of_markov_models__.get_markov_model(model).get_threshold()
             print >>fd,"*"*50
             print >>fd,"id:",model,
