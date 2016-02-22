@@ -22,10 +22,6 @@ from stf.core.labels import __group_of_labels__
 from stf.core.database import __database__
 from stf.common import ap
 
-
-
-
-
 #################
 #################
 #################
@@ -57,11 +53,24 @@ class Detection(persistent.Persistent):
         # The current error type is the error type for the current amount of requested letters. It can be FN if the train label was Botnet and there is NO match.
         self.current_error_type = ""
 
+    def get_error_index(self):
+        try:
+            test = self.error_index
+        except AttributeError:
+            self.error_index = -1
+        return self.error_index
+
     def get_matching_error_type(self):
-        return self.matching_error_type
+        try:
+            return self.matching_error_type
+        except AttributeError:
+            return ""
 
     def get_current_error_type(self):
-        return self.current_error_type
+        try:
+            return self.current_error_type
+        except AttributeError:
+            return ""
 
     def get_id(self):
         return self.id
@@ -86,9 +95,6 @@ class Detection(persistent.Persistent):
 
     def get_model_training_id(self):
         return self.model_training_id
-
-    def get_model_testing_id(self):
-        return self.model_testing_id
 
     def set_model_training_id(self, model_training_id):
         self.model_training_id = model_training_id
@@ -135,7 +141,7 @@ class Detection(persistent.Persistent):
         except AttributeError:
             return -1
 
-    def detect(self, training_structure_name,  structure_training, model_training_id, testing_structure_name, structure_testing, model_testing_id, amount, verbose):
+    def detect(self, training_structure_name, structure_training, model_training_id, testing_structure_name, structure_testing, model_testing_id, amount, verbose):
         """ Setup the environment prior the actual detection. Check everyting """
         # Store the data
         self.set_model_training_id(model_training_id)
@@ -186,18 +192,21 @@ class Detection(persistent.Persistent):
         """
         # Get the group of labels for later
         group_labels = __group_of_labels__
-        # Get the models. But don't store them... they are 'heavy'
+        # Get the model of training
         model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
+        # Get the train model id
         train_label_id = model_training.get_label_id()
+        # Get the train label, that is the predicted label if we match
         predicted_label = group_labels.get_label_name_by_id(train_label_id)
         threshold = model_training.get_threshold()
+        # Get the test model
         model_testing = self.get_model_from_id(self.structure_testing, self.model_testing_id)
+        # Test model id
         test_label_id = model_testing.get_label_id()
+        # Test label. The ground truth if we match
         ground_truth_label = group_labels.get_label_name_by_id(test_label_id)
-        self.matching_error_type = self.compute_errors(predicted_label, ground_truth_label)
-        # amouunt == -1 means that we should use all the letters available, no limit.
+        # amount == -1 means that we should use all the letters available, no limit.
         if amount == -1:
-            # Move along...
             amount = len(self.testing_states)
         # If the amount is not > than what we already have stored, just print what we have and don't compute something new.
         if amount != -1 and amount > len(self.dict_of_distances):
@@ -213,14 +222,22 @@ class Detection(persistent.Persistent):
             while index < len(self.testing_states) and index < amount:
                 test_sequence = self.testing_states[0:index+1]
                 train_sequence = self.training_states[0:index+1]
+                #print '\nDistances detect letter by letter'
+                #print 'Next Test sequence: {}'.format(test_sequence)
+                #print 'Next Train sequence: {}'.format(train_sequence)
                 # First re-create the matrix only for the current sequence
                 model_training.create(train_sequence)
                 # Compute the new original prob so far...
+                #print 'Training model recreated with the next train state'
+                #print 'Now trying to get the training prob for this next train state'
                 self.training_original_prob = model_training.compute_probability(train_sequence)
+                #print 'Training original probability recreated: {}'.format(str(self.training_original_prob))
                 # Store the orig prob for this string for future verification
                 self.train_prob_vector.insert(index, self.training_original_prob)
                 # Now obtain the probability for testing
+                #print 'Now get the test prob using the train matrix'
                 test_prob = model_training.compute_probability(test_sequence)
+                #print 'Test prob using the next train matrix: {}'.format(test_prob)
                 # Store the test prob for this string for future verification
                 self.test_prob_vector.insert(index, test_prob)
                 # Compute the distance
@@ -236,19 +253,30 @@ class Detection(persistent.Persistent):
                         self.prob_distance = -1
                 elif self.training_original_prob == test_prob:
                     self.prob_distance = 1
+                # Store the distance
                 self.dict_of_distances.insert(index, self.prob_distance)
-                # Compute the confusion matrix errors
-                # If the threshold is less than the distance
-                if threshold != -1 and self.prob_distance != -1 and threshold >= self.prob_distance:
-                    self.error_index = index + 1 # Because letter 10 is index 9 + 1 # Because letter 10 is index 9
+                # Do we match? If the threshold is less than the distance... move the index. Move the 'window'. And the amount of letters is more than 3 so we have some periodicity computation and not only numbers. Up to 3 letters we have
+                # two numbers and a symbol. Only with 4 letters we have 2 numbers, a symbol and a real letter.
+                if len(test_sequence) > 3 and threshold != -1 and self.prob_distance != -1 and threshold >= self.prob_distance:
+                    # Update matching errors
+                    self.error_index = index + 1 # Because letter 10 is index 9 + 1 
+                    self.matching_error_type = self.compute_errors(predicted_label, ground_truth_label, True)
+                    self.current_error_type = self.matching_error_type
+                else:
+                    # Update the current error
+                    self.current_error_type = self.compute_errors(predicted_label, ground_truth_label, False)
                 # Go to the next letter
                 index += 1
+                #raw_input()
             final_position = index
             # Put back the original matrix and values in the model
             model_training.set_matrix(original_matrix)
             model_training.set_self_probability(original_self_prob)
         else:
             final_position = amount
+        # When the for finneshed, if there was not matching after all the letters, the matching_error_type should be the current error type. so it is not empty.
+        if self.error_index == -1:
+            self.matching_error_type = self.current_error_type
         # Store the amount used if it is larger than the previous one stored
         if self.get_amount() < final_position:
             self.set_amount(final_position)
@@ -256,34 +284,21 @@ class Detection(persistent.Persistent):
             self.distance = self.dict_of_distances[final_position-1]
         if verbose > 1:
             print_info('Letter by letter distance up to {} letters: {}'.format(final_position, red(self.dict_of_distances[final_position-1])))
-        # Print the error type
-        try:
-            test = self.error_index
-            if threshold !=-1 and self.dict_of_distances[final_position - 1] != -1 and threshold >= self.dict_of_distances[final_position - 1]:
-                # The models matched.
-                self.current_error_type = self.matching_error_type
-                if verbose > 1:
-                    print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
-                    print_info('Models matched on letter {}. '.format(amount) + red('Error Type: {}'.format(self.matching_error_type)) + '. (lastest match is on letter {})'.format(self.error_index))
-                elif verbose > 0:
-                    print_info('Test model {}. Train model {}. Up to {} letters. {}'.format(model_testing.get_id(), model_training.get_id(), amount, self.matching_error_type)), 
-            else:
-                # The threshold was not overcomed by the distance. The models don't match. We miss the detection
-                print ground_truth_label
-                if 'botnet' in ground_truth_label.lower() or 'malware' in ground_truth_label.lower():
-                    # Because we miss the detection
-                    self.current_error_type = 'FN'
-                elif 'normal' in ground_truth_label.lower():
-                    # Because we detect normal correctly
-                    self.current_error_type = 'TN'
-                if verbose > 1:
-                    print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
-                    print_info('Models don\'t match on letter {}. '.format(amount) + red('Error Type: {}. '.format(self.current_error_type)) + '(Latests match was on letter {} with error type: {})'.format(self.error_index, self.matching_error_type))
-                elif verbose > 0:
-                    print_info('Test model {}. Train model {}. Up to {} letters. {}'.format(model_testing.get_id(), model_training.get_id(), amount, self.current_error_type)), 
-        except AttributeError:
-            # This is an distance object without the index yet. Before the change. Put it in -1
-            self.error_index = -1
+        # Print the errors
+        if threshold !=-1 and self.dict_of_distances[final_position - 1] != -1 and threshold >= self.dict_of_distances[final_position - 1]:
+            # The models matched.
+            if verbose > 1:
+                print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
+                print_info('Models matched on letter {}. '.format(amount) + red('Error Type: {}'.format(self.get_matching_error_type())) + '. (lastest match is on letter {})'.format(self.get_error_index()))
+            elif verbose > 0:
+                print_info('Test model {}. Train model {}. Up to {} letters. {}'.format(model_testing.get_id(), model_training.get_id(), amount, self.matching_error_type)), 
+        else:
+            # The threshold was not overcomed by the distance. The models don't match. We miss the detection
+            if verbose > 1:
+                print_info('Detecting testing model {} with training model {}'.format(model_testing.get_id(), model_training.get_id()))
+                print_info('Models don\'t match on letter {}. '.format(amount) + red('Error Type: {}. '.format(self.get_current_error_type())) + '(Latests match was on letter {} with error type: {})'.format(self.get_error_index(), self.get_matching_error_type()))
+            if verbose > 0:
+                print_info('Test model {}. Train model {}. Up to {} letters. {}'.format(model_testing.get_id(), model_training.get_id(), amount, self.current_error_type)), 
         # Ascii plot
         p = ap.AFigure()
         x = range(len(self.dict_of_distances[0:final_position]))
@@ -293,9 +308,12 @@ class Detection(persistent.Persistent):
         # Return the final distance.
         return self.dict_of_distances[final_position-1]
 
-    def compute_errors(self, predicted_label, ground_truth_label):
-        """ Get the predicted and ground truth labels and figure it out the errors. Both current errors for this time slot and accumulated errors in all time slots."""
-        """ This coded is copied in the experiments_1.py file. """
+    def compute_errors(self, predicted_label, ground_truth_label, match=True):
+        """
+        Get the predicted and ground truth labels and figure it out the errors.
+        Both current errors for this time slot and accumulated errors in all time slots.
+        This coded is copied in the experiments_1.py file.
+        """
         # So we can work with multiple positives and negative labels
         # Set the predicted label
         if 'Botnet' in predicted_label or 'Malware' in predicted_label or 'CC' in predicted_label:
@@ -312,13 +330,25 @@ class Detection(persistent.Persistent):
             return 'NN'
         # Compute the actual errors
         if predicted_label_positive and ground_truth_label_positive:
-            return 'TP'
+            if match:
+                return 'TP'
+            elif not match:
+                return 'FN'
         elif predicted_label_positive and not ground_truth_label_positive:
-            return 'FP'
+            if match:
+                return 'FP'
+            elif not match:
+                return 'TN'
         elif not predicted_label_positive and not ground_truth_label_positive:
-            return 'TN'
+            if match:
+                return 'TN'
+            elif not match:
+                return 'TN'
         elif not predicted_label_positive and ground_truth_label_positive:
-            return 'FN'
+            if match:
+                return 'FN'
+            elif not match:
+                return 'FN'
 
     def check_need_for_regeneration(self):
         """ Check if the training or testing of this comparison changed since we use them """
@@ -373,6 +403,7 @@ class Detection(persistent.Persistent):
         # Print the matrix
         all_text += 'Train Markov Chain matrix\n'
         model_training = self.get_model_from_id(self.structure_training, self.model_training_id)
+        print model_training
         try:
             train_matrix = model_training.get_matrix()
             for line in train_matrix:
@@ -464,10 +495,12 @@ class Group_of_Detections(Module, persistent.Persistent):
         self.parser.add_argument('-r', '--regenerate', metavar='regenerate', type=int, help='Regenerate the distance. Used when the original training or testing models changed. Give the distance id.')
         self.parser.add_argument('-p', '--print_comparison', metavar='id', type=int, help='Print the values of the letter by letter comparison. No graph.')
         self.parser.add_argument('-c', '--compareall', metavar='structure', help='Create distances between all the models between themselves in the structure specified. The comparisons are not repeted if the already exists. For example: -c markov_models_1. You can force a maximun amount of letters to compare with -a.')
-        self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the distance. For example for listing. Keywords: testname, trainname, distance, id. Usage: testname=<text> distance<2. The names are partial matching. The operator for distances are <, >, = and !=. The operator for id is = and !=')
+        self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filter the distance. For example for listing. Keywords: testname, trainname, distance, id, merror, cerror. (merror is matching error, cerror is current error). Usage: testname=<text> distance<2. The names are partial matching. The operator for distances are <, >, = and !=. The operator for id is =, !=, <, <=, >, >=')
         self.parser.add_argument('-D', '--deleteall', action='store_true', help='Delete all the distance object that matches the -f filter. Must provide a -f filter.')
-        self.parser.add_argument('-t', '--trainid', type=int, metavar='train_id', help='Id of the model to train.')
+        self.parser.add_argument('-t', '--trainid', metavar='train_id', help='Id of the model to train.')
+        self.parser.add_argument('-s', '--trainidstructure', metavar='train_id_structure', help='Structure name of the train id. For example: markov_models_1')
         self.parser.add_argument('-T', '--testid', metavar='test_id', help='Ids of the models to test against the train id. You can specfiy a single id or a comma separated list of ids.')
+        self.parser.add_argument('-S', '--testidstructure', metavar='test_id_structure', help='Structure name of the test id. For example: markov_models_1')
         self.parser.add_argument('-v', '--verbose', metavar='verbose', type=int, default=1, help='The verbose level of the printing.')
 
     def get_name(self):
@@ -638,6 +671,52 @@ class Group_of_Detections(Module, persistent.Persistent):
                         responses.append(True)
                     else:
                         responses.append(False)
+                elif operator == '>':
+                    if id > value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '>=':
+                    if id >= value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '<':
+                    if id < value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '<=':
+                    if id <= value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            elif key == 'merror':
+                error = model.get_matching_error_type()
+                value = value
+                if operator == '=':
+                    if error == value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if error != value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            elif key == 'cerror':
+                error = model.get_current_error_type()
+                value = value
+                if operator == '=':
+                    if error == value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if error != value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
             else:
                 return False
 
@@ -663,16 +742,16 @@ class Group_of_Detections(Module, persistent.Persistent):
 
     def list_distances(self, filter):
         self.construct_filter(filter)
-        all_text=' Id | Training | Testing | Distance (amount of letters)| Needs Regenerate \n'
+        all_text=' Id | Training | Testing | Distance (current amount of letters)| Needs Regenerate | Current Error on the current amount of letters | Potential type of error if the threshold has been overcommed once (last letter when the threshold has been overcomed)\n'
         for distance in self.get_distances():
             if self.apply_filter(distance):
                 regenerate = distance.check_need_for_regeneration()
-                #if not regenerate:
-                    #print_warning('Deleting distance {}'.format(distance.get_id()))
-                    #self.delete_distance(distance.get_id())
                 training_label = distance.get_training_label()
                 testing_label = distance.get_testing_label()
-                all_text += ' {:<4} | {:75} | {:75} | {:8.3f} ({:>5}) | {}\n'.format(distance.get_id(), distance.get_training_structure_name() + ': ' + str(distance.get_model_training_id()) + ' (' + training_label + ')', distance.get_testing_structure_name() + ': ' + str(distance.get_model_testing_id()) + ' (' + testing_label + ')', distance.get_distance(), distance.get_amount(), regenerate)
+                error_index = distance.get_error_index()
+                error_matching = distance.get_matching_error_type()
+                error_current = distance.get_current_error_type()
+                all_text += ' {:<4} | {:75} | {:75} | {:8.3f} ({:>5}) | {} | {} | {} ({}) \n'.format(distance.get_id(), distance.get_training_structure_name() + ': ' + str(distance.get_model_training_id()) + ' (' + training_label + ')', distance.get_testing_structure_name() + ': ' + str(distance.get_model_testing_id()) + ' (' + testing_label + ')', distance.get_distance(), distance.get_amount(), regenerate, error_current, error_matching, error_index)
         f = tempfile.NamedTemporaryFile()
         f.write(all_text)
         f.flush()
@@ -707,65 +786,13 @@ class Group_of_Detections(Module, persistent.Persistent):
             self.main_dict.pop(id)
         print_info('Amount of objects deleted: {}'.format(len(ids)))
 
-    def create_new_distance(self, amount, train_id, test_id, verbose):
+    def create_new_distance(self, amount, train_id, temp_test_id, verbose, training_structure_name, testing_structure_name):
         """ Create a new distance. We must select the trained model and the unknown model. The amount is the max amount of letters to compare. """
-        # If the ids were specified, then suppose the markov_models_1 structure and don't ask for the models ids
-        if not train_id and not test_id:
-            # Generate the new id for this distance
-            try:
-                new_id = self.main_dict[list(self.main_dict.keys())[-1]].get_id() + 1
-            except (KeyError, IndexError):
-                new_id = 1
-            # Create the new object
-            new_distance = Detection(new_id)
-            # Structures to ignore
-            exceptions = ['models', 'database', 'datasets', 'notes', 'connections', 'experiments', 'template_example_module', 'labels']
-            # Get the training module
-            # 1- List all the structures in the db, so we can pick our type of module
-            structures = __database__.get_structures()
-            print_info('From which structure you want to pick up the trained model?:')
-            for structure in structures:
-                if structure not in exceptions:
-                    print_info('\t'+structure)
-            training_structure_name = raw_input('Name:')
-            training_structure_name = training_structure_name.strip()
-            # 2- Verify is there
-            try:
-                selected_training_structure = structures[training_structure_name]
-            except KeyError:
-                print_error('No such structure available.')
-                return False
-            # 3- Get the main dict and list the 'objects'
-            print_info('Select the training module to use:')
-            for object in selected_training_structure:
-                print '\t',
-                print_info(selected_training_structure[object])
-            model_training_id = raw_input('Id:')
-
-            print
-            # Get the testing module
-            # 1- List all the structures in the db, so we can pick our type of module
-            structures = __database__.get_structures()
-            print_info('From which structure you want to pick up the testing model?:')
-            for structure in structures:
-                if structure not in exceptions:
-                    print_info('\t'+structure)
-            testing_structure_name = raw_input('Name:')
-            testing_structure_name = testing_structure_name.strip()
-            # 2- Verify is there
-            try:
-                selected_testing_structure = structures[testing_structure_name]
-            except KeyError:
-                print_error('No such structure available.')
-                return False
-            # 3- Get the main dict and list the 'objects'
-            print_info('Select the testing module to use:')
-            for object in selected_testing_structure:
-                print '\t',
-                print_info(selected_testing_structure[object])
-            model_testing_id = raw_input('Id:')
-        else:
-            test_id = test_id.split(',')
+        train_id = train_id.split(',')
+        train_id.sort()
+        # For each train model passed
+        for train_id in train_id:
+            test_id = temp_test_id.split(',')
             test_id.sort()
             # For each test model passed
             distances_ids = []
@@ -781,9 +808,7 @@ class Group_of_Detections(Module, persistent.Persistent):
                 structures = __database__.get_structures()
                 # Now the structures are fixed
                 model_training_id = train_id
-                training_structure_name = "markov_models_1"
                 selected_training_structure = structures[training_structure_name]
-                testing_structure_name = "markov_models_1"
                 selected_testing_structure = structures[testing_structure_name]
                 # Run the distance rutine
                 if new_distance.detect(training_structure_name, selected_training_structure, model_training_id, testing_structure_name, selected_testing_structure, tid, amount, verbose):
@@ -802,10 +827,7 @@ class Group_of_Detections(Module, persistent.Persistent):
             total_errors['FP'] = 0
             for did in distances_ids:
                 distance = self.get_distance(did)
-                try:
-                    test_id = distance.get_model_testing_id()
-                except AttributeError:
-                    return False
+                test_id = distance.get_model_testing_id()
                 error = distance.get_current_error_type()
                 #if verbose:
                 #    print_info('Test model id {}, error {}'.format(test_id, error))
@@ -831,7 +853,7 @@ class Group_of_Detections(Module, persistent.Persistent):
                 print_info(error_string_2)
             # Forget the distances ids for this execution
             del distances_ids
-            return error_string_1 + ',' + error_string_2
+        return error_string_1 + ',' + error_string_2
 
     def compute_total_performance_metrics(self, total_errors):
         """ Compute the total performance metrics """
@@ -902,10 +924,10 @@ class Group_of_Detections(Module, persistent.Persistent):
             total_performance_metrics['DOR'] = -1
         return total_performance_metrics
 
-    def detect_letter_by_letter(self, distance_id, amount):
+    def detect_letter_by_letter(self, distance_id, amount, verbose):
         try:
             distance = self.main_dict[distance_id]
-            distance.detect_letter_by_letter(amount)
+            distance.detect_letter_by_letter(amount, verbose)
         except KeyError:
             print_error('No such distance id exists.')
             return False
@@ -937,7 +959,7 @@ class Group_of_Detections(Module, persistent.Persistent):
                 break
         return response
 
-    def compare_all(self, structure_name, amount):
+    def compare_all(self, structure_name, amount, verbose):
         """ Compare all the models between themselves in the specified structure. Do not repeat the comparison if it already exists """
         structures = __database__.get_structures()
         try:
@@ -964,7 +986,7 @@ class Group_of_Detections(Module, persistent.Persistent):
                     # Create the new object
                     new_distance = Detection(new_id)
                     # Run the distance rutine
-                    if new_distance.detect(structure_name, structure, train_model_id, structure_name, structure, test_model_id, amount):
+                    if new_distance.detect(structure_name, structure, train_model_id, structure_name, structure, test_model_id, amount, verbose):
                         # Store on DB the new distance only if the comparison was successful
                         self.main_dict[new_id] = new_distance
                         print_info('\tNew distance created with id {}'.format(new_id))
@@ -995,17 +1017,21 @@ class Group_of_Detections(Module, persistent.Persistent):
         if self.args.list:
             self.list_distances(self.args.filter)
         elif self.args.new:
-            self.create_new_distance(self.args.amount, self.args.trainid, self.args.testid, self.args.verbose)
+            # Do we have the structures names?
+            if not self.args.trainidstructure or not self.args.testidstructure:
+                print_error('You must provive the names of the train and test id structure names. For example: markov_model_1')
+                return False
+            self.create_new_distance(self.args.amount, self.args.trainid, self.args.testid, self.args.verbose, self.args.trainidstructure, self.args.testidstructure)
         elif self.args.delete:
             self.delete_distance(self.args.delete)
         elif self.args.letterbyletter:
-            self.detect_letter_by_letter(self.args.letterbyletter, self.args.amount)
+            self.detect_letter_by_letter(self.args.letterbyletter, self.args.amount, self.args.verbose)
         elif self.args.regenerate:
             self.regenerate(self.args.regenerate, self.args.filter)
         elif self.args.print_comparison:
             self.print_comparison(self.args.print_comparison)
         elif self.args.compareall:
-            self.compare_all(self.args.compareall, self.args.amount)
+            self.compare_all(self.args.compareall, self.args.amount, self.args.verbose)
         elif self.args.deleteall:
             if self.args.filter:
                 self.delete_all(self.args.filter)

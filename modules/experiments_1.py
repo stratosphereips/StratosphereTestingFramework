@@ -6,6 +6,7 @@
 
 import persistent
 import BTrees.OOBTree
+import re
 
 from stf.common.out import *
 from stf.common.abstracts import Module
@@ -36,7 +37,6 @@ class Tuple(object):
         self.ground_truth_label = ""
         self.datetime = ""
         # Start of flows is a number that indicates in which flow number we should start couting the state of this 4tuple. Used to 'move' a windows of states for each time slot.
-        #self.start_of_flows = 0
         self.amount_of_flows = 0
         self.src_ip = tuple4.split('-')[0]
         # The ground truth label is assigned only once, because it will not change for the same tuple
@@ -44,12 +44,21 @@ class Tuple(object):
         # It could be that the tuple does not have a ground truth label
         if self.ground_truth_label_id:
             self.ground_truth_label = __group_of_labels__.get_label_name_by_id(self.ground_truth_label_id)
+        # The state of the tuple so far (because it can still grow)
         self.state_so_far = ""
         # Used to move the amount of letters considered for this tuple in the time slot
         self.min_state_len = 0
         self.winner_model_id = False
         self.winner_model_distance = float('inf')
         self.proto = ""
+        # If the state was ever 'moved' by the update then store it
+        self.updated = False
+
+    def is_updated(self):
+        return self.updated
+
+    def get_state_len(self):
+        return len(self.state_so_far)
 
     def get_proto(self):
         return self.proto
@@ -64,6 +73,7 @@ class Tuple(object):
     def update_min_state_len(self):
         """ Move the min state len to the max amount of flows we have """
         self.min_state_len = self.amount_of_flows
+        self.updated = True
         
     def get_min_state_len(self):
         return self.min_state_len 
@@ -232,15 +242,16 @@ class TimeSlot(persistent.Persistent):
 
     def add_tuple4(self, tuple4):
         """ add the tuple and src ip to the time slot """
+        # Add the src ip
+        src_ip = tuple4.split('-')[0]
+        self.add_src_ip(src_ip)
         try:
             t = self.tuples[tuple4]
             # Is already there
         except KeyError:
             # Add it for the first time
             self.tuples[tuple4] = False
-        # Now add the src ip
-        src_ip = tuple4.split('-')[0]
-        self.add_src_ip(src_ip)
+
 
     def add_src_ip(self, ip):
         """ Add the src ip to the time slot """
@@ -248,9 +259,18 @@ class TimeSlot(persistent.Persistent):
             dict = self.ip_dict[ip]
         except KeyError:
             self.ip_dict[ip] = {}
+            # If this is the first time we see this IP in this timeslot, erase the winner model
+            self.set_winner_model_id_for_ip(ip, False)
+            self.set_winner_model_distance_for_ip(ip,'inf')
 
     def set_winner_model_distance_for_ip(self, ip, winner_model_distance):
         self.ip_dict[ip]['winner_model_distance'] = winner_model_distance
+
+    def get_predicted_model_id_for_ip(self, ip):
+        return self.ip_dict[ip]['predicted_labels'][-1][3]
+
+    def get_predicted_model_distance_for_ip(self, ip):
+        return self.ip_dict[ip]['predicted_labels'][-1][4]
 
     def get_winner_model_distance_for_ip(self, ip):
         return self.ip_dict[ip]['winner_model_distance']
@@ -267,17 +287,6 @@ class TimeSlot(persistent.Persistent):
         # Here just store the label as one more label for this ip
         self.ip_dict[ip]['ground_truth_labels'] = []
         self.ip_dict[ip]['ground_truth_labels'].append(ground_truth_label)
-        """
-        current = self.ip_dict[ip]['ground_truth_label'] 
-        # We change the ground_truth_label only if it is Normal or Background. Don't change any Botnet labels.
-        if current and 'normal' not in current.lower() and 'background' not in current.lower() and current != ground_truth_label:
-            self.ip_dict[ip]['ground_truth_label'] = ground_truth_label
-            #print '\tAssigning GTL to ip {}: {}'.format(ip, ground_truth_label)
-    except KeyError:
-        # First time
-        self.ip_dict[ip]['ground_truth_label'] = ground_truth_label
-        #print '\tAssigning first time GTL in this time slot to IP {}: {}'.format(ip, ground_truth_label)
-        """
 
     def unset_predicted_label_for_ip(self, ip, new_predicted_label, num_state, tuple_id):
         """ Get the ip, new_predicted_label num_state and tuple_id and unset it from the predictions. This is because it can happend that the model stop matching after some flows, i.e. its distance is above the threshold """
@@ -293,18 +302,18 @@ class TimeSlot(persistent.Persistent):
             # This ip didn't have a prediction yet.
             pass
 
-    def set_predicted_label_for_ip(self, ip, new_predicted_label, num_state, tuple_id):
-        """ Store the new predicted label for this ip. Also store at which len of the state latter this label was assigned. Also store the tuple that generated this match."""
+    def set_predicted_label_for_ip(self, ip, new_predicted_label, num_state, tuple_id, model_id, distance):
+        """ Store the new predicted label for this ip. Also store at which len of the state latter this label was assigned. Also store the tuple that generated this match. Also store the model id that matched"""
         try:
             # Since we append, the last position has the lastest label. And from there 0 is the label and 1 the num of states
             current_label = self.ip_dict[ip]['predicted_labels'][-1][0] 
             # This if does not only avoid putting the same label again, but also avoids overwritting the first number when it happened.
             if current_label != new_predicted_label:
-                self.ip_dict[ip]['predicted_labels'].append((new_predicted_label, num_state, tuple_id))
+                self.ip_dict[ip]['predicted_labels'].append((new_predicted_label, num_state, tuple_id, model_id, distance))
         except (KeyError, IndexError):
             # First time
             self.ip_dict[ip]['predicted_labels'] = []
-            self.ip_dict[ip]['predicted_labels'].append((new_predicted_label, num_state, tuple_id))
+            self.ip_dict[ip]['predicted_labels'].append((new_predicted_label, num_state, tuple_id, model_id, distance))
         #print '\tAssigning predicted label to ip {}: {} (after {} letters)'.format(ip, new_predicted_label, num_state)
 
     def get_num_letters_for_label(self, label, ip):
@@ -391,6 +400,7 @@ class TimeSlot(persistent.Persistent):
         #  - Compute the errors (TP, TN, FN, FP) for all the IPs in this time slot.
         for ip in self.ip_dict:
             predicted_label = self.get_predicted_label(ip)
+            # Since we are closing the time slot, the last predicted label, is now the final one
             num_letters = self.get_num_letters_for_label(predicted_label, ip)
             ground_truth_label = self.get_ground_truth_label(ip)
             # Compute errors for this ip (and also accumulated)
@@ -416,6 +426,7 @@ class TimeSlot(persistent.Persistent):
                 elif ip_error == 'FP':
                     print(bold(red('\tFalse Detected IPs:')))
                     print('\t\tIP: {:16} (at {} flows)'.format(bold(red(ip)), bold(red(str(num_letters)))))
+            #print 'IP dict for ip {}: {}'.format(ip, self.ip_dict[ip])
         # Compute performance metrics in this time slot
         self.compute_performance_metrics()
         if verbose > 1:
@@ -456,6 +467,14 @@ class TimeSlot(persistent.Persistent):
                 matching.append(tuple)
         return matching
 
+    def get_unmatching_tuples(self):
+        """ Return the unmatching tuples in this time slot """
+        unmatching = []
+        for tuple in self.tuples:
+            if not self.tuples[tuple]:
+                unmatching.append(tuple)
+        return unmatching
+
     def get_errors(self):
         return self.acc_errors
 
@@ -474,11 +493,14 @@ class TimeSlot(persistent.Persistent):
 ######################
 class Experiment(persistent.Persistent):
     """ An individual experiment """
-    def __init__(self, id, description, timeslotwidth):
+    def __init__(self, id, description, timeslotwidth, filter, structure_name):
+        self.filter = filter
         self.id = id
         self.description = description
         # Dict of tuples in this experiment during testing
         self.tuples = {}
+        # The name of the structure where the trainings ids should be taken from
+        self.structure_name = structure_name
         # The vect of time slots
         self.time_slots = []
         self.time_slot_width = timeslotwidth
@@ -510,6 +532,103 @@ class Experiment(persistent.Persistent):
         self.training_models = {}
         # Here we store the testing models that we found but that they are not in the database.
         self.testing_models = {}
+
+    def construct_filter(self, filter):
+        """ Get the filter string and decode all the operations """
+        # If the filter string is empty, delete the filter variable
+        if not filter:
+            try:
+                del self.filter 
+            except:
+                pass
+            return True
+        self.filter = []
+        # Get the individual parts. We only support and's now.
+        for part in filter:
+            # Get the key
+            try:
+                key = re.split('\!=|>=|<=|=|<|>', part)[0]
+                value = re.split('\!=|>=|<=|=|<|>', part)[1]
+            except IndexError:
+                # No < or > or = or != in the string. Just stop.
+                break
+            # We should search for <= before <
+            try:
+                part.index('<=')
+                operator = '<='
+                self.filter.append((key, operator, value))
+                continue
+            except ValueError:
+                # Now we search for <
+                try:
+                    part.index('<')
+                    operator = '<'
+                    self.filter.append((key, operator, value))
+                    continue
+                except ValueError:
+                    pass
+            # We should search for >= before >
+            try:
+                part.index('>=')
+                operator = '>='
+                self.filter.append((key, operator, value))
+                continue
+            except ValueError:
+                # Now we search for >
+                try:
+                    part.index('>')
+                    operator = '>'
+                    self.filter.append((key, operator, value))
+                    continue
+                except ValueError:
+                    pass
+            # We should search for != before =
+            try:
+                part.index('!=')
+                operator = '!='
+                self.filter.append((key, operator, value))
+                continue
+            except ValueError:
+                # Now we search for =
+                try:
+                    part.index('=')
+                    operator = '='
+                    self.filter.append((key, operator, value))
+                    continue
+                except ValueError:
+                    pass
+
+    def apply_filter(self, model):
+        """ Use the stored filter to know what we should match"""
+        responses = []
+        try:
+            self.filter
+        except AttributeError:
+            # If we don't have any filter string, just return true and show everything
+            return True
+        # Check each filter
+        for filter in self.filter:
+            key = filter[0]
+            operator = filter[1]
+            value = filter[2]
+            if key == 'conn':
+                tuple = model
+                if operator == '=':
+                    if value in tuple:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '!=':
+                    if value not in tuple:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            else:
+                return False
+        for response in responses:
+            if not response:
+                return False
+        return True
 
     def get_training_models(self):
         return self.training_models
@@ -547,6 +666,9 @@ class Experiment(persistent.Persistent):
     def add_models_ids(self, models_ids):
         self.models_ids = models_ids
 
+    def get_testing_id(self):
+        return self.testing_id
+
     def add_testing_id(self, testing_id):
         self.testing_id = testing_id
 
@@ -565,11 +687,6 @@ class Experiment(persistent.Persistent):
             print_error('Could not split the models ids with ,')
             return False
         # Methodology 2. Train the thresholds of the training models between themselves
-        ##for model_id in self.models_ids:
-        ##    #print_warning('Training model {}'.format(model_id))
-        ##    if not group_mm.train(model_id, "", self.models_ids, verbose):
-        ##        print_error('The model {} could not be trained.'.format(model_id))
-        ##        return False
         # Methodology 3. Start the testing
         # Methodology 3.1. Get the binetflow file
         self.test_dataset = __datasets__.get_dataset(self.testing_id)
@@ -596,8 +713,10 @@ class Experiment(persistent.Persistent):
         # Methodology 4.4. The first flow case and the case where the flow should be in a new flow because it is outside the last slot. All in one!
         new_slot = TimeSlot(starttime, self.time_slot_width)
         if self.time_slots:
-            # Move the state windows in the tuples that already matched in this time slot. Before closing the time windoows!
+            # Move the state windows in the tuples that already matched in the current time slot. Before closing the time windoows!
             self.move_windows_in_matched_tuples()
+            # Move the state windows in the tuples that did not matched.
+            self.move_windows_in_unmatched_tuples()
             # We created a slot because the flow is outside the width, so we should close the previous time slot
             # Close the last slot
             if self.verbose > 1:
@@ -732,6 +851,8 @@ class Experiment(persistent.Persistent):
         except IOError:
             print_error('It was not possible to open the test file. Is it on the current file system?')
             return False
+        # Create the filter
+        self.construct_filter(self.filter)
         # Remove the header
         header_line = file.readline().strip()
         # Find the separation character
@@ -752,13 +873,16 @@ class Experiment(persistent.Persistent):
             return False
         # Get the structures
         structures = __database__.get_structures()
-        training_structure_name = 'markov_models_1' # Same as before, now it is hardcoded, but warning!
-        training_structure = structures[training_structure_name]
+        try:
+            training_structure = structures[self.structure_name]
+        except KeyError:
+            print_error('That structure name is invalid.')
+            return False
         # Store some info about each training model, do it here and only once
         self.training_models = {}
         for model_training_id in self.models_ids:
             self.training_models[model_training_id] = {}
-            self.training_models[model_training_id]['traininig_structure_name'] = training_structure_name
+            self.training_models[model_training_id]['traininig_structure_name'] = self.structure_name
             self.training_models[model_training_id]['traininig_structure'] = training_structure
             try:
                 self.training_models[model_training_id]['model_training'] = training_structure[int(model_training_id)]
@@ -778,157 +902,176 @@ class Experiment(persistent.Persistent):
                 print_warning('Netflow: {}'.format(line))
             # Methodology 4.1. Extract its 4-tuple. Find (or create) the tuple object
             tuple4 = column_values['SrcAddr']+'-'+column_values['DstAddr']+'-'+column_values['Dport']+'-'+column_values['Proto']
-            # Get the old tuple object for it, or get a new tuple object
-            tuple = self.get_tuple(tuple4, group_id)
-            # Methodology 4.2. Add all the relevant data to this tupple
-            tuple.add_new_flow(column_values)
-            # Methodology 4.3. Get the correct time slot. If the flow is outside the time slot, it will close the last time slot.
-            time_slot = self.get_time_slot(column_values)
-            # Add verbosity to time slot
-            time_slot.set_verbose(self.verbose)
-            # Add this 4tuple and src IP to the list on the time_slot
-            time_slot.add_tuple4(tuple4)
-            # Assign the ground truth label if we have one, only once for ip for time slot
-            if tuple.get_ground_truth_label():
-                time_slot.set_ground_truth_label_for_ip(tuple.get_src_ip(), tuple.get_ground_truth_label())
-                if self.verbose > 3:
-                    print_info('\t\tSetting the ground truth label for IP {}. The new label is {} in tuple {}. The final label is {}. (Time: {})'.format(tuple.get_src_ip(), tuple.get_ground_truth_label(), tuple.get_id(), time_slot.get_ground_truth_label(tuple.get_src_ip()), tuple.get_last_time()))
-            # Methodology 4.4 Get the letter for this flow. i.e. find the model we have stored for this test tuple.
-            model = group_of_models.get_model(tuple.get_id())
-            if not model:
-                # It can happen that the 4tuple in the testing netflow file does not have a model in the database. In this case we should create one (not store it) and generate the letters again.
-                # Actually this is the case for real time traffic
-                #print_info('No model stored for tuple: {}. Generting one...'.format(tuple4))
-                ################
-                # Create a model
-                model = self.get_testing_model(tuple.get_id())
-                constructor_id = __modelsconstructors__.get_default_constructor().get_id()
-                # Warning, here we depend on the modelsconstrutor
-                model.set_constructor(__modelsconstructors__.get_constructor(constructor_id))
-                flow = Flow(0) # Fake flow id
-                flow.add_starttime(column_values['StartTime'])
-                flow.add_duration(column_values['Dur'])
-                flow.add_proto(column_values['Proto'])
-                flow.add_scraddr(column_values['SrcAddr'])
-                flow.add_dir(column_values['Dir'])
-                flow.add_dstaddr(column_values['DstAddr'])
-                flow.add_dport(column_values['Dport'])
-                flow.add_state(column_values['State'])
-                flow.add_stos(column_values['sTos'])
-                flow.add_dtos(column_values['dTos'])
-                flow.add_totpkts(column_values['TotPkts'])
-                flow.add_totbytes(column_values['TotBytes'])
-                try:
-                    flow.add_srcbytes(column_values['SrcBytes'])
-                except KeyError:
-                    # It can happen that we don't have the SrcBytes column
-                    pass
-                try:
-                    flow.add_srcUdata(column_values['srcUdata'])
-                except KeyError:
-                    # It can happen that we don't have the srcUdata column
-                    pass
-                try:
-                    flow.add_dstUdata(column_values['dstUdata'])
-                except KeyError:
-                    # It can happen that we don't have the dstUdata column
-                    pass
-                try:
-                    flow.add_label(column_values['Label'])
-                except KeyError:
-                    # It can happen that we don't have the label column
-                    pass
-                model.add_flow(flow)
-                ################
-            # Take the letters from the test model, but not all of them, just the ones inside this time slot. This way we 'move' the letters used from time windows to time windows, but only if there was a model match.
-            # Store the state so far in the tuple. Now we are cutting the original state. Min is the amount defined if this tuple had already matched before. Max is just the amount of flows recived so far.
-            tuple.set_state_so_far(model.get_state()[tuple.get_min_state_len():tuple.get_max_state_len()])
-            # Reset the winner variables.
-            time_slot.set_winner_model_id_for_ip(tuple.get_src_ip(), False)
-            time_slot.set_winner_model_distance_for_ip(tuple.get_src_ip(),'inf')
-            # Methodology 4.5 Compute the distance of the chain of states from this 4-tuple so far, with all the training models. Don't store a new distance object.
-            # For each traininig model
-            for model_training_id in self.models_ids:
-                # First, only continue if the protocols are the same
-                test_proto = tuple.get_proto().lower()
-                train_proto = self.training_models[model_training_id]['proto'].lower()
-                if test_proto != train_proto:
-                    continue
-                # Letters for the train model. They should not be 'cut' like the test ones. Train models should be complete.
-                train_sequence = self.training_models[model_training_id]['model_training'].get_state()[tuple.get_min_state_len():tuple.get_amount_of_flows()]
-                # First re-create the matrix only for this sequence
-                self.training_models[model_training_id]['model_training'].create(train_sequence)
-                # Get the new original prob so far...
-                training_original_prob = self.training_models[model_training_id]['model_training'].compute_probability(train_sequence)
-                # Now obtain the probability for testing
-                test_prob = self.training_models[model_training_id]['model_training'].compute_probability(tuple.get_state_so_far())
-                # Get the distance
-                prob_distance = -1
-                if training_original_prob != -1 and test_prob != -1 and training_original_prob <= test_prob:
+            # Filter if we should analyze this tuple or not
+            if self.apply_filter(tuple4):
+                # Get the old tuple object for it, or get a new tuple object
+                tuple = self.get_tuple(tuple4, group_id)
+                # Methodology 4.2. Add all the relevant data to this tupple
+                tuple.add_new_flow(column_values)
+                # Methodology 4.3. Get the correct time slot. If the flow is outside the time slot, it will close the last time slot.
+                time_slot = self.get_time_slot(column_values)
+                # Add verbosity to time slot
+                time_slot.set_verbose(self.verbose)
+                # Add this 4tuple and src IP to the list on the time_slot
+                time_slot.add_tuple4(tuple4)
+                # Assign the ground truth label if we have one, only once for ip for time slot
+                if tuple.get_ground_truth_label():
+                    time_slot.set_ground_truth_label_for_ip(tuple.get_src_ip(), tuple.get_ground_truth_label())
+                    if self.verbose > 3:
+                        print_info('\t\tSetting the ground truth label for IP {}. The new label is {} in tuple {}. The final label is {}. (Time: {})'.format(tuple.get_src_ip(), tuple.get_ground_truth_label(), tuple.get_id(), time_slot.get_ground_truth_label(tuple.get_src_ip()), tuple.get_last_time()))
+                # Methodology 4.4 Get the letter for this flow. i.e. find the model we have stored for this test tuple.
+                model = group_of_models.get_model(tuple.get_id())
+                if not model:
+                    # It can happen that the 4tuple in the testing netflow file does not have a model in the database. In this case we should create one (not store it) and generate the letters again.
+                    # Actually this is the case for real time traffic
+                    #print_info('No model stored for tuple: {}. Generting one...'.format(tuple4))
+                    ################
+                    # Create a model
+                    model = self.get_testing_model(tuple.get_id())
+                    constructor_id = __modelsconstructors__.get_default_constructor().get_id()
+                    # Warning, here we depend on the modelsconstrutor
+                    model.set_constructor(__modelsconstructors__.get_constructor(constructor_id))
+                    flow = Flow(0) # Fake flow id
+                    flow.add_starttime(column_values['StartTime'])
+                    flow.add_duration(column_values['Dur'])
+                    flow.add_proto(column_values['Proto'])
+                    flow.add_scraddr(column_values['SrcAddr'])
+                    flow.add_dir(column_values['Dir'])
+                    flow.add_dstaddr(column_values['DstAddr'])
+                    flow.add_dport(column_values['Dport'])
+                    flow.add_state(column_values['State'])
+                    flow.add_stos(column_values['sTos'])
+                    flow.add_dtos(column_values['dTos'])
+                    flow.add_totpkts(column_values['TotPkts'])
+                    flow.add_totbytes(column_values['TotBytes'])
                     try:
-                        prob_distance = training_original_prob / test_prob
-                    except ZeroDivisionError:
-                        prob_distance = -1
-                elif training_original_prob != -1 and test_prob != -1 and training_original_prob > test_prob:
+                        flow.add_srcbytes(column_values['SrcBytes'])
+                    except KeyError:
+                        # It can happen that we don't have the SrcBytes column
+                        pass
                     try:
-                        prob_distance = test_prob / training_original_prob
-                    except ZeroDivisionError:
+                        flow.add_srcUdata(column_values['srcUdata'])
+                    except KeyError:
+                        # It can happen that we don't have the srcUdata column
+                        pass
+                    try:
+                        flow.add_dstUdata(column_values['dstUdata'])
+                    except KeyError:
+                        # It can happen that we don't have the dstUdata column
+                        pass
+                    try:
+                        flow.add_label(column_values['Label'])
+                    except KeyError:
+                        # It can happen that we don't have the label column
+                        pass
+                    model.add_flow(flow)
+                    ################
+                # Take the letters from the test model, but not all of them, just the ones inside this time slot. This way we 'move' the letters used from time windows to time windows, but only if there was a model match.
+                # Store the state so far in the tuple. Now we are cutting the original state. Min is the amount defined if this tuple had already matched before. Max is just the amount of flows recived so far.
+                tuple.set_state_so_far(model.get_state()[tuple.get_min_state_len():tuple.get_max_state_len()])
+                # Only compare the models when the START of the test state has more than 3 letters. So avoid mathching numbers and the first symbol. We want letters. After an update, compare all.
+                if tuple.get_state_len() >= 3 or tuple.is_updated():
+                    # Put these variables to default values. Used for the first time and to reset the winner variables.
+                    time_slot.set_winner_model_id_for_ip(tuple.get_src_ip(), False)
+                    time_slot.set_winner_model_distance_for_ip(tuple.get_src_ip(),'inf')
+                    # Methodology 4.5 Compute the distance of the chain of states from this 4-tuple so far, with all the training models. Don't store a new distance object.
+                    # For each traininig model
+                    for model_training_id in self.models_ids:
+                        # First, only continue if the protocols are the same
+                        test_proto = tuple.get_proto().lower()
+                        train_proto = self.training_models[model_training_id]['proto'].lower()
+                        if test_proto != train_proto:
+                            continue
+                        # Letters for the train model. They should not be 'cut' like the test ones. Train models should be complete.
+                        train_sequence = self.training_models[model_training_id]['model_training'].get_state()[tuple.get_min_state_len():tuple.get_amount_of_flows()]
+                        # First re-create the matrix only for this sequence
+                        self.training_models[model_training_id]['model_training'].create(train_sequence)
+                        # Get the new original prob so far...
+                        training_original_prob = self.training_models[model_training_id]['model_training'].compute_probability(train_sequence)
+                        # Now obtain the probability for testing. The prob is computed by using the API on the train model, which knows its own matrix
+                        test_prob = self.training_models[model_training_id]['model_training'].compute_probability(tuple.get_state_so_far())
+                        # Get the distance
                         prob_distance = -1
-                if self.verbose > 4:
-                    print_info('\tTraining Seq: {}'.format(train_sequence))
-                    print_info('\tTesting  Seq: {}'.format(tuple.get_state_so_far()))
-                    print_info('\tTrain prob: {}. Test prob: {}. Distance: {}'.format(training_original_prob, test_prob, prob_distance))
-                # Methodology 4.6. Decide upon a winner model.
-                # Is the probability just computed for this model lower than the threshold for that same model?
-                color=cyan
-                if prob_distance >= 1 and prob_distance <= self.training_models[model_training_id]['threshold']:
-                    # The model is a candidate
-                    if prob_distance < time_slot.get_winner_model_distance_for_ip(tuple.get_src_ip()):
-                        # The model is the winner so far
-                        time_slot.set_winner_model_id_for_ip(tuple.get_src_ip(), model_training_id)
-                        time_slot.set_winner_model_distance_for_ip(tuple.get_src_ip(), prob_distance)
-                        color=red
-                if self.verbose > 3:
-                    print_info(color('\tTuple {} ({}). Distance to model id {:6} ({:50}) (thres: {}):\t{}'.format(tuple.get_id(), tuple.get_ground_truth_label(), model_training_id, self.training_models[model_training_id]['labelname'], self.training_models[model_training_id]['threshold'], prob_distance)))
-            # If there is a winning model, just assign it.
-            if time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()):
-                #print_info('Winner model for IP {}: {} ({}) with distance {}'.format(tuple.get_src_ip(), time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()), self.training_models[time_slot.get_winner_model_id_for_ip(tuple.get_src_ip())]['labelname'], time_slot.get_winner_model_distance_for_ip(tuple.get_src_ip())))
-                # Methodology 4.7. Extract the label and assign it
-                time_slot.set_predicted_label_for_ip(tuple.get_src_ip(), self.training_models[time_slot.get_winner_model_id_for_ip(tuple.get_src_ip())]['labelname'], tuple.get_amount_of_flows(), tuple.get_id())
-                # Methodology 4.8. Mark the 4tuple as 'matched' in the time slot. This is used later to know, from all the 4tuples, which ones we should move their states window.
-                time_slot.set_4tuple_match(tuple4)
-            # Did we have a winner in the past, but not now anymore??? Erase its label as the current winner.
-            elif time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()) == False:
-                #print_info('Erase the winner model for IP {}'.format(tuple.get_src_ip()))
-                time_slot.unset_predicted_label_for_ip(tuple.get_src_ip(), False, tuple.get_amount_of_flows(), tuple.get_id())
-                time_slot.set_4tuple_unmatch(tuple.get_id())
+                        if training_original_prob != -1 and test_prob != -1 and training_original_prob <= test_prob:
+                            try:
+                                prob_distance = training_original_prob / test_prob
+                            except ZeroDivisionError:
+                                prob_distance = -1
+                        elif training_original_prob != -1 and test_prob != -1 and training_original_prob > test_prob:
+                            try:
+                                prob_distance = test_prob / training_original_prob
+                            except ZeroDivisionError:
+                                prob_distance = -1
+                        if self.verbose > 4:
+                            print_info('\tTraining Seq: {}'.format(train_sequence))
+                            print_info('\tTesting  Seq: {}'.format(tuple.get_state_so_far()))
+                            print_info('\tTrain prob: {}. Test prob: {}. Distance: {}'.format(training_original_prob, test_prob, prob_distance))
+                        # Methodology 4.6. Decide upon a winner model.
+                        # Is the probability just computed for this model lower than the threshold for that same model?
+                        color=cyan
+                        # See if the thorsold was overcomed. Also see if there are > 3 letters in the state
+                        if prob_distance >= 1 and prob_distance <= self.training_models[model_training_id]['threshold']:
+                            # The model is a candidate
+                            if prob_distance <= time_slot.get_winner_model_distance_for_ip(tuple.get_src_ip()):
+                                # The model is the winner so far. If the same model matches twice with the same distance, we reassign it. Also if two models have the same distance, we store the last one matching.
+                                time_slot.set_winner_model_id_for_ip(tuple.get_src_ip(), model_training_id)
+                                time_slot.set_winner_model_distance_for_ip(tuple.get_src_ip(), prob_distance)
+                                color=red
+                        if self.verbose > 3:
+                            print_info(color('\tTuple {} ({}). Distance to model id {:6} ({:50}) (thres: {}):\t{}'.format(tuple.get_id(), tuple.get_ground_truth_label(), model_training_id, self.training_models[model_training_id]['labelname'], self.training_models[model_training_id]['threshold'], prob_distance)))
+                    # End-for. After all the training models have been checked
+                    # If there is a winning model, just assign it.
+                    #print 'Tuple {}. Matched: {}. IP {}. Current Winner model: {}.  Current predicted: {}'.format(tuple.get_id(), time_slot.tuples[tuple.get_id()], tuple.get_src_ip(), time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()), time_slot.get_predicted_label(tuple.get_src_ip()))
+                    if time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()):
+                        # There was a winner model for this flow (tuple and ip) so store it.
+                        if self.verbose > 10:
+                            print_info('Winner model for IP {}: {} ({}) with distance {}'.format(tuple.get_src_ip(), time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()), self.training_models[time_slot.get_winner_model_id_for_ip(tuple.get_src_ip())]['labelname'], time_slot.get_winner_model_distance_for_ip(tuple.get_src_ip())))
+                        # Methodology 4.7. Extract the label and assign it together with other data
+                        time_slot.set_predicted_label_for_ip(tuple.get_src_ip(), self.training_models[time_slot.get_winner_model_id_for_ip(tuple.get_src_ip())]['labelname'], tuple.get_amount_of_flows(), tuple.get_id(), time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()), time_slot.get_winner_model_distance_for_ip(tuple.get_src_ip()))
+                        # Methodology 4.8. Mark the 4tuple as 'matched' in the time slot. This is used later to know, from all the 4tuples, which ones we should move their states window.
+                        time_slot.set_4tuple_match(tuple4)
+                    # Did we have a winner model for this tuple in this time slot before?, but now the same tuple is not matching any more models? Erase its current winner label.
+                    elif time_slot.get_winner_model_id_for_ip(tuple.get_src_ip()) == False and time_slot.get_predicted_label(tuple.get_src_ip()):
+                        if self.verbose > 10:
+                            print_info('Unset predicted label for IP {}: {}'.format(tuple.get_src_ip(), time_slot.get_predicted_label(tuple.get_src_ip())))
+                        time_slot.unset_predicted_label_for_ip(tuple.get_src_ip(), False, tuple.get_amount_of_flows(), tuple.get_id())
+                        time_slot.set_4tuple_unmatch(tuple.get_id())
+
             # Read next line
             # Line without the src and dst data
             line = ','.join(file.readline().strip().split(',')[:14])
-            if self.verbose > 10:
+            if self.verbose > 12:
                 # Stop after each flow
                 raw_input()
         # Close the file
         file.close()
-        # Move the state windows in the tuples that already matched in this time slot. Before closing the time windoows!
+        # Move the state windows in the tuples that already matched in this LAST time slot. Before closing the time windoows!
         self.move_windows_in_matched_tuples()
+        # Move the state windows in the tuples that did not matched.
+        self.move_windows_in_unmatched_tuples()
         # Methodology 7 Compute the results of the last time slot
-        self.time_slots[-1].close(self.verbose)
-        # After closing the time slot, we should get some info back
-        tp_ips_in_last_time_slot = self.time_slots[-1].get_tp_ips()
-        fp_ips_in_last_time_slot = self.time_slots[-1].get_fp_ips()
-        fn_ips_in_last_time_slot = self.time_slots[-1].get_fn_ips()
-        tn_ips_in_last_time_slot = self.time_slots[-1].get_tn_ips()
-        self.add_tp_ips(tp_ips_in_last_time_slot)
-        self.add_fp_ips(fp_ips_in_last_time_slot)
-        self.add_fn_ips(fn_ips_in_last_time_slot)
-        self.add_tn_ips(tn_ips_in_last_time_slot)
-        # Store the errors in the experiment
-        self.add_errors(self.time_slots[-1].get_errors())
+        if self.time_slots:
+            self.time_slots[-1].close(self.verbose)
+            # After closing the time slot, we should get some info back
+            tp_ips_in_last_time_slot = self.time_slots[-1].get_tp_ips()
+            fp_ips_in_last_time_slot = self.time_slots[-1].get_fp_ips()
+            fn_ips_in_last_time_slot = self.time_slots[-1].get_fn_ips()
+            tn_ips_in_last_time_slot = self.time_slots[-1].get_tn_ips()
+            self.add_tp_ips(tp_ips_in_last_time_slot)
+            self.add_fp_ips(fp_ips_in_last_time_slot)
+            self.add_fn_ips(fn_ips_in_last_time_slot)
+            self.add_tn_ips(tn_ips_in_last_time_slot)
+            # Store the errors in the experiment
+            self.add_errors(self.time_slots[-1].get_errors())
         finish_time = datetime.now()
         print_info('Finish Time: {} (Duration: {})'.format(unicode(finish_time), unicode(finish_time - start_time)))
         self.print_final_values()
         self.tuples = {}
+        # Before finishing we need to put back the original information in the models
+        for model_training_id in self.models_ids:
+            self.training_models[model_training_id]['model_training'].set_matrix(self.training_models[model_training_id]['original_matrix']) 
+            self.training_models[model_training_id]['model_training'].set_self_probability(self.training_models[model_training_id]['original_self_prob'])  
+
 
     def clean_experiment_for_storage(self):
         # After we printed everything, we should clean the experiment of all the stuff we don't want stored in the db.
@@ -960,12 +1103,32 @@ class Experiment(persistent.Persistent):
 
     def move_windows_in_matched_tuples(self):
         """ Ask for all the tuples that had matches in this time slot and move their state letters windows. This is run after the closing of the time slot. Be careful """
-        matching_tuples = self.time_slots[-1].get_matching_tuples()
+        try:
+            matching_tuples = self.time_slots[-1].get_matching_tuples()
+        except IndexError:
+            # It is possible that there are no time slots yet.
+            return True
         for tuple4 in matching_tuples:
             # First get how far the state has gone in the current time slot. Not the state number when it was detected first, but the state number when the time slot finished.
             # 'move' the start of the letters to where it finished in the last time slot that matched.
             self.tuples[tuple4].update_min_state_len()
             #print '\tMatched tuple {}. Min len moved to {}'.format(tuple4, self.tuples[tuple4].get_min_state_len())
+
+    def move_windows_in_unmatched_tuples(self):
+        """ Ask for all the tuples that didn't had matches in this time slot and move their state letters windows if the state len so far is more than a threshold. This is run after the closing of the time slot. Be careful """
+        try:
+            unmatching_tuples = self.time_slots[-1].get_unmatching_tuples()
+        except IndexError:
+            # It is possible that there are no time slots yet.
+            return True
+        #print_info('Un matching tuples: {}'.format(unmatching_tuples))
+        for tuple4 in unmatching_tuples:
+            # If the amount of letters in the states is more that a threshold, update its state and forget the letters so far.
+            #print self.tuples[tuple4]
+            diff = self.tuples[tuple4].get_max_state_len() - self.tuples[tuple4].get_min_state_len()
+            if diff >= 100:
+                self.tuples[tuple4].update_min_state_len()
+                #print '\tUN-Matched tuple {}. The current len diff is: {}. Min len moved to {}'.format(tuple4, diff, self.tuples[tuple4].get_min_state_len())
 
     def get_tuple(self, tuple4, dataset_id):
         """ Get the values and return the correct tuple for them """
@@ -1093,10 +1256,15 @@ class Group_of_Experiments(Module, persistent.Persistent):
         self.parser.add_argument('-n', '--new', action='store_true', help='Create a new experiment. Use -m to assign the models to use for detection. Use -t to select a testing dataset.')
         self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete an experiment given the id. You can give a range with -. Ej: -d 10-20')
         self.parser.add_argument('-m', '--models_ids', metavar='models_ids', help='Ids of the models (e.g. Markov Models) to be used when creating a new experiment with -n. Comma separated.')
+        self.parser.add_argument('-s', '--structure_of_models_ids', metavar='structure_of_models_ids', help='Name of the structure where the models id belong. For example: markov_models_1.')
         self.parser.add_argument('-t', '--testing_id', metavar='testing_id', type=int, help='Dataset id to be used as testing when creating a new experiment with -n.')
         self.parser.add_argument('-T', '--timeslotwidth', default=300, metavar='timeslotwidth', type=int, help='The width of the time slot in seconds.')
         self.parser.add_argument('-v', '--verbose', default=0, metavar='verbose', type=int, help='An integer expressing how verbose should we be while running the experiment. For example -v 1.')
-        self.parser.add_argument('-r', '--reduce', metavar='experiment_id', type=int, help='Reduce the size of the given experiment. Strongly suggested to be used before storing the experiment by leaving the program. It deletes the timeslots from the experiment. Before this command you can use -p and -v > 3 to see the info of the time slots in an experiment. After this commend you can only use -v < 3.')
+        self.parser.add_argument('-r', '--reduce', metavar='experiment_id', type=str, help='Reduce the size of the given experiment. Strongly suggested to be used before storing the experiment by leaving the program. It deletes the timeslots from the experiment. Before this command you can use -p and -v > 3 to see the info of the time slots in an experiment. After this commend you can only use -v < 3.')
+        self.parser.add_argument('-f', '--filter', metavar='filter', nargs = '+', default="", help='Filters for creating the experiment. They are used to select which tuples should be matched in the current testing dataset specified. Keywords: conn. Usage: conn=<text>. Also conn!=<text>. For example conn=1.1.1.1-2.2.2.2-80-tcp conn!=3.3.3.3-4.4.4.4-443-tcp. The names are partial matching. The operator for conn are = and !=.')
+        self.parser.add_argument('-o', '--onebyone', action='store_true', default=False, help='Specify if the training models provided with -m should be used one by one with the testing dataset, or in group. By default it is done in groups. With this option it is done one by one.')
+        self.parser.add_argument('-D', '--description', metavar='text', default="", help='An optional description of the experiment between double quotes.')
+
 
     def get_name(self):
         """ Return the name of the module"""
@@ -1130,17 +1298,18 @@ class Group_of_Experiments(Module, persistent.Persistent):
             rows.append([ experiment.get_id(), experiment.get_description(), experiment.get_fancy_performance_metrics() ])
         print(table(header=['Id', 'Description','Performance Metrics'], rows=rows))
 
-    def create_new_experiment(self, models_ids, testing_id, timeslotwidth, verbose):
+    def create_new_experiment(self, models_ids, testing_id, timeslotwidth, verbose, filter, desc, structure_name):
         """ Create a new experiment """
         # Generate the new id
         try:
             new_id = self.main_dict[list(self.main_dict.keys())[-1]].get_id() + 1
         except (KeyError, IndexError):
             new_id = 1
-        # Set the description
-        desc = raw_input("Description: ")
+        ## Set the description
         # Create the new object
-        new_experiment = Experiment(new_id, desc, timeslotwidth)
+        print
+        print_info('Starting experiment id: {}'.format(new_id))
+        new_experiment = Experiment(new_id, desc, timeslotwidth, filter, structure_name)
         # Methodology 1. We receive the markov_models ids for the training, and the id of the dataset of the tetsing. (We may not have markov models for the testing. A binetflow file and labels are enough)
         # Add info
         new_experiment.add_models_ids(models_ids)
@@ -1193,6 +1362,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
         print_info('Experiment {}'.format(experiment))
         print_info('Description: ' + experiment.get_description())
         print_info('Trained models for detection: {}'.format(experiment.get_training_models().keys()))
+        print_info('Test dataset: {}'.format(experiment.get_testing_id()))
         print_info('Total amount of tuples: {}'.format(len(experiment.get_tuples())))
         print_info('Total time slots: {}'.format(len(experiment.get_time_slots())))
         # Depending on the verbosity, we print more info about the experiment.
@@ -1231,7 +1401,17 @@ class Group_of_Experiments(Module, persistent.Persistent):
                         gtl = timeslot.get_ground_truth_label(ip)
                     except KeyError:
                         gtl = 'None'
-                    print color('\t\t\t Ground Truth Label: {}. Error Type: {}. Winner Model: {}, Distance: {}'.format(gtl,timeslot.ip_dict[ip]['error'], timeslot.ip_dict[ip]['winner_model_id'], timeslot.ip_dict[ip]['winner_model_distance']))
+                    try:
+                        #win_model_id = timeslot.ip_dict[ip]['winner_model_id']
+                        win_model_id = timeslot.get_predicted_model_id_for_ip(ip)
+                    except KeyError:
+                        win_model_id = False
+                    try:
+                        #win_model_dist = timeslot.ip_dict[ip]['winner_model_distance']
+                        win_model_dist = timeslot.get_predicted_model_distance_for_ip(ip)
+                    except KeyError:
+                        win_model_dist = False
+                    print color('\t\t\t Ground Truth Label: {}. Error Type: {}. Winner Model: {}, Distance: {}'.format(gtl,timeslot.ip_dict[ip]['error'], win_model_id, win_model_dist))
             if verbose > 2:
                 # Print TP in the slot
                 try:
@@ -1294,19 +1474,39 @@ class Group_of_Experiments(Module, persistent.Persistent):
         if self.args.list:
             self.list_experiments()
         elif self.args.new:
-            try:
-                models_ids = self.args.models_ids
-                testing_id = self.args.testing_id
-            except AttributeError:
-                print_error('You should provide both the ids of the models to use for detection (with -m) and the testing dataset id (with -t).')
+            # Do we have the name of the structure?
+            if not self.args.structure_of_models_ids:
+                print_error('The name of the structure for the trainings ids should be provided. For example: markov_models_1')
                 return False
-            self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth, self.args.verbose)
+            if self.args.onebyone:
+                try:
+                    testing_id = self.args.testing_id
+                    for models_ids in self.args.models_ids.split(','):
+                        self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth, self.args.verbose, self.args.filter, self.args.description, self.args.structure_of_models_ids)
+                except AttributeError:
+                    print_error('You should provide both the ids of the models to use for detection (with -m) and the testing dataset id (with -t).')
+                    return False
+            else:
+                try:
+                    models_ids = self.args.models_ids
+                    testing_id = self.args.testing_id
+                    self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth, self.args.verbose, self.args.filter, self.args.description, self.args.structure_of_models_ids)
+                except AttributeError:
+                    print_error('You should provide both the ids of the models to use for detection (with -m) and the testing dataset id (with -t).')
+                    return False
         elif self.args.delete:
             self.delete_experiment(self.args.delete)
         elif self.args.printstate:
             self.print_experiment(self.args.printstate, self.args.verbose)
         elif self.args.reduce:
-            self.reduce_experiment(self.args.reduce)
+            if '-' in self.args.reduce:
+                first_id = int(self.args.reduce.split('-')[0])
+                last_id = int(self.args.reduce.split('-')[1])
+            else:
+                first_id = int(self.args.reduce)
+                last_id = int(self.args.reduce)
+            for id in range(first_id, last_id):
+                self.reduce_experiment(id)
         else:
             print_error('At least one parameter is required in this module')
             self.usage()
