@@ -33,7 +33,9 @@ Or you can install them by hand
 
 - prettytable: ```apt-get install python-prettytable```
 - transaction: ```apt-get install python-transaction```
+- persistent: ```apt-get install python-persistent``` 
 - zodb: ```pip install zodb``` (version > 4.0)
+- sparse: ```apt-get install python-sparse```
 
 You also need to have [argus](http://http://qosient.com/argus/) (and argus clients tools) installed. This is for generating the netflows from the traffic. These tools need to be installed from its latest version (and not the ones available in the debian/ubuntu repository until April 2015). The programs can be downloaded from:
 
