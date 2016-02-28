@@ -6,7 +6,6 @@ from datetime import datetime
 
 from stf.core.configuration import __configuration__
 from stf.common.out import *
-from stf.core.experiment import __experiments__
 from stf.core.dataset import __datasets__
 from stf.core.connections import  __group_of_group_of_connections__
 from stf.core.models import __groupofgroupofmodels__
@@ -27,12 +26,6 @@ class Database:
         self.connection = self.db.open()
         self.root = self.connection.root()
 
-
-        # Experiments
-        try:
-            __experiments__.experiments = self.root['experiments']
-        except KeyError:
-            self.root['experiments'] = __experiments__.experiments
 
         # Datasets
         try:
