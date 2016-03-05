@@ -109,7 +109,7 @@ class Markov_Model(persistent.Persistent):
             print_error('There is no state yet')
             return False
         # Generate the MC
-        #self.init_vector, self.matrix = mc.maximum_likelihood_probabilities(separated_letters, order=1)
+        self.init_vector, self.matrix = mc.maximum_likelihood_probabilities(separated_letters, order=1)
         #self.init_vector, self.matrix = pykov.maximum_likelihood_probabilities(separated_letters, order=1)
         #print 'In create() in markov models. State received: {}'.format(state)
         #print 'Init vector created: {}'.format(self.init_vector)
