@@ -12,7 +12,6 @@ import numpy as np
 import tempfile
 import cPickle
 import math
-#import pykov
 
 from stf.common.out import *
 from stf.common.abstracts import Module
@@ -142,25 +141,20 @@ class Markov_Model(persistent.Persistent):
         i = 0
         probability = 0
         ignored = 0
+        penalty = -4.6
         # Get the initial probability of this letter in the IV.
-        #print 'Inside compute_probability (markov_models)'
-        #print 'self.init_vector : {}'.format(self.init_vector)
-        #print 'state received: {}'.format(state)
         # First get the value of the init prob of the first letter
         try:
-            value = self.init_vector[state[i]]
+            init_letter_prob = math.log(self.init_vector[state[i]])
         except KeyError:
-            # The State is not in the init vector. So apply the penalty
-            value = -4.6
+            # We don't have an init_vector nor matrix, because we are still building them for each state. This is the first state
+            init_letter_prob = 0
+        except ValueError:
+            init_letter_prob = 0
         except IndexError:
             # When the state is deleted after X letters, it can happen that the sate is empty. Apply the penalty.
-            value = -4.6
-        try:
-            init_letter_prob = math.log(value)
-        except ValueError:
-            # The value is -inf, so we can not really compute the log.
-            init_letter_prob = 0
-        #print 'out of excepts'
+            init_letter_prob = penalty
+
         # We should have more than 2 states at least
         while i < len(state) and len(state) > 1:
             try:
@@ -176,7 +170,7 @@ class Markov_Model(persistent.Persistent):
                     # Here is our trick. If two letters are not in the matrix... assign a penalty probability
                     # The temp_prob is the penalty we assign if we can't find the transition
                     #temp_prob = -2.3
-                    temp_prob = -4.6 # Which is approx 0.01 probability
+                    temp_prob = penalty # Which is approx 0.01 probability
                     probability = probability + temp_prob # logs should be +
                     if '#' not in vector:
                         ignored += 1
