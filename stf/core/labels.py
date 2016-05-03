@@ -613,12 +613,9 @@ class Group_Of_Labels(persistent.Persistent):
 
     def decide_a_label_name(self, connection_id):
         """ Get a connection id and return a label for it. The connection_id can be empty"""
-        # First choose amount the current labels
-        #print_info('Current Labels')
-        # List all the labels, i.e. with an empty filter
-        # self.list_labels("")
-        selection = raw_input('Select a label Id to assign the same label BUT with a new final number to the current connection. Or press Enter to create a new one:')
-        try:
+        # selection = raw_input('Select a label Id to assign the same label BUT with a new final number to the current connection. Or press Enter to create a new one:')
+        selection = raw_input('Enter the label name. Or an int to select the label of that label Id. Or press Enter to select the parts of the label individually: ')
+        if type(selection) == int:
             # Get the label selected with an id
             label = self.get_label_by_id(int(selection))
             # Get its name
@@ -644,78 +641,78 @@ class Group_Of_Labels(persistent.Persistent):
                 return False
             else:
                 return new_name
-        except ValueError:
-            pass
-
-        # Direction
-        print ("Please provide a direction. It means 'From' or 'To' the most important IP in the connection: ")
-        text = raw_input().strip()
-        if 'From' in text or 'To' in text:
-            direction = text
+        elif type(selection) == str:
+            return selection
         else:
-            print_error('Only those options are available. If you need more, please submit a request')
-            return False
-        # Main decision
-        print ("Please provide the main decision. 'Botnet', 'Malware', 'Normal', 'Attack', or 'Background': ")
-        text = raw_input().strip()
-        if 'Botnet' in text or 'Malware' in text or 'Normal' in text or 'Attack' in text or 'Background' in text:
-            decision = text
-        else:
-            print_error('Only those options are available. If you need more, please submit a request')
-            return False
-        # Main 3 layer proto
-        print ("Please provide the layer 3 proto. 'TCP', 'UDP', 'ICMP', 'IGMP', or 'ARP': ")
-        text = raw_input().strip()
-        if 'TCP' in text or 'UDP' in text or 'ICMP' in text or 'IGMP' in text or 'ARP' in text:
-            proto3 = text
-        else:
-            print_error('Only those options are available. If you need more, please submit a request')
-            return False
-        # Main 4 layer proto
-        print ("Please provide the main proto in layer 4. 'HTTP', 'HTTPS', 'FTP', 'SSH', 'DNS', 'SMTP', 'P2P', 'NTP', 'Multicast', 'NetBIOS', 'Unknown', 'Other', 'Custom', or 'None': ")
-        text = raw_input().strip()
-        if 'HTTP' in text or 'HTTPS' in text or 'FTP' in text or 'SSH' in text or 'DNS' in text or 'SMTP' in text or 'P2P' in text or 'NTP' in text or 'Multicast' in text or 'NetBIOS' in text or 'Unknown' in text or 'Other' in text or 'Custom' in text or 'None' in text:
-            proto4 = text
-        else:
-            print_error('Only those options are available. If you need more, please submit a request')
-            return False
-        # Details
-        print ("Please provide optional details for this connection. Up to 30 chars (No - or spaces allowed). Example: 'Encrypted', 'PlainText', 'CustomEncryption', 'soundcound.com', 'microsoft.com', 'netbios': ")
-        text = raw_input().strip()
-        if len(text) <= 30 and '-' not in text and ' ' not in text:
-            details = text
-        else:
-            print_error('Only those options are available. If you need more, please submit a request')
-            return False
-        # Becareful if you change the structure of the label. In get_proto is harcoded
-        name_so_far = direction+'-'+decision+'-'+proto3+'-'+proto4+'-'+details
-
-        # Separator id
-        # Search for labels with this 'name' so far
-        #matches = self.search_label_name(name_so_far, verbose=True, exact = 3)
-        matches = self.search_label_name(name_so_far, verbose=True, exact=2)
-        if matches:
-            print_info("There are other labels with a similar name. You can enter 'NEW' to create a new label with this name and a new id. Or you can input the label ID to add this connection to that label. Any other input will stop the creation of the label to let you inspect the content of the labels.")
+            # Direction
+            print ("Please provide a direction. It means 'From' or 'To' the most important IP in the connection: ")
             text = raw_input().strip()
-            # Is it an int?
-            try:
-                inttext = int(text)
-                label = self.get_label_by_id(inttext)
-                if label:
-                    return label.get_name()
-                print_error('No previous label with that id.')
+            if 'From' in text or 'To' in text:
+                direction = text
+            else:
+                print_error('Only those options are available. If you need more, please submit a request')
                 return False
-            except ValueError:
-                # Is text
-                if text == 'NEW':
-                    last_id = int(matches[-1].split('-')[-1])
-                    new_id = str(last_id + 1)
-                    name = name_so_far + '-' + new_id
-                else:
+            # Main decision
+            print ("Please provide the main decision. 'Botnet', 'Malware', 'Normal', 'Attack', or 'Background': ")
+            text = raw_input().strip()
+            if 'Botnet' in text or 'Malware' in text or 'Normal' in text or 'Attack' in text or 'Background' in text:
+                decision = text
+            else:
+                print_error('Only those options are available. If you need more, please submit a request')
+                return False
+            # Main 3 layer proto
+            print ("Please provide the layer 3 proto. 'TCP', 'UDP', 'ICMP', 'IGMP', or 'ARP': ")
+            text = raw_input().strip()
+            if 'TCP' in text or 'UDP' in text or 'ICMP' in text or 'IGMP' in text or 'ARP' in text:
+                proto3 = text
+            else:
+                print_error('Only those options are available. If you need more, please submit a request')
+                return False
+            # Main 4 layer proto
+            print ("Please provide the main proto in layer 4. 'HTTP', 'HTTPS', 'FTP', 'SSH', 'DNS', 'SMTP', 'P2P', 'NTP', 'Multicast', 'NetBIOS', 'Unknown', 'Other', 'Custom', or 'None': ")
+            text = raw_input().strip()
+            if 'HTTP' in text or 'HTTPS' in text or 'FTP' in text or 'SSH' in text or 'DNS' in text or 'SMTP' in text or 'P2P' in text or 'NTP' in text or 'Multicast' in text or 'NetBIOS' in text or 'Unknown' in text or 'Other' in text or 'Custom' in text or 'None' in text:
+                proto4 = text
+            else:
+                print_error('Only those options are available. If you need more, please submit a request')
+                return False
+            # Details
+            print ("Please provide optional details for this connection. Up to 30 chars (No - or spaces allowed). Example: 'Encrypted', 'PlainText', 'CustomEncryption', 'soundcound.com', 'microsoft.com', 'netbios': ")
+            text = raw_input().strip()
+            if len(text) <= 30 and '-' not in text and ' ' not in text:
+                details = text
+            else:
+                print_error('Only those options are available. If you need more, please submit a request')
+                return False
+            # Becareful if you change the structure of the label. In get_proto is harcoded
+            name_so_far = direction+'-'+decision+'-'+proto3+'-'+proto4+'-'+details
+
+            # Separator id
+            # Search for labels with this 'name' so far
+            #matches = self.search_label_name(name_so_far, verbose=True, exact = 3)
+            matches = self.search_label_name(name_so_far, verbose=True, exact=2)
+            if matches:
+                print_info("There are other labels with a similar name. You can enter 'NEW' to create a new label with this name and a new id. Or you can input the label ID to add this connection to that label. Any other input will stop the creation of the label to let you inspect the content of the labels.")
+                text = raw_input().strip()
+                # Is it an int?
+                try:
+                    inttext = int(text)
+                    label = self.get_label_by_id(inttext)
+                    if label:
+                        return label.get_name()
+                    print_error('No previous label with that id.')
                     return False
-        else:
-            name = name_so_far + '-1'
-        return name
+                except ValueError:
+                    # Is text
+                    if text == 'NEW':
+                        last_id = int(matches[-1].split('-')[-1])
+                        new_id = str(last_id + 1)
+                        name = name_so_far + '-' + new_id
+                    else:
+                        return False
+            else:
+                name = name_so_far + '-1'
+            return name
 
     def delete_connection(self, group_of_model_id, connection_id):
         """ Get a group_of_model_id, connection id, find its label and delete it"""
