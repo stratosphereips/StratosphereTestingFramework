@@ -71,7 +71,7 @@ class Tuple(object):
         return self.amount_of_flows
 
     def update_min_state_len(self):
-        """ Move the min state len to the max amount of flows we have """
+        """ Move the min state len to the amount of flows we have now"""
         self.min_state_len = self.amount_of_flows
         self.updated = True
         
@@ -713,11 +713,7 @@ class Experiment(persistent.Persistent):
         # Methodology 4.4. The first flow case and the case where the flow should be in a new flow because it is outside the last slot. All in one!
         new_slot = TimeSlot(starttime, self.time_slot_width)
         if self.time_slots:
-            # Move the state windows in the tuples that already matched in the current time slot. Before closing the time windoows!
-            self.move_windows_in_matched_tuples()
-            # Move the state windows in the tuples that did not matched.
-            self.move_windows_in_unmatched_tuples()
-            # We created a slot because the flow is outside the width, so we should close the previous time slot
+            # We just created a new slot because the current flow is outside the width of the current slot, so we should close the previous time slot first
             # Close the last slot
             if self.verbose > 1:
                 print 'Closing  {}. (Time: {})'.format(self.time_slots[-1], datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S'))
@@ -733,6 +729,8 @@ class Experiment(persistent.Persistent):
             self.add_tn_ips(tn_ips_in_last_time_slot)
             # Store the errors in the experiment
             self.add_errors(self.time_slots[-1].get_errors())
+            # Move the state windows in the tuples that have more than a threshold of letters. After closing the time windoows
+            self.move_windows_in_tuples()
         # Add it
         self.time_slots.append(new_slot)
         if self.verbose > 1:
@@ -1045,10 +1043,6 @@ class Experiment(persistent.Persistent):
                 raw_input()
         # Close the file
         file.close()
-        # Move the state windows in the tuples that already matched in this LAST time slot. Before closing the time windoows!
-        self.move_windows_in_matched_tuples()
-        # Move the state windows in the tuples that did not matched.
-        self.move_windows_in_unmatched_tuples()
         # Methodology 7 Compute the results of the last time slot
         if self.time_slots:
             self.time_slots[-1].close(self.verbose)
@@ -1063,15 +1057,18 @@ class Experiment(persistent.Persistent):
             self.add_tn_ips(tn_ips_in_last_time_slot)
             # Store the errors in the experiment
             self.add_errors(self.time_slots[-1].get_errors())
+        # Move the state windows in the tuples Before closing the time windoows!
+        self.move_windows_in_tuples()
+        # Update the finish time
         finish_time = datetime.now()
         print_info('Finish Time: {} (Duration: {})'.format(unicode(finish_time), unicode(finish_time - start_time)))
         self.print_final_values()
+        # Erase the tuples
         self.tuples = {}
-        # Before finishing we need to put back the original information in the models
+        # Before finishing we need to put back the original information in the training models
         for model_training_id in self.models_ids:
             self.training_models[model_training_id]['model_training'].set_matrix(self.training_models[model_training_id]['original_matrix']) 
             self.training_models[model_training_id]['model_training'].set_self_probability(self.training_models[model_training_id]['original_self_prob'])  
-
 
     def clean_experiment_for_storage(self):
         # After we printed everything, we should clean the experiment of all the stuff we don't want stored in the db.
@@ -1101,34 +1098,20 @@ class Experiment(persistent.Persistent):
             if ip not in self.final_ips['TP']:
                 print('\tIP {} was never detected.'.format(red(ip)))
 
-    def move_windows_in_matched_tuples(self):
-        """ Ask for all the tuples that had matches in this time slot and move their state letters windows. This is run after the closing of the time slot. Be careful """
+    def move_windows_in_tuples(self):
+        """ Ask for all the tuples in this time slot and move their state letters windows if the state len is more than a threshold. This is run after the closing of the time slot. Be careful. If the threshold is overcome, we move the min_len to the _current_ amount of flows, that means that after each time window, the tuple forgets what happened in previous time windows and only works with what happens from now on."""
         try:
-            matching_tuples = self.time_slots[-1].get_matching_tuples()
+            tuples = self.time_slots[-1].tuples
         except IndexError:
             # It is possible that there are no time slots yet.
             return True
-        for tuple4 in matching_tuples:
-            # First get how far the state has gone in the current time slot. Not the state number when it was detected first, but the state number when the time slot finished.
-            # 'move' the start of the letters to where it finished in the last time slot that matched.
-            self.tuples[tuple4].update_min_state_len()
-            #print '\tMatched tuple {}. Min len moved to {}'.format(tuple4, self.tuples[tuple4].get_min_state_len())
-
-    def move_windows_in_unmatched_tuples(self):
-        """ Ask for all the tuples that didn't had matches in this time slot and move their state letters windows if the state len so far is more than a threshold. This is run after the closing of the time slot. Be careful """
-        try:
-            unmatching_tuples = self.time_slots[-1].get_unmatching_tuples()
-        except IndexError:
-            # It is possible that there are no time slots yet.
-            return True
-        #print_info('Un matching tuples: {}'.format(unmatching_tuples))
-        for tuple4 in unmatching_tuples:
+        #print_info('Tuples: {}'.format(tuples))
+        for tuple4 in tuples:
             # If the amount of letters in the states is more that a threshold, update its state and forget the letters so far.
-            #print self.tuples[tuple4]
             diff = self.tuples[tuple4].get_max_state_len() - self.tuples[tuple4].get_min_state_len()
             if diff >= 100:
                 self.tuples[tuple4].update_min_state_len()
-                #print '\tUN-Matched tuple {}. The current len diff is: {}. Min len moved to {}'.format(tuple4, diff, self.tuples[tuple4].get_min_state_len())
+                #print '\tTuple {}. The current len diff is: {}. Min len moved to {}'.format(tuple4, diff, self.tuples[tuple4].get_min_state_len())
 
     def get_tuple(self, tuple4, dataset_id):
         """ Get the values and return the correct tuple for them """
