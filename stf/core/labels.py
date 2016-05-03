@@ -31,7 +31,10 @@ class Label(persistent.Persistent):
 
     def get_proto(self):
         # Horrible rigth? But this way I don't have to modify the DB. Just compute it when asked. The only problem is that the struture of the label should not change.
-        return self.name.split('-')[2]
+        try:
+            return self.name.split('-')[2]
+        except IndexError:
+            return False
 
     def get_id(self):
         return self.id
@@ -46,7 +49,7 @@ class Label(persistent.Persistent):
         self.name = name
 
     def change_dataset_id_to_group_of_models_id(self, dataset_id, group_of_models_id):
-        """ Exactly what the name says"""
+        """ Change the dataset id of the groups of models id"""
         prev_values = self.connections[dataset_id]
         self.connections.pop(dataset_id)
         self.connections[group_of_models_id] = prev_values
@@ -58,6 +61,7 @@ class Label(persistent.Persistent):
 
     def add_connection(self, group_of_model_id, connection_id):
         """ Receive a group_of_model_id and a connection_id and store them in this label"""
+        """ 2016-01 No longer used and should be removed """
         try:
             d_id = self.connections[group_of_model_id]
             self.connections[group_of_model_id].append(connection_id)
@@ -132,8 +136,6 @@ class Label(persistent.Persistent):
             else:
                 conns.append(self.connections[id])
         return conns[0]
-
-
 
 ##################
 ##################
@@ -537,36 +539,39 @@ class Group_Of_Labels(persistent.Persistent):
     def add_label_to_model(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label id and a current dataset, add the label id to the model"""
         model = self.get_the_model_of_a_connection(group_of_model_id, connection_id)
-        try:
-            model.set_label_name(name)
-        except AttributeError:
-            print_error('Non existant label')
-            return False
+        if model != None:
+            try:
+                model.set_label_name(name)
+            except AttributeError:
+                print_error('Non existant label')
+                return False
 
     def del_label_in_model(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label id and a current dataset, del the label id in the model"""
         model = self.get_the_model_of_a_connection(group_of_model_id, connection_id)
-        try:
-            model.del_label_name(name)
-        except AttributeError:
-            print_error('Non existant label')
-            return False
+        if model != None:
+            try:
+                model.del_label_name(name)
+            except AttributeError:
+                print_error('Non existant label')
+                return False
 
     def add_auto_label_for_connection(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label name and a current dataset, add an auto note"""
         text_to_add = "Added label {}".format(name)
         model = self.get_the_model_of_a_connection( group_of_model_id, connection_id)
-        try:
-            note_id = model.get_note_id()
-        except AttributeError:
-            print_error('Some error trying to read tht note id of the model.')
-            return False
-        if not note_id:
-            # There was not originaly a note, so we should now store the new created not in the model.
-            note_id =__notes__.new_note()
-            model.set_note_id(note_id)
-        __notes__.add_auto_text_to_note(note_id, text_to_add)
-        print_info('Connection has note id {}'.format(note_id))
+        if model != None:
+            try:
+                note_id = model.get_note_id()
+            except AttributeError:
+                print_error('Some error trying to read tht note id of the model.')
+                return False
+            if not note_id:
+                # There was not originaly a note, so we should now store the new created not in the model.
+                note_id =__notes__.new_note()
+                model.set_note_id(note_id)
+            __notes__.add_auto_text_to_note(note_id, text_to_add)
+            print_info('Connection has note id {}'.format(note_id))
 
     def del_label(self, lab_id):
         """ Delete a label """
