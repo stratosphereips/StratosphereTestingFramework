@@ -44,6 +44,14 @@ class Tuple(object):
         # It could be that the tuple does not have a ground truth label
         if self.ground_truth_label_id:
             self.ground_truth_label = __group_of_labels__.get_label_name_by_id(self.ground_truth_label_id)
+        elif not self.ground_truth_label_id:
+            # If the tuple4 didn't have a label, put the label of the source IP if there is one
+            srcip = tuple4.split('-')[0]
+            # Get the label id of the label of the src IP
+            self.ground_truth_label_id_for_ip = __group_of_labels__.search_connection_in_label(srcip, dataset_id)
+            if self.ground_truth_label_id_for_ip:
+                # Assign the label of the IP to the label of the tuple
+                self.ground_truth_label = __group_of_labels__.get_label_name_by_id(self.ground_truth_label_id_for_ip)
         # The state of the tuple so far (because it can still grow)
         self.state_so_far = ""
         # Used to move the amount of letters considered for this tuple in the time slot
