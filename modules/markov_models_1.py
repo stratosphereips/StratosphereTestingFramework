@@ -154,12 +154,13 @@ class Markov_Model(persistent.Persistent):
         except IndexError:
             # When the state is deleted after X letters, it can happen that the sate is empty. Apply the penalty.
             init_letter_prob = penalty
-
+	# Assign the first letter prib
+	probability = init_letter_prob
         # We should have more than 2 states at least
         while i < len(state) and len(state) > 1:
             try:
                 vector = state[i] + state[i+1]
-                growing_v = state[0:i+2]
+                # growing_v = state[0:i+2]
                 # The transitions that include the # char will be automatically excluded
                 temp_prob = self.matrix.walk_probability(vector)
                 i += 1
@@ -170,8 +171,8 @@ class Markov_Model(persistent.Persistent):
                     # Here is our trick. If two letters are not in the matrix... assign a penalty probability
                     # The temp_prob is the penalty we assign if we can't find the transition
                     #temp_prob = -2.3
-                    temp_prob = penalty # Which is approx 0.01 probability
-                    probability = probability + temp_prob # logs should be +
+                    #temp_prob = penalty # Which is approx 0.01 probability
+                    probability = probability + penalty # logs should be +
                     if '#' not in vector:
                         ignored += 1
                     continue
