@@ -641,9 +641,8 @@ class Group_Of_Labels(persistent.Persistent):
                 return False
             else:
                 return new_name
-        elif type(selection) == str:
-            return selection
-        else:
+        elif selection == '':
+            # Enter pressed
             # Direction
             print ("Please provide a direction. It means 'From' or 'To' the most important IP in the connection: ")
             text = raw_input().strip()
@@ -713,6 +712,8 @@ class Group_Of_Labels(persistent.Persistent):
             else:
                 name = name_so_far + '-1'
             return name
+        elif type(selection) == str:
+            return selection
 
     def delete_connection(self, group_of_model_id, connection_id):
         """ Get a group_of_model_id, connection id, find its label and delete it"""
