@@ -153,6 +153,7 @@ class TimeSlot(persistent.Persistent):
         # Errors NN means that the ground truth label is unknown, so it is not Positive nor Negative and we can not report an error.
         self.acc_errors['NN'] = 0.0
         # Errors NN means that the ground truth label is unknown, so it is not Positive nor Negative and we can not report an error.
+        # Metrics for the IP detection counting all the time windows together
         self.performance_metrics = {}
         self.performance_metrics['TPR'] = -1
         self.performance_metrics['FPR'] = -1
@@ -162,6 +163,16 @@ class TimeSlot(persistent.Persistent):
         self.performance_metrics['Precision'] = -1
         self.performance_metrics['Accuracy'] = -1
         self.performance_metrics['FMeasure1'] = -1
+        # Metrics for the IPs detection of the complete experiment as a whole
+        self.performance_metrics_for_final_ips = {}
+        self.performance_metrics_for_final_ips['TPR'] = -1
+        self.performance_metrics_for_final_ips['FPR'] = -1
+        self.performance_metrics_for_final_ips['TNR'] = -1
+        self.performance_metrics_for_final_ips['FNR'] = -1
+        self.performance_metrics_for_final_ips['ErrorRate'] = -1
+        self.performance_metrics_for_final_ips['Precision'] = -1
+        self.performance_metrics_for_final_ips['Accuracy'] = -1
+        self.performance_metrics_for_final_ips['FMeasure1'] = -1
         self.results_dict = {}
         # To hold the tuples and if they matched in this time slot or not. used to move the states windows of each tuple
         self.tuples = {}
@@ -520,6 +531,7 @@ class Experiment(persistent.Persistent):
         self.total_errors['FP'] = 0.0
         # NN is when the ground truth label is not determined
         self.total_errors['NN'] = 0.0
+        # Perf metrics for the ip detection of the total erorrs counted in all the time windows
         self.total_performance_metrics = {}
         self.total_performance_metrics['TPR'] = -1
         self.total_performance_metrics['FPR'] = -1
@@ -529,6 +541,16 @@ class Experiment(persistent.Persistent):
         self.total_performance_metrics['Precision'] = -1
         self.total_performance_metrics['Accuracy'] = -1
         self.total_performance_metrics['FMeasure1'] = -1
+        # Perf metrics for the ip detection of the whole experiment
+        self.total_performance_metrics_for_final_ips = {}
+        self.total_performance_metrics_for_final_ips['TPR'] = -1
+        self.total_performance_metrics_for_final_ips['FPR'] = -1
+        self.total_performance_metrics_for_final_ips['TNR'] = -1
+        self.total_performance_metrics_for_final_ips['FNR'] = -1
+        self.total_performance_metrics_for_final_ips['ErrorRate'] = -1
+        self.total_performance_metrics_for_final_ips['Precision'] = -1
+        self.total_performance_metrics_for_final_ips['Accuracy'] = -1
+        self.total_performance_metrics_for_final_ips['FMeasure1'] = -1
         # Max amount of letters to use per tuple
         self.max_amount_to_check = 100
         # To store the info of IPs detected. 'TP', 'FP', 'FN', 'TN'
@@ -820,6 +842,44 @@ class Experiment(persistent.Persistent):
 
     def get_total_errors(self):
         return self.total_errors
+
+    def compute_total_performance_metrics_for_final_ips(self):
+        """ Compute the total performance metrics """
+        try:
+            self.total_performance_metrics_for_final_ips['TPR'] = ( len(self.final_ips['TP']) ) / float(len(self.final_ips['TP']) + len(self.final_ips['FN'] ))
+        except ZeroDivisionError:
+            self.total_performance_metrics_for_final_ips['TPR'] = -1
+        try:
+            self.total_performance_metrics_for_final_ips['TNR'] = ( len(self.final_ips['TN'] )) / float( len(self.final_ips['TN']) + len(self.final_ips['FP'] ))
+        except ZeroDivisionError:
+            self.total_performance_metrics_for_final_ips['TNR'] = -1
+        try:
+            self.total_performance_metrics_for_final_ips['FPR'] = ( len(self.final_ips['FP'] )) / float( len(self.final_ips['TN']) + len(self.final_ips['FP'] ))
+        except ZeroDivisionError:
+            self.total_performance_metrics_for_final_ips['FPR'] = -1
+        try:
+            self.total_performance_metrics_for_final_ips['FNR'] = ( len(self.final_ips['FN'] )) / float( len(self.final_ips['TP']) + len(self.final_ips['FN'] ))
+        except ZeroDivisionError:
+            self.total_performance_metrics_for_final_ips['FNR'] = -1
+        try:
+            self.total_performance_metrics_for_final_ips['Precision'] = ( len(self.final_ips['TP'] )) / float( len(self.final_ips['TP'] ) + len(self.final_ips['FP'] ))
+        except ZeroDivisionError:
+            self.total_performance_metrics_for_final_ips['Precision'] = -1
+        try:
+            self.total_performance_metrics_for_final_ips['Accuracy'] = ( len(self.final_ips['TP']) + len(self.final_ips['TN'] )) / float( len(self.final_ips['TP']) + len(self.final_ips['TN'] ) + len(self.final_ips['FP'] ) + len(self.final_ips['FN'] ))
+        except ZeroDivisionError:
+            self.total_performance_metrics_for_final_ips['Accuracy'] = -1
+        try:
+            self.total_performance_metrics_for_final_ips['ErrorRate'] = ( len(self.final_ips['FN']) + len(self.final_ips['FP']) ) / float( len(self.final_ips['TP']) + len(self.final_ips['TN']) + len(self.final_ips['FP']) + len(self.final_ips['FN'] ))
+        except ZeroDivisionError:
+            self.total_performance_metrics_for_final_ips['ErrorRate'] = -1
+        self.beta = 1.0
+        # With beta=1 F-Measure is also Fscore
+        try:
+            self.total_performance_metrics_for_final_ips['FMeasure1'] = ( ( (self.beta * self.beta) + 1 ) * self.total_performance_metrics_for_final_ips['Precision'] * self.total_performance_metrics_for_final_ips['TPR']  ) / float( ( self.beta * self.beta * self.total_performance_metrics_for_final_ips['Precision'] ) + self.total_performance_metrics_for_final_ips['TPR'])
+        except ZeroDivisionError:
+            self.total_performance_metrics_for_final_ips['FMeasure1'] = -1
+
 
     def compute_total_performance_metrics(self):
         """ Compute the total performance metrics """
@@ -1113,6 +1173,7 @@ class Experiment(persistent.Persistent):
         print_info('Total time slots: {}'.format(len(self.time_slots)))
         # Methodology 7.1 Compute the performance metrics so far
         self.compute_total_performance_metrics()
+        self.compute_total_performance_metrics_for_final_ips()
         # Methodology 7.2 Print the total errors
         print_info('Total Errors detecting IPs on all time windows: {}'.format(self.get_total_errors()))
         # Methodology 7.2 Print performance metric
@@ -1129,6 +1190,8 @@ class Experiment(persistent.Persistent):
             # Was it TP?
             if ip not in self.final_ips['TP']:
                 print('\tIP {} was never detected.'.format(red(ip)))
+        print_info('Total Performance Metrics for detcting IPs in the complete experiment:')
+        print_info('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(self.total_performance_metrics_for_final_ips['FMeasure1'], self.total_performance_metrics_for_final_ips['FPR'],self.total_performance_metrics_for_final_ips['TPR'], self.total_performance_metrics_for_final_ips['TNR'], self.total_performance_metrics_for_final_ips['FNR'], self.total_performance_metrics_for_final_ips['ErrorRate'], self.total_performance_metrics_for_final_ips['Precision'], self.total_performance_metrics_for_final_ips['Accuracy']))
 
     def move_windows_in_tuples(self):
         """ Ask for all the tuples in this time slot and move their state letters windows if the state len is more than a threshold. This is run after the closing of the time slot. Be careful. If the threshold is overcome, we move the min_len to the _current_ amount of flows, that means that after each time window, the tuple forgets what happened in previous time windows and only works with what happens from now on."""
