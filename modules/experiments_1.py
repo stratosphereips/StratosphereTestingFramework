@@ -754,26 +754,42 @@ class Experiment(persistent.Persistent):
             except ValueError:
                 # We dont have this ip
                 self.final_ips['TP'].append(ip)
+            # If this ip was added as FN, delete it from the FN list
+            try:
+                index = self.final_ips['FN'].index(ip)
+                self.final_ips['FN'].pop(index)
+            except ValueError:
+                pass
 
     def add_fp_ips(self, ips):
         """ Get a vector of FP ips and store them """
         for ip in ips:
             # Add the ips one by one
+            # If this IP was already detected as TN, dont add it as FP
             try:
-                self.final_ips['FP'].index(ip)
+                self.final_ips['TN'].index(ip)
             except ValueError:
-                # We dont have this ip
-                self.final_ips['FP'].append(ip)
+                # We dont have this ip as TP, add it as FN
+                try:
+                    self.final_ips['FP'].index(ip)
+                except ValueError:
+                    # We dont have this ip
+                    self.final_ips['FP'].append(ip)
 
     def add_fn_ips(self, ips):
         """ Get a vector of FN ips and store them """
         for ip in ips:
             # Add the ips one by one
+            # If this IP was already detected as TP, dont add it as FN
             try:
-                self.final_ips['FN'].index(ip)
+                self.final_ips['TP'].index(ip)
             except ValueError:
-                # We dont have this ip
-                self.final_ips['FN'].append(ip)
+                # We dont have this ip as TP, add it as FN
+                try:
+                    self.final_ips['FN'].index(ip)
+                except ValueError:
+                    # We dont have this ip
+                    self.final_ips['FN'].append(ip)
 
     def add_tn_ips(self, ips):
         """ Get a vector of TN ips and store them """
@@ -784,6 +800,12 @@ class Experiment(persistent.Persistent):
             except ValueError:
                 # We dont have this ip
                 self.final_ips['TN'].append(ip)
+            # If this ip was added as FP, delete it from the FP list
+            try:
+                index = self.final_ips['FP'].index(ip)
+                self.final_ips['FP'].pop(index)
+            except ValueError:
+                pass
 
     def get_final_ips(self):
         return self.final_ips
@@ -1085,16 +1107,18 @@ class Experiment(persistent.Persistent):
     def print_final_values(self):
         print
         # Print something about all the tuples
-        print_info('Total amount of tuples: {}'.format(len(self.tuples)))
+        print_info('Errors based on detecting IPs on each Time Window')
+        print_info('=================================================')
+        print_info('Total amount of unique tuples: {}'.format(len(self.tuples)))
         print_info('Total time slots: {}'.format(len(self.time_slots)))
         # Methodology 7.1 Compute the performance metrics so far
         self.compute_total_performance_metrics()
         # Methodology 7.2 Print the total errors
-        print_info('Total Errors: {}'.format(self.get_total_errors()))
+        print_info('Total Errors detecting IPs on all time windows: {}'.format(self.get_total_errors()))
         # Methodology 7.2 Print performance metric
-        print_info('Total Performance Metrics:')
+        print_info('Total Performance Metrics for detcting IPs in all time windows:')
         print_info('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(self.total_performance_metrics['FMeasure1'], self.total_performance_metrics['FPR'],self.total_performance_metrics['TPR'], self.total_performance_metrics['TNR'], self.total_performance_metrics['FNR'], self.total_performance_metrics['ErrorRate'], self.total_performance_metrics['Precision'], self.total_performance_metrics['Accuracy']))
-        print_info('IPs Detections')
+        print_info('Complete experiment IPs Detections')
         for iptype in self.final_ips:
             print '\t' + str(iptype)
             for ip in self.final_ips[iptype]:
