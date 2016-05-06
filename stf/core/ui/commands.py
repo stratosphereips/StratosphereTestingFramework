@@ -73,24 +73,6 @@ class Commands(object):
 
         print(table(['Command', 'Description'], rows))
 
-
-
-    ##
-    # INFO
-    #
-    # This command returns information on the open experiment.
-    #def cmd_info(self, *args):
-    #    if __experiments__.is_set() and __experiments__.current:
-    #        print_info('Information about the current experiment')
-    #        print(table(
-    #            ['Name', 'Value'],
-    #            [
-    #                ('Name', __experiments__.current.get_name()),
-    #            ]
-    #        ))
-    #    else:
-    #        print_info('There is no current experiment')
-
     ##
     # NOTES
     #
@@ -476,6 +458,7 @@ class Commands(object):
         parser.add_argument('-a', '--add', action="store_true", help="Add a label. Use -c to add to a connection_id (or IP) or -f to add to a group of connections id.")
         parser.add_argument('-c', '--connectionid', metavar="connection_id", help="Together with -a, add a label to the given connection_id or IP address. You should use -g to specify the id of the group of models.")
         parser.add_argument('-d', '--delete', metavar="label_id", help="Delete a label given the label number id. If you use a dash you can delete ranges of label ids. For example: -d 20-30")
+        parser.add_argument('-F', '--deletefilter', action="store_true", help="Delete labels using the filter given with -f.")
         parser.add_argument('-D', '--deleteconnection', metavar="connection_id", help="Delete a label given a connection id to delete (4-tuple). You must give the group of model id with -g.")
         parser.add_argument('-g', '--modelgroupid', metavar="modelgroupid", help="Id of the group of models. Used with -a.")
         parser.add_argument('-m', '--migrate', action="store_true", help="Migrate <= 0.1.2alpha labels to the new database.")
@@ -505,7 +488,10 @@ class Commands(object):
         # Subcomand to delete a label
         elif args.delete:
             __group_of_labels__.del_label(args.delete)
-
+        # Subcomand to delete a label with filter
+        elif args.deletefilter:
+            if args.filter:
+                __group_of_labels__.del_label(False, args.filter)
         # Subcomand to delete a specific connection
         elif args.deleteconnection:
             if args.modelgroupid:

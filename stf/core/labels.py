@@ -573,10 +573,10 @@ class Group_Of_Labels(persistent.Persistent):
             __notes__.add_auto_text_to_note(note_id, text_to_add)
             print_info('Connection has note id {}'.format(note_id))
 
-    def del_label(self, lab_id):
+    def del_label(self, lab_id, filter=""):
         """ Delete a label """
         try:
-            if '-' in lab_id:
+            if lab_id and '-' in lab_id:
                 # Probable range
                 try:
                     first_id = int(lab_id.split('-')[0])
@@ -584,21 +584,36 @@ class Group_Of_Labels(persistent.Persistent):
                 except ValueError:
                     print_error('Invalid label id')
                     return False
-            else:
-                try:
-                    first_id = int(lab_id)
-                    second_id = int(lab_id)
-                except ValueError:
-                    print_error('Invalid label id')
-                    return False
-            for id in range(first_id, second_id + 1):
-                label = self.labels[int(id)]
+                # Delete the range of ids
+                for id in range(first_id, second_id + 1):
+                    label = self.labels[int(id)]
+                    # First delete the label from the model
+                    for group_id in label.get_group_of_model_id():
+                        for conn_id in label.get_connections(groupofmodelid=group_id):
+                            self.del_label_in_model(group_id, conn_id, label.get_name())
+                    # Now delete the label itself
+                    self.labels.pop(id)
+            elif lab_id and '-' not in lab_id:
+                # Just an id
+                label = self.labels[int(lab_id)]
                 # First delete the label from the model
                 for group_id in label.get_group_of_model_id():
                     for conn_id in label.get_connections(groupofmodelid=group_id):
                         self.del_label_in_model(group_id, conn_id, label.get_name())
                 # Now delete the label itself
-                self.labels.pop(id)
+                self.labels.pop(int(lab_id))
+            elif not lab_id and filter:
+                # Use the filter to delete the labels
+                # Construct the filter
+                self.construct_filter(filter)
+                for label in self.get_labels():
+                    if self.apply_filter(label):
+                        # First delete the label from the model
+                        for group_id in label.get_group_of_model_id():
+                            for conn_id in label.get_connections(groupofmodelid=group_id):
+                                self.del_label_in_model(group_id, conn_id, label.get_name())
+                        # Now delete the label itself
+                        self.labels.pop(label.get_id())
         except KeyError:
             print_error('Label id does not exists. Delete only continuous ranges.')
 
@@ -745,10 +760,5 @@ class Group_Of_Labels(persistent.Persistent):
                     group_of_model_id = str(dataset_id) + '-1' 
                     label.change_dataset_id_to_group_of_models_id(dataset_id, group_of_model_id)
                     print_info('\tMigrated')
-
-    def delete_all_labels_from_dataset(self, dataset_id):
-        """ Given a dataset id, delete all the connections from that dataset from the labels """
-        pass
-
 
 __group_of_labels__ = Group_Of_Labels()
