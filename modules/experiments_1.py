@@ -41,11 +41,11 @@ class Tuple(object):
         self.src_ip = tuple4.split('-')[0]
         # The ground truth label is assigned only once, because it will not change for the same tuple
         self.ground_truth_label_id = __group_of_labels__.search_connection_in_label(tuple4, dataset_id)
-        # It could be that the tuple does not have a ground truth label
         if self.ground_truth_label_id:
             self.ground_truth_label = __group_of_labels__.get_label_name_by_id(self.ground_truth_label_id)
+        # It could be that the tuple does not have a ground truth label
         elif not self.ground_truth_label_id:
-            # If the tuple4 didn't have a label, put the label of the source IP if there is one
+            # If the tuple4 didn't have a label, assign to it the label of its source IP, if there is one...
             srcip = tuple4.split('-')[0]
             # Get the label id of the label of the src IP
             self.ground_truth_label_id_for_ip = __group_of_labels__.search_connection_in_label(srcip, dataset_id)
@@ -437,7 +437,6 @@ class TimeSlot(persistent.Persistent):
                 elif ip_error=='FP':
                     tcolor=red
                 print('\tIP: {:16}, Ground Truth: {:30}, Predicted: {:30} (at {} letters). Error: {}'.format(ip, tcolor(ground_truth_label), tcolor(predicted_label), num_letters, ip_error))
-                #print(self.ip_dict[ip])
             if verbose > 0:
                 if ip_error == 'TP':
                     print(red('\tTrue Detected IPs:'))
@@ -453,8 +452,6 @@ class TimeSlot(persistent.Persistent):
         if verbose > 9:
             # Stop after each timeslot
             raw_input()
-        # Clean the tuples in this timeslot
-        self.clean_tuples()
 
     def get_performance_metrics(self):
         """ return accumulated errors """
@@ -787,16 +784,17 @@ class Experiment(persistent.Persistent):
         """ Get a vector of FP ips and store them """
         for ip in ips:
             # Add the ips one by one
-            # If this IP was already detected as TN, dont add it as FP
             try:
-                self.final_ips['TN'].index(ip)
+                self.final_ips['FP'].index(ip)
             except ValueError:
-                # We dont have this ip as TP, add it as FN
-                try:
-                    self.final_ips['FP'].index(ip)
-                except ValueError:
-                    # We dont have this ip
-                    self.final_ips['FP'].append(ip)
+                # We dont have this ip
+                self.final_ips['FP'].append(ip)
+            # If this IP was already detected as TN, delete it as TN
+            try:
+                index = self.final_ips['TN'].index(ip)
+                self.final_ips['TN'].pop(index)
+            except ValueError:
+                pass
 
     def add_fn_ips(self, ips):
         """ Get a vector of FN ips and store them """
@@ -822,7 +820,7 @@ class Experiment(persistent.Persistent):
             except ValueError:
                 # We dont have this ip
                 self.final_ips['TN'].append(ip)
-            # If this ip was added as FP, delete it from the FP list
+            # If this ip was added as FP before, delete it from the FP list
             try:
                 index = self.final_ips['FP'].index(ip)
                 self.final_ips['FP'].pop(index)
@@ -992,11 +990,12 @@ class Experiment(persistent.Persistent):
             tuple4 = column_values['SrcAddr']+'-'+column_values['DstAddr']+'-'+column_values['Dport']+'-'+column_values['Proto']
             # Filter if we should analyze this tuple or not
             if self.apply_filter(tuple4):
-                # Get the old tuple object for it, or get a new tuple object
+                # Get the old tuple object for it, or get a new tuple object. 
                 tuple = self.get_tuple(tuple4, group_id)
                 # Methodology 4.2. Add all the relevant data to this tupple
                 tuple.add_new_flow(column_values)
                 # Methodology 4.3. Get the correct time slot. If the flow is outside the time slot, it will close the last time slot.
+                # Here we also __close the current time slot if this tuple is in the next time slot
                 time_slot = self.get_time_slot(column_values)
                 # Add verbosity to time slot
                 time_slot.set_verbose(self.verbose)
@@ -1124,13 +1123,16 @@ class Experiment(persistent.Persistent):
                             print_info('Unset predicted label for IP {}: {}'.format(tuple.get_src_ip(), time_slot.get_predicted_label(tuple.get_src_ip())))
                         time_slot.unset_predicted_label_for_ip(tuple.get_src_ip(), False, tuple.get_amount_of_flows(), tuple.get_id())
                         time_slot.set_4tuple_unmatch(tuple.get_id())
-
+                # Finishing working with this tuple
+            # End of the if of applying the filter to this line
             # Read next line
             # Line without the src and dst data
             line = ','.join(file.readline().strip().split(',')[:14])
             if self.verbose > 12:
                 # Stop after each flow
                 raw_input()
+            # Clean the tuples in this timeslot
+            self.clean_tuples()
         # Close the file
         file.close()
         # Methodology 7 Compute the results of the last time slot
@@ -1480,12 +1482,10 @@ class Group_of_Experiments(Module, persistent.Persistent):
                     except KeyError:
                         gtl = 'None'
                     try:
-                        #win_model_id = timeslot.ip_dict[ip]['winner_model_id']
                         win_model_id = timeslot.get_predicted_model_id_for_ip(ip)
                     except KeyError:
                         win_model_id = False
                     try:
-                        #win_model_dist = timeslot.ip_dict[ip]['winner_model_distance']
                         win_model_dist = timeslot.get_predicted_model_distance_for_ip(ip)
                     except KeyError:
                         win_model_dist = False
