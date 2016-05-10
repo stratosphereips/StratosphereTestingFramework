@@ -63,6 +63,9 @@ class Model_Constructor(object):
             model['T2'] = newtime - model['LastTime']
             # If T2 is negative, then we have an issue with the order of the file. Send an error and stop. The user should fix this, not us.
             if model['T2'].total_seconds() < 0:
+                print_error('Model: {}'.format(model)
+                print_error('T1 is: {}'.format(model['T1'].total_seconds())
+                print_error('T2 is: {}'.format(model['T2'].total_seconds())
                 print_error('The last flow is: {}'.format(flow))
                 print_error('The binetflow file is not sorted. Please delete this file from the dataset, sort it (cat file.biargus |sort -n > newfile.biargus) and add it back. We can not modify a file on disk.')
                 return False
