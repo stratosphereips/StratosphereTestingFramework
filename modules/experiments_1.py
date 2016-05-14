@@ -452,6 +452,8 @@ class TimeSlot(persistent.Persistent):
         if verbose > 9:
             # Stop after each timeslot
             raw_input()
+        # Clean the tuples in this timeslot
+        self.clean_tuples()
 
     def get_performance_metrics(self):
         """ return accumulated errors """
@@ -1131,8 +1133,6 @@ class Experiment(persistent.Persistent):
             if self.verbose > 12:
                 # Stop after each flow
                 raw_input()
-            # Clean the tuples in this timeslot
-            self.clean_tuples()
         # Close the file
         file.close()
         # Methodology 7 Compute the results of the last time slot
@@ -1569,8 +1569,12 @@ class Group_of_Experiments(Module, persistent.Persistent):
                     models_ids = self.args.models_ids
                     testing_id = self.args.testing_id
                     self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth, self.args.verbose, self.args.filter, self.args.description, self.args.structure_of_models_ids)
-                except AttributeError:
-                    print_error('You should provide both the ids of the models to use for detection (with -m) and the testing dataset id (with -t).')
+                #except AttributeError:
+                #    print_error('You should provide both the ids of the models to use for detection (with -m) and the testing dataset id (with -t).')
+                #    return False
+                except Exception as e:
+                    print 'Error during the experiment'
+                    print e
                     return False
         elif self.args.delete:
             self.delete_experiment(self.args.delete)
