@@ -286,7 +286,7 @@ class TimeSlot(persistent.Persistent):
         self.ip_dict[ip]['winner_model_distance'] = winner_model_distance
 
     def get_predicted_model_id_for_ip(self, ip):
-        try 
+        try:
             return self.ip_dict[ip]['predicted_labels'][-1][3]
         except IndexError:
             return False
