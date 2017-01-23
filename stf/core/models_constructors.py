@@ -66,8 +66,11 @@ class Model_Constructor(object):
                 print_error('Model: {}'.format(model))
                 print_error('T1 is: {}'.format(model['T1'].total_seconds()))
                 print_error('T2 is: {}'.format(model['T2'].total_seconds()))
+                print_error('Flow new time is: {}'.format(newtime))
+                print_error('Flow last time is: {}'.format(model['LastTime']))
                 print_error('The last flow is: {}'.format(flow))
                 print_error('The binetflow file is not sorted. Please delete this file from the dataset, sort it (cat file.biargus |sort -n > newfile.biargus) and add it back. We can not modify a file on disk.')
+                print_error('Flow: '.format(flow))
                 return False
             # Update the lasttime for next time
             model['LastTime'] = newtime
