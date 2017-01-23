@@ -142,7 +142,7 @@ class Label(persistent.Persistent):
 ##################
 class Group_Of_Labels(persistent.Persistent):
     """
-    This holds a group of labe
+    This holds a group of labes
     """
     def __init__(self):
         self.labels = BTrees.IOBTree.BTree()
@@ -293,7 +293,7 @@ class Group_Of_Labels(persistent.Persistent):
                 except ValueError:
                     pass
 
-    def apply_filter(self, model):
+    def apply_filter(self, model, groupofmodelid=False, connectionid=False):
         """ Use the stored filter to know what we should match"""
         responses = []
         try:
@@ -318,6 +318,26 @@ class Group_Of_Labels(persistent.Persistent):
                         responses.append(True)
                     else:
                         responses.append(False)
+            # statelength
+            elif key == 'statelength':
+                letters_model = self.get_the_model_of_a_connection(groupofmodelid, connectionid)
+                state = letters_model.get_state()
+                if operator == '<':
+                    if len(state) < int(value):
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '>':
+                    if len(state) > int(value):
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '=':
+                    if len(state) == int(value):
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            # groupid
             elif key == 'groupid':
                 # One label can have more than one groupid. So search for at least one match.
                 groupsid = model.get_groups_id()
@@ -434,14 +454,6 @@ class Group_Of_Labels(persistent.Persistent):
                 connections = group_of_connections.get_connections()
                 # Construct the filter
                 self.construct_filter(filter)
-                # Check we are using the correct filters
-                for temp_filter in self.filter:
-                    if temp_filter[0] != "connid" :
-                        print_error('Adding labels with a filter only supports the type of filter connid= and connid!=')
-                        return False
-                    elif temp_filter[1] != "=" and temp_filter[1] != "!=":
-                        print_error('Adding labels with a filter only supports the type of filter connid= and connid!=')
-                        return False
                 for connection in connections:
                     connection_id = connection.get_id()
                     has_label = self.check_label_existance(group_of_model_id, connection_id)
@@ -450,20 +462,21 @@ class Group_Of_Labels(persistent.Persistent):
                         label_id = self.labels[list(self.labels.keys())[-1]].get_id() + 1
                     except (KeyError, IndexError):
                         label_id = 1
-                    # Obtain the name
+                    # Obtain the name of this connection
                     name = general_name + '-' + str(general_name_id)
                     proto = general_name.split('-')[2]
                     label = Label(label_id)
                     label.set_name(name)
                     label.add_connection(group_of_model_id, connection_id)
-                    if self.apply_filter(label):
+                    if self.apply_filter(label, groupofmodelid=group_of_model_id, connectionid=connection_id):
                         if has_label:
-                            #print_error('This connection from this dataset was already assigned the label id {}. We did not change it.'.format(has_label))
+                            # his connection from this dataset was already assigned this id. We did not change it
                             continue
-                        # Add label id to the model
+                        # Add the label id to the model
                         self.add_label_to_model(group_of_model_id, connection_id, name)
                         # add auto note with the label to the model
                         self.add_auto_label_for_connection(group_of_model_id, connection_id, name)
+                        # Update the label list
                         self.labels[label_id] = label
                         general_name_id += 1
                     else:
