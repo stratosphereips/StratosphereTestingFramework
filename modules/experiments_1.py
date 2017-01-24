@@ -41,9 +41,17 @@ class Tuple(object):
         self.src_ip = tuple4.split('-')[0]
         # The ground truth label is assigned only once, because it will not change for the same tuple
         self.ground_truth_label_id = __group_of_labels__.search_connection_in_label(tuple4, dataset_id)
-        # It could be that the tuple does not have a ground truth label
         if self.ground_truth_label_id:
             self.ground_truth_label = __group_of_labels__.get_label_name_by_id(self.ground_truth_label_id)
+        # It could be that the tuple does not have a ground truth label
+        elif not self.ground_truth_label_id:
+            # If the tuple4 didn't have a label, assign to it the label of its source IP, if there is one...
+            srcip = tuple4.split('-')[0]
+            # Get the label id of the label of the src IP
+            self.ground_truth_label_id_for_ip = __group_of_labels__.search_connection_in_label(srcip, dataset_id)
+            if self.ground_truth_label_id_for_ip:
+                # Assign the label of the IP to the label of the tuple
+                self.ground_truth_label = __group_of_labels__.get_label_name_by_id(self.ground_truth_label_id_for_ip)
         # The state of the tuple so far (because it can still grow)
         self.state_so_far = ""
         # Used to move the amount of letters considered for this tuple in the time slot
@@ -71,7 +79,7 @@ class Tuple(object):
         return self.amount_of_flows
 
     def update_min_state_len(self):
-        """ Move the min state len to the max amount of flows we have """
+        """ Move the min state len to the amount of flows we have now"""
         self.min_state_len = self.amount_of_flows
         self.updated = True
         
@@ -145,6 +153,7 @@ class TimeSlot(persistent.Persistent):
         # Errors NN means that the ground truth label is unknown, so it is not Positive nor Negative and we can not report an error.
         self.acc_errors['NN'] = 0.0
         # Errors NN means that the ground truth label is unknown, so it is not Positive nor Negative and we can not report an error.
+        # Metrics for the IP detection counting all the time windows together
         self.performance_metrics = {}
         self.performance_metrics['TPR'] = -1
         self.performance_metrics['FPR'] = -1
@@ -154,6 +163,16 @@ class TimeSlot(persistent.Persistent):
         self.performance_metrics['Precision'] = -1
         self.performance_metrics['Accuracy'] = -1
         self.performance_metrics['FMeasure1'] = -1
+        # Metrics for the IPs detection of the complete experiment as a whole
+        self.performance_metrics_for_final_ips = {}
+        self.performance_metrics_for_final_ips['TPR'] = -1
+        self.performance_metrics_for_final_ips['FPR'] = -1
+        self.performance_metrics_for_final_ips['TNR'] = -1
+        self.performance_metrics_for_final_ips['FNR'] = -1
+        self.performance_metrics_for_final_ips['ErrorRate'] = -1
+        self.performance_metrics_for_final_ips['Precision'] = -1
+        self.performance_metrics_for_final_ips['Accuracy'] = -1
+        self.performance_metrics_for_final_ips['FMeasure1'] = -1
         self.results_dict = {}
         # To hold the tuples and if they matched in this time slot or not. used to move the states windows of each tuple
         self.tuples = {}
@@ -267,7 +286,10 @@ class TimeSlot(persistent.Persistent):
         self.ip_dict[ip]['winner_model_distance'] = winner_model_distance
 
     def get_predicted_model_id_for_ip(self, ip):
-        return self.ip_dict[ip]['predicted_labels'][-1][3]
+        try:
+            return self.ip_dict[ip]['predicted_labels'][-1][3]
+        except IndexError:
+            return False
 
     def get_predicted_model_distance_for_ip(self, ip):
         return self.ip_dict[ip]['predicted_labels'][-1][4]
@@ -418,7 +440,6 @@ class TimeSlot(persistent.Persistent):
                 elif ip_error=='FP':
                     tcolor=red
                 print('\tIP: {:16}, Ground Truth: {:30}, Predicted: {:30} (at {} letters). Error: {}'.format(ip, tcolor(ground_truth_label), tcolor(predicted_label), num_letters, ip_error))
-                #print(self.ip_dict[ip])
             if verbose > 0:
                 if ip_error == 'TP':
                     print(red('\tTrue Detected IPs:'))
@@ -493,12 +514,14 @@ class TimeSlot(persistent.Persistent):
 ######################
 class Experiment(persistent.Persistent):
     """ An individual experiment """
-    def __init__(self, id, description, timeslotwidth, filter):
+    def __init__(self, id, description, timeslotwidth, filter, structure_name):
         self.filter = filter
         self.id = id
         self.description = description
         # Dict of tuples in this experiment during testing
         self.tuples = {}
+        # The name of the structure where the trainings ids should be taken from
+        self.structure_name = structure_name
         # The vect of time slots
         self.time_slots = []
         self.time_slot_width = timeslotwidth
@@ -510,6 +533,7 @@ class Experiment(persistent.Persistent):
         self.total_errors['FP'] = 0.0
         # NN is when the ground truth label is not determined
         self.total_errors['NN'] = 0.0
+        # Perf metrics for the ip detection of the total erorrs counted in all the time windows
         self.total_performance_metrics = {}
         self.total_performance_metrics['TPR'] = -1
         self.total_performance_metrics['FPR'] = -1
@@ -519,6 +543,16 @@ class Experiment(persistent.Persistent):
         self.total_performance_metrics['Precision'] = -1
         self.total_performance_metrics['Accuracy'] = -1
         self.total_performance_metrics['FMeasure1'] = -1
+        # Perf metrics for the ip detection of the whole experiment
+        self.total_performance_metrics_for_final_ips = {}
+        self.total_performance_metrics_for_final_ips['TPR'] = -1
+        self.total_performance_metrics_for_final_ips['FPR'] = -1
+        self.total_performance_metrics_for_final_ips['TNR'] = -1
+        self.total_performance_metrics_for_final_ips['FNR'] = -1
+        self.total_performance_metrics_for_final_ips['ErrorRate'] = -1
+        self.total_performance_metrics_for_final_ips['Precision'] = -1
+        self.total_performance_metrics_for_final_ips['Accuracy'] = -1
+        self.total_performance_metrics_for_final_ips['FMeasure1'] = -1
         # Max amount of letters to use per tuple
         self.max_amount_to_check = 100
         # To store the info of IPs detected. 'TP', 'FP', 'FN', 'TN'
@@ -711,11 +745,7 @@ class Experiment(persistent.Persistent):
         # Methodology 4.4. The first flow case and the case where the flow should be in a new flow because it is outside the last slot. All in one!
         new_slot = TimeSlot(starttime, self.time_slot_width)
         if self.time_slots:
-            # Move the state windows in the tuples that already matched in the current time slot. Before closing the time windoows!
-            self.move_windows_in_matched_tuples()
-            # Move the state windows in the tuples that did not matched.
-            self.move_windows_in_unmatched_tuples()
-            # We created a slot because the flow is outside the width, so we should close the previous time slot
+            # We just created a new slot because the current flow is outside the width of the current slot, so we should close the previous time slot first
             # Close the last slot
             if self.verbose > 1:
                 print 'Closing  {}. (Time: {})'.format(self.time_slots[-1], datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S'))
@@ -731,6 +761,8 @@ class Experiment(persistent.Persistent):
             self.add_tn_ips(tn_ips_in_last_time_slot)
             # Store the errors in the experiment
             self.add_errors(self.time_slots[-1].get_errors())
+            # Move the state windows in the tuples that have more than a threshold of letters. After closing the time windoows
+            self.move_windows_in_tuples()
         # Add it
         self.time_slots.append(new_slot)
         if self.verbose > 1:
@@ -746,6 +778,12 @@ class Experiment(persistent.Persistent):
             except ValueError:
                 # We dont have this ip
                 self.final_ips['TP'].append(ip)
+            # If this ip was added as FN, delete it from the FN list
+            try:
+                index = self.final_ips['FN'].index(ip)
+                self.final_ips['FN'].pop(index)
+            except ValueError:
+                pass
 
     def add_fp_ips(self, ips):
         """ Get a vector of FP ips and store them """
@@ -756,16 +794,27 @@ class Experiment(persistent.Persistent):
             except ValueError:
                 # We dont have this ip
                 self.final_ips['FP'].append(ip)
+            # If this IP was already detected as TN, delete it as TN
+            try:
+                index = self.final_ips['TN'].index(ip)
+                self.final_ips['TN'].pop(index)
+            except ValueError:
+                pass
 
     def add_fn_ips(self, ips):
         """ Get a vector of FN ips and store them """
         for ip in ips:
             # Add the ips one by one
+            # If this IP was already detected as TP, dont add it as FN
             try:
-                self.final_ips['FN'].index(ip)
+                self.final_ips['TP'].index(ip)
             except ValueError:
-                # We dont have this ip
-                self.final_ips['FN'].append(ip)
+                # We dont have this ip as TP, add it as FN
+                try:
+                    self.final_ips['FN'].index(ip)
+                except ValueError:
+                    # We dont have this ip
+                    self.final_ips['FN'].append(ip)
 
     def add_tn_ips(self, ips):
         """ Get a vector of TN ips and store them """
@@ -776,6 +825,12 @@ class Experiment(persistent.Persistent):
             except ValueError:
                 # We dont have this ip
                 self.final_ips['TN'].append(ip)
+            # If this ip was added as FP before, delete it from the FP list
+            try:
+                index = self.final_ips['FP'].index(ip)
+                self.final_ips['FP'].pop(index)
+            except ValueError:
+                pass
 
     def get_final_ips(self):
         return self.final_ips
@@ -790,6 +845,44 @@ class Experiment(persistent.Persistent):
 
     def get_total_errors(self):
         return self.total_errors
+
+    def compute_total_performance_metrics_for_final_ips(self):
+        """ Compute the total performance metrics """
+        try:
+            self.total_performance_metrics_for_final_ips['TPR'] = ( len(self.final_ips['TP']) ) / float(len(self.final_ips['TP']) + len(self.final_ips['FN'] ))
+        except ZeroDivisionError:
+            self.total_performance_metrics_for_final_ips['TPR'] = -1
+        try:
+            self.total_performance_metrics_for_final_ips['TNR'] = ( len(self.final_ips['TN'] )) / float( len(self.final_ips['TN']) + len(self.final_ips['FP'] ))
+        except ZeroDivisionError:
+            self.total_performance_metrics_for_final_ips['TNR'] = -1
+        try:
+            self.total_performance_metrics_for_final_ips['FPR'] = ( len(self.final_ips['FP'] )) / float( len(self.final_ips['TN']) + len(self.final_ips['FP'] ))
+        except ZeroDivisionError:
+            self.total_performance_metrics_for_final_ips['FPR'] = -1
+        try:
+            self.total_performance_metrics_for_final_ips['FNR'] = ( len(self.final_ips['FN'] )) / float( len(self.final_ips['TP']) + len(self.final_ips['FN'] ))
+        except ZeroDivisionError:
+            self.total_performance_metrics_for_final_ips['FNR'] = -1
+        try:
+            self.total_performance_metrics_for_final_ips['Precision'] = ( len(self.final_ips['TP'] )) / float( len(self.final_ips['TP'] ) + len(self.final_ips['FP'] ))
+        except ZeroDivisionError:
+            self.total_performance_metrics_for_final_ips['Precision'] = -1
+        try:
+            self.total_performance_metrics_for_final_ips['Accuracy'] = ( len(self.final_ips['TP']) + len(self.final_ips['TN'] )) / float( len(self.final_ips['TP']) + len(self.final_ips['TN'] ) + len(self.final_ips['FP'] ) + len(self.final_ips['FN'] ))
+        except ZeroDivisionError:
+            self.total_performance_metrics_for_final_ips['Accuracy'] = -1
+        try:
+            self.total_performance_metrics_for_final_ips['ErrorRate'] = ( len(self.final_ips['FN']) + len(self.final_ips['FP']) ) / float( len(self.final_ips['TP']) + len(self.final_ips['TN']) + len(self.final_ips['FP']) + len(self.final_ips['FN'] ))
+        except ZeroDivisionError:
+            self.total_performance_metrics_for_final_ips['ErrorRate'] = -1
+        self.beta = 1.0
+        # With beta=1 F-Measure is also Fscore
+        try:
+            self.total_performance_metrics_for_final_ips['FMeasure1'] = ( ( (self.beta * self.beta) + 1 ) * self.total_performance_metrics_for_final_ips['Precision'] * self.total_performance_metrics_for_final_ips['TPR']  ) / float( ( self.beta * self.beta * self.total_performance_metrics_for_final_ips['Precision'] ) + self.total_performance_metrics_for_final_ips['TPR'])
+        except ZeroDivisionError:
+            self.total_performance_metrics_for_final_ips['FMeasure1'] = -1
+
 
     def compute_total_performance_metrics(self):
         """ Compute the total performance metrics """
@@ -871,13 +964,16 @@ class Experiment(persistent.Persistent):
             return False
         # Get the structures
         structures = __database__.get_structures()
-        training_structure_name = 'markov_models_1' # Same as before, now it is hardcoded, but warning!
-        training_structure = structures[training_structure_name]
+        try:
+            training_structure = structures[self.structure_name]
+        except KeyError:
+            print_error('That structure name is invalid.')
+            return False
         # Store some info about each training model, do it here and only once
         self.training_models = {}
         for model_training_id in self.models_ids:
             self.training_models[model_training_id] = {}
-            self.training_models[model_training_id]['traininig_structure_name'] = training_structure_name
+            self.training_models[model_training_id]['traininig_structure_name'] = self.structure_name
             self.training_models[model_training_id]['traininig_structure'] = training_structure
             try:
                 self.training_models[model_training_id]['model_training'] = training_structure[int(model_training_id)]
@@ -899,11 +995,12 @@ class Experiment(persistent.Persistent):
             tuple4 = column_values['SrcAddr']+'-'+column_values['DstAddr']+'-'+column_values['Dport']+'-'+column_values['Proto']
             # Filter if we should analyze this tuple or not
             if self.apply_filter(tuple4):
-                # Get the old tuple object for it, or get a new tuple object
+                # Get the old tuple object for it, or get a new tuple object. 
                 tuple = self.get_tuple(tuple4, group_id)
                 # Methodology 4.2. Add all the relevant data to this tupple
                 tuple.add_new_flow(column_values)
                 # Methodology 4.3. Get the correct time slot. If the flow is outside the time slot, it will close the last time slot.
+                # Here we also __close the current time slot if this tuple is in the next time slot
                 time_slot = self.get_time_slot(column_values)
                 # Add verbosity to time slot
                 time_slot.set_verbose(self.verbose)
@@ -965,7 +1062,7 @@ class Experiment(persistent.Persistent):
                 # Store the state so far in the tuple. Now we are cutting the original state. Min is the amount defined if this tuple had already matched before. Max is just the amount of flows recived so far.
                 tuple.set_state_so_far(model.get_state()[tuple.get_min_state_len():tuple.get_max_state_len()])
                 # Only compare the models when the START of the test state has more than 3 letters. So avoid mathching numbers and the first symbol. We want letters. After an update, compare all.
-                if tuple.get_state_len() > 3 or tuple.is_updated():
+                if tuple.get_state_len() >= 3 or tuple.is_updated():
                     # Put these variables to default values. Used for the first time and to reset the winner variables.
                     time_slot.set_winner_model_id_for_ip(tuple.get_src_ip(), False)
                     time_slot.set_winner_model_distance_for_ip(tuple.get_src_ip(),'inf')
@@ -1031,19 +1128,16 @@ class Experiment(persistent.Persistent):
                             print_info('Unset predicted label for IP {}: {}'.format(tuple.get_src_ip(), time_slot.get_predicted_label(tuple.get_src_ip())))
                         time_slot.unset_predicted_label_for_ip(tuple.get_src_ip(), False, tuple.get_amount_of_flows(), tuple.get_id())
                         time_slot.set_4tuple_unmatch(tuple.get_id())
-
+                # Finishing working with this tuple
+            # End of the if of applying the filter to this line
             # Read next line
             # Line without the src and dst data
             line = ','.join(file.readline().strip().split(',')[:14])
-            if self.verbose > 10:
+            if self.verbose > 12:
                 # Stop after each flow
                 raw_input()
         # Close the file
         file.close()
-        # Move the state windows in the tuples that already matched in this LAST time slot. Before closing the time windoows!
-        self.move_windows_in_matched_tuples()
-        # Move the state windows in the tuples that did not matched.
-        self.move_windows_in_unmatched_tuples()
         # Methodology 7 Compute the results of the last time slot
         if self.time_slots:
             self.time_slots[-1].close(self.verbose)
@@ -1058,15 +1152,18 @@ class Experiment(persistent.Persistent):
             self.add_tn_ips(tn_ips_in_last_time_slot)
             # Store the errors in the experiment
             self.add_errors(self.time_slots[-1].get_errors())
+        # Move the state windows in the tuples Before closing the time windoows!
+        self.move_windows_in_tuples()
+        # Update the finish time
         finish_time = datetime.now()
         print_info('Finish Time: {} (Duration: {})'.format(unicode(finish_time), unicode(finish_time - start_time)))
         self.print_final_values()
+        # Erase the tuples
         self.tuples = {}
-        # Before finishing we need to put back the original information in the models
+        # Before finishing we need to put back the original information in the training models
         for model_training_id in self.models_ids:
             self.training_models[model_training_id]['model_training'].set_matrix(self.training_models[model_training_id]['original_matrix']) 
             self.training_models[model_training_id]['model_training'].set_self_probability(self.training_models[model_training_id]['original_self_prob'])  
-
 
     def clean_experiment_for_storage(self):
         # After we printed everything, we should clean the experiment of all the stuff we don't want stored in the db.
@@ -1075,16 +1172,19 @@ class Experiment(persistent.Persistent):
     def print_final_values(self):
         print
         # Print something about all the tuples
-        print_info('Total amount of tuples: {}'.format(len(self.tuples)))
+        print_info('Errors based on detecting IPs on each Time Window')
+        print_info('=================================================')
+        print_info('Total amount of unique tuples: {}'.format(len(self.tuples)))
         print_info('Total time slots: {}'.format(len(self.time_slots)))
         # Methodology 7.1 Compute the performance metrics so far
         self.compute_total_performance_metrics()
+        self.compute_total_performance_metrics_for_final_ips()
         # Methodology 7.2 Print the total errors
-        print_info('Total Errors: {}'.format(self.get_total_errors()))
+        print_info('Total Errors detecting IPs on all time windows: {}'.format(self.get_total_errors()))
         # Methodology 7.2 Print performance metric
-        print_info('Total Performance Metrics:')
+        print_info('Total Performance Metrics for detcting IPs in all time windows:')
         print_info('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(self.total_performance_metrics['FMeasure1'], self.total_performance_metrics['FPR'],self.total_performance_metrics['TPR'], self.total_performance_metrics['TNR'], self.total_performance_metrics['FNR'], self.total_performance_metrics['ErrorRate'], self.total_performance_metrics['Precision'], self.total_performance_metrics['Accuracy']))
-        print_info('IPs Detections')
+        print_info('Complete experiment IPs Detections')
         for iptype in self.final_ips:
             print '\t' + str(iptype)
             for ip in self.final_ips[iptype]:
@@ -1095,35 +1195,23 @@ class Experiment(persistent.Persistent):
             # Was it TP?
             if ip not in self.final_ips['TP']:
                 print('\tIP {} was never detected.'.format(red(ip)))
+        print_info('Total Performance Metrics for detcting IPs in the complete experiment:')
+        print_info('\tFMeasure: {:.3f}, FPR: {:.3f}, TPR: {:.3f}, TNR: {:.3f}, FNR: {:.3f}, ErrorR: {:.3f}, Prec: {:.3f}, Accu: {:.3f}'.format(self.total_performance_metrics_for_final_ips['FMeasure1'], self.total_performance_metrics_for_final_ips['FPR'],self.total_performance_metrics_for_final_ips['TPR'], self.total_performance_metrics_for_final_ips['TNR'], self.total_performance_metrics_for_final_ips['FNR'], self.total_performance_metrics_for_final_ips['ErrorRate'], self.total_performance_metrics_for_final_ips['Precision'], self.total_performance_metrics_for_final_ips['Accuracy']))
 
-    def move_windows_in_matched_tuples(self):
-        """ Ask for all the tuples that had matches in this time slot and move their state letters windows. This is run after the closing of the time slot. Be careful """
+    def move_windows_in_tuples(self):
+        """ Ask for all the tuples in this time slot and move their state letters windows if the state len is more than a threshold. This is run after the closing of the time slot. Be careful. If the threshold is overcome, we move the min_len to the _current_ amount of flows, that means that after each time window, the tuple forgets what happened in previous time windows and only works with what happens from now on."""
         try:
-            matching_tuples = self.time_slots[-1].get_matching_tuples()
+            tuples = self.time_slots[-1].tuples
         except IndexError:
             # It is possible that there are no time slots yet.
             return True
-        for tuple4 in matching_tuples:
-            # First get how far the state has gone in the current time slot. Not the state number when it was detected first, but the state number when the time slot finished.
-            # 'move' the start of the letters to where it finished in the last time slot that matched.
-            self.tuples[tuple4].update_min_state_len()
-            #print '\tMatched tuple {}. Min len moved to {}'.format(tuple4, self.tuples[tuple4].get_min_state_len())
-
-    def move_windows_in_unmatched_tuples(self):
-        """ Ask for all the tuples that didn't had matches in this time slot and move their state letters windows if the state len so far is more than a threshold. This is run after the closing of the time slot. Be careful """
-        try:
-            unmatching_tuples = self.time_slots[-1].get_unmatching_tuples()
-        except IndexError:
-            # It is possible that there are no time slots yet.
-            return True
-        #print_info('Un matching tuples: {}'.format(unmatching_tuples))
-        for tuple4 in unmatching_tuples:
+        #print_info('Tuples: {}'.format(tuples))
+        for tuple4 in tuples:
             # If the amount of letters in the states is more that a threshold, update its state and forget the letters so far.
-            #print self.tuples[tuple4]
             diff = self.tuples[tuple4].get_max_state_len() - self.tuples[tuple4].get_min_state_len()
             if diff >= 100:
                 self.tuples[tuple4].update_min_state_len()
-                #print '\tUN-Matched tuple {}. The current len diff is: {}. Min len moved to {}'.format(tuple4, diff, self.tuples[tuple4].get_min_state_len())
+                #print '\tTuple {}. The current len diff is: {}. Min len moved to {}'.format(tuple4, diff, self.tuples[tuple4].get_min_state_len())
 
     def get_tuple(self, tuple4, dataset_id):
         """ Get the values and return the correct tuple for them """
@@ -1251,6 +1339,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
         self.parser.add_argument('-n', '--new', action='store_true', help='Create a new experiment. Use -m to assign the models to use for detection. Use -t to select a testing dataset.')
         self.parser.add_argument('-d', '--delete', metavar='delete', help='Delete an experiment given the id. You can give a range with -. Ej: -d 10-20')
         self.parser.add_argument('-m', '--models_ids', metavar='models_ids', help='Ids of the models (e.g. Markov Models) to be used when creating a new experiment with -n. Comma separated.')
+        self.parser.add_argument('-s', '--structure_of_models_ids', metavar='structure_of_models_ids', help='Name of the structure where the models id belong. For example: markov_models_1.')
         self.parser.add_argument('-t', '--testing_id', metavar='testing_id', type=int, help='Dataset id to be used as testing when creating a new experiment with -n.')
         self.parser.add_argument('-T', '--timeslotwidth', default=300, metavar='timeslotwidth', type=int, help='The width of the time slot in seconds.')
         self.parser.add_argument('-v', '--verbose', default=0, metavar='verbose', type=int, help='An integer expressing how verbose should we be while running the experiment. For example -v 1.')
@@ -1292,7 +1381,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
             rows.append([ experiment.get_id(), experiment.get_description(), experiment.get_fancy_performance_metrics() ])
         print(table(header=['Id', 'Description','Performance Metrics'], rows=rows))
 
-    def create_new_experiment(self, models_ids, testing_id, timeslotwidth, verbose, filter, desc):
+    def create_new_experiment(self, models_ids, testing_id, timeslotwidth, verbose, filter, desc, structure_name):
         """ Create a new experiment """
         # Generate the new id
         try:
@@ -1303,7 +1392,7 @@ class Group_of_Experiments(Module, persistent.Persistent):
         # Create the new object
         print
         print_info('Starting experiment id: {}'.format(new_id))
-        new_experiment = Experiment(new_id, desc, timeslotwidth, filter)
+        new_experiment = Experiment(new_id, desc, timeslotwidth, filter, structure_name)
         # Methodology 1. We receive the markov_models ids for the training, and the id of the dataset of the tetsing. (We may not have markov models for the testing. A binetflow file and labels are enough)
         # Add info
         new_experiment.add_models_ids(models_ids)
@@ -1396,12 +1485,10 @@ class Group_of_Experiments(Module, persistent.Persistent):
                     except KeyError:
                         gtl = 'None'
                     try:
-                        #win_model_id = timeslot.ip_dict[ip]['winner_model_id']
                         win_model_id = timeslot.get_predicted_model_id_for_ip(ip)
                     except KeyError:
                         win_model_id = False
                     try:
-                        #win_model_dist = timeslot.ip_dict[ip]['winner_model_distance']
                         win_model_dist = timeslot.get_predicted_model_distance_for_ip(ip)
                     except KeyError:
                         win_model_dist = False
@@ -1468,11 +1555,15 @@ class Group_of_Experiments(Module, persistent.Persistent):
         if self.args.list:
             self.list_experiments()
         elif self.args.new:
+            # Do we have the name of the structure?
+            if not self.args.structure_of_models_ids:
+                print_error('The name of the structure for the trainings ids should be provided. For example: markov_models_1')
+                return False
             if self.args.onebyone:
                 try:
                     testing_id = self.args.testing_id
                     for models_ids in self.args.models_ids.split(','):
-                        self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth, self.args.verbose, self.args.filter, self.args.description)
+                        self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth, self.args.verbose, self.args.filter, self.args.description, self.args.structure_of_models_ids)
                 except AttributeError:
                     print_error('You should provide both the ids of the models to use for detection (with -m) and the testing dataset id (with -t).')
                     return False
@@ -1480,9 +1571,13 @@ class Group_of_Experiments(Module, persistent.Persistent):
                 try:
                     models_ids = self.args.models_ids
                     testing_id = self.args.testing_id
-                    self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth, self.args.verbose, self.args.filter, self.args.description)
-                except AttributeError:
-                    print_error('You should provide both the ids of the models to use for detection (with -m) and the testing dataset id (with -t).')
+                    self.create_new_experiment(models_ids, testing_id, self.args.timeslotwidth, self.args.verbose, self.args.filter, self.args.description, self.args.structure_of_models_ids)
+                #except AttributeError:
+                #    print_error('You should provide both the ids of the models to use for detection (with -m) and the testing dataset id (with -t).')
+                #    return False
+                except Exception as e:
+                    print 'Error during the experiment'
+                    print e
                     return False
         elif self.args.delete:
             self.delete_experiment(self.args.delete)

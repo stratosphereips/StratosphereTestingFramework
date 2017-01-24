@@ -31,7 +31,10 @@ class Label(persistent.Persistent):
 
     def get_proto(self):
         # Horrible rigth? But this way I don't have to modify the DB. Just compute it when asked. The only problem is that the struture of the label should not change.
-        return self.name.split('-')[2]
+        try:
+            return self.name.split('-')[2]
+        except IndexError:
+            return False
 
     def get_id(self):
         return self.id
@@ -46,7 +49,7 @@ class Label(persistent.Persistent):
         self.name = name
 
     def change_dataset_id_to_group_of_models_id(self, dataset_id, group_of_models_id):
-        """ Exactly what the name says"""
+        """ Change the dataset id of the groups of models id"""
         prev_values = self.connections[dataset_id]
         self.connections.pop(dataset_id)
         self.connections[group_of_models_id] = prev_values
@@ -58,6 +61,7 @@ class Label(persistent.Persistent):
 
     def add_connection(self, group_of_model_id, connection_id):
         """ Receive a group_of_model_id and a connection_id and store them in this label"""
+        """ 2016-01 No longer used and should be removed """
         try:
             d_id = self.connections[group_of_model_id]
             self.connections[group_of_model_id].append(connection_id)
@@ -133,14 +137,12 @@ class Label(persistent.Persistent):
                 conns.append(self.connections[id])
         return conns[0]
 
-
-
 ##################
 ##################
 ##################
 class Group_Of_Labels(persistent.Persistent):
     """
-    This holds a group of labe
+    This holds a group of labes
     """
     def __init__(self):
         self.labels = BTrees.IOBTree.BTree()
@@ -291,7 +293,7 @@ class Group_Of_Labels(persistent.Persistent):
                 except ValueError:
                     pass
 
-    def apply_filter(self, model):
+    def apply_filter(self, model, groupofmodelid=False, connectionid=False):
         """ Use the stored filter to know what we should match"""
         responses = []
         try:
@@ -316,6 +318,26 @@ class Group_Of_Labels(persistent.Persistent):
                         responses.append(True)
                     else:
                         responses.append(False)
+            # statelength
+            elif key == 'statelength':
+                letters_model = self.get_the_model_of_a_connection(groupofmodelid, connectionid)
+                state = letters_model.get_state()
+                if operator == '<':
+                    if len(state) < int(value):
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '>':
+                    if len(state) > int(value):
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '=':
+                    if len(state) == int(value):
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+            # groupid
             elif key == 'groupid':
                 # One label can have more than one groupid. So search for at least one match.
                 groupsid = model.get_groups_id()
@@ -432,14 +454,6 @@ class Group_Of_Labels(persistent.Persistent):
                 connections = group_of_connections.get_connections()
                 # Construct the filter
                 self.construct_filter(filter)
-                # Check we are using the correct filters
-                for temp_filter in self.filter:
-                    if temp_filter[0] != "connid" :
-                        print_error('Adding labels with a filter only supports the type of filter connid= and connid!=')
-                        return False
-                    elif temp_filter[1] != "=" and temp_filter[1] != "!=":
-                        print_error('Adding labels with a filter only supports the type of filter connid= and connid!=')
-                        return False
                 for connection in connections:
                     connection_id = connection.get_id()
                     has_label = self.check_label_existance(group_of_model_id, connection_id)
@@ -448,20 +462,21 @@ class Group_Of_Labels(persistent.Persistent):
                         label_id = self.labels[list(self.labels.keys())[-1]].get_id() + 1
                     except (KeyError, IndexError):
                         label_id = 1
-                    # Obtain the name
+                    # Obtain the name of this connection
                     name = general_name + '-' + str(general_name_id)
                     proto = general_name.split('-')[2]
                     label = Label(label_id)
                     label.set_name(name)
                     label.add_connection(group_of_model_id, connection_id)
-                    if self.apply_filter(label):
+                    if self.apply_filter(label, groupofmodelid=group_of_model_id, connectionid=connection_id):
                         if has_label:
-                            #print_error('This connection from this dataset was already assigned the label id {}. We did not change it.'.format(has_label))
+                            # his connection from this dataset was already assigned this id. We did not change it
                             continue
-                        # Add label id to the model
+                        # Add the label id to the model
                         self.add_label_to_model(group_of_model_id, connection_id, name)
                         # add auto note with the label to the model
                         self.add_auto_label_for_connection(group_of_model_id, connection_id, name)
+                        # Update the label list
                         self.labels[label_id] = label
                         general_name_id += 1
                     else:
@@ -537,41 +552,44 @@ class Group_Of_Labels(persistent.Persistent):
     def add_label_to_model(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label id and a current dataset, add the label id to the model"""
         model = self.get_the_model_of_a_connection(group_of_model_id, connection_id)
-        try:
-            model.set_label_name(name)
-        except AttributeError:
-            print_error('Non existant label')
-            return False
+        if model != None:
+            try:
+                model.set_label_name(name)
+            except AttributeError:
+                print_error('Non existant label')
+                return False
 
     def del_label_in_model(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label id and a current dataset, del the label id in the model"""
         model = self.get_the_model_of_a_connection(group_of_model_id, connection_id)
-        try:
-            model.del_label_name(name)
-        except AttributeError:
-            print_error('Non existant label')
-            return False
+        if model != None:
+            try:
+                model.del_label_name(name)
+            except AttributeError:
+                print_error('Non existant label')
+                return False
 
     def add_auto_label_for_connection(self, group_of_model_id, connection_id, name):
         """ Given a connection id, label name and a current dataset, add an auto note"""
         text_to_add = "Added label {}".format(name)
         model = self.get_the_model_of_a_connection( group_of_model_id, connection_id)
-        try:
-            note_id = model.get_note_id()
-        except AttributeError:
-            print_error('Some error trying to read tht note id of the model.')
-            return False
-        if not note_id:
-            # There was not originaly a note, so we should now store the new created not in the model.
-            note_id =__notes__.new_note()
-            model.set_note_id(note_id)
-        __notes__.add_auto_text_to_note(note_id, text_to_add)
-        print_info('Connection has note id {}'.format(note_id))
+        if model != None:
+            try:
+                note_id = model.get_note_id()
+            except AttributeError:
+                print_error('Some error trying to read tht note id of the model.')
+                return False
+            if not note_id:
+                # There was not originaly a note, so we should now store the new created not in the model.
+                note_id =__notes__.new_note()
+                model.set_note_id(note_id)
+            __notes__.add_auto_text_to_note(note_id, text_to_add)
+            print_info('Connection has note id {}'.format(note_id))
 
-    def del_label(self, lab_id):
+    def del_label(self, lab_id, filter=""):
         """ Delete a label """
         try:
-            if '-' in lab_id:
+            if lab_id and '-' in lab_id:
                 # Probable range
                 try:
                     first_id = int(lab_id.split('-')[0])
@@ -579,21 +597,36 @@ class Group_Of_Labels(persistent.Persistent):
                 except ValueError:
                     print_error('Invalid label id')
                     return False
-            else:
-                try:
-                    first_id = int(lab_id)
-                    second_id = int(lab_id)
-                except ValueError:
-                    print_error('Invalid label id')
-                    return False
-            for id in range(first_id, second_id + 1):
-                label = self.labels[int(id)]
+                # Delete the range of ids
+                for id in range(first_id, second_id + 1):
+                    label = self.labels[int(id)]
+                    # First delete the label from the model
+                    for group_id in label.get_group_of_model_id():
+                        for conn_id in label.get_connections(groupofmodelid=group_id):
+                            self.del_label_in_model(group_id, conn_id, label.get_name())
+                    # Now delete the label itself
+                    self.labels.pop(id)
+            elif lab_id and '-' not in lab_id:
+                # Just an id
+                label = self.labels[int(lab_id)]
                 # First delete the label from the model
                 for group_id in label.get_group_of_model_id():
                     for conn_id in label.get_connections(groupofmodelid=group_id):
                         self.del_label_in_model(group_id, conn_id, label.get_name())
                 # Now delete the label itself
-                self.labels.pop(id)
+                self.labels.pop(int(lab_id))
+            elif not lab_id and filter:
+                # Use the filter to delete the labels
+                # Construct the filter
+                self.construct_filter(filter)
+                for label in self.get_labels():
+                    if self.apply_filter(label):
+                        # First delete the label from the model
+                        for group_id in label.get_group_of_model_id():
+                            for conn_id in label.get_connections(groupofmodelid=group_id):
+                                self.del_label_in_model(group_id, conn_id, label.get_name())
+                        # Now delete the label itself
+                        self.labels.pop(label.get_id())
         except KeyError:
             print_error('Label id does not exists. Delete only continuous ranges.')
 
@@ -608,12 +641,9 @@ class Group_Of_Labels(persistent.Persistent):
 
     def decide_a_label_name(self, connection_id):
         """ Get a connection id and return a label for it. The connection_id can be empty"""
-        # First choose amount the current labels
-        #print_info('Current Labels')
-        # List all the labels, i.e. with an empty filter
-        # self.list_labels("")
-        selection = raw_input('Select a label Id to assign the same label BUT with a new final number to the current connection. Or press Enter to create a new one:')
-        try:
+        # selection = raw_input('Select a label Id to assign the same label BUT with a new final number to the current connection. Or press Enter to create a new one:')
+        selection = raw_input('Enter the label name. Or an int to select the label of that label Id. Or press Enter to select the parts of the label individually: ')
+        if type(selection) == int:
             # Get the label selected with an id
             label = self.get_label_by_id(int(selection))
             # Get its name
@@ -639,78 +669,79 @@ class Group_Of_Labels(persistent.Persistent):
                 return False
             else:
                 return new_name
-        except ValueError:
-            pass
-
-        # Direction
-        print ("Please provide a direction. It means 'From' or 'To' the most important IP in the connection: ")
-        text = raw_input().strip()
-        if 'From' in text or 'To' in text:
-            direction = text
-        else:
-            print_error('Only those options are available. If you need more, please submit a request')
-            return False
-        # Main decision
-        print ("Please provide the main decision. 'Botnet', 'Malware', 'Normal', 'Attack', or 'Background': ")
-        text = raw_input().strip()
-        if 'Botnet' in text or 'Malware' in text or 'Normal' in text or 'Attack' in text or 'Background' in text:
-            decision = text
-        else:
-            print_error('Only those options are available. If you need more, please submit a request')
-            return False
-        # Main 3 layer proto
-        print ("Please provide the layer 3 proto. 'TCP', 'UDP', 'ICMP', 'IGMP', or 'ARP': ")
-        text = raw_input().strip()
-        if 'TCP' in text or 'UDP' in text or 'ICMP' in text or 'IGMP' in text or 'ARP' in text:
-            proto3 = text
-        else:
-            print_error('Only those options are available. If you need more, please submit a request')
-            return False
-        # Main 4 layer proto
-        print ("Please provide the main proto in layer 4. 'HTTP', 'HTTPS', 'FTP', 'SSH', 'DNS', 'SMTP', 'P2P', 'NTP', 'Multicast', 'NetBIOS', 'Unknown', 'Other', 'Custom', or 'None': ")
-        text = raw_input().strip()
-        if 'HTTP' in text or 'HTTPS' in text or 'FTP' in text or 'SSH' in text or 'DNS' in text or 'SMTP' in text or 'P2P' in text or 'NTP' in text or 'Multicast' in text or 'NetBIOS' in text or 'Unknown' in text or 'Other' in text or 'Custom' in text or 'None' in text:
-            proto4 = text
-        else:
-            print_error('Only those options are available. If you need more, please submit a request')
-            return False
-        # Details
-        print ("Please provide optional details for this connection. Up to 30 chars (No - or spaces allowed). Example: 'Encrypted', 'PlainText', 'CustomEncryption', 'soundcound.com', 'microsoft.com', 'netbios': ")
-        text = raw_input().strip()
-        if len(text) <= 30 and '-' not in text and ' ' not in text:
-            details = text
-        else:
-            print_error('Only those options are available. If you need more, please submit a request')
-            return False
-        # Becareful if you change the structure of the label. In get_proto is harcoded
-        name_so_far = direction+'-'+decision+'-'+proto3+'-'+proto4+'-'+details
-
-        # Separator id
-        # Search for labels with this 'name' so far
-        #matches = self.search_label_name(name_so_far, verbose=True, exact = 3)
-        matches = self.search_label_name(name_so_far, verbose=True, exact=2)
-        if matches:
-            print_info("There are other labels with a similar name. You can enter 'NEW' to create a new label with this name and a new id. Or you can input the label ID to add this connection to that label. Any other input will stop the creation of the label to let you inspect the content of the labels.")
+        elif selection == '':
+            # Enter pressed
+            # Direction
+            print ("Please provide a direction. It means 'From' or 'To' the most important IP in the connection: ")
             text = raw_input().strip()
-            # Is it an int?
-            try:
-                inttext = int(text)
-                label = self.get_label_by_id(inttext)
-                if label:
-                    return label.get_name()
-                print_error('No previous label with that id.')
+            if 'From' in text or 'To' in text:
+                direction = text
+            else:
+                print_error('Only those options are available. If you need more, please submit a request')
                 return False
-            except ValueError:
-                # Is text
-                if text == 'NEW':
-                    last_id = int(matches[-1].split('-')[-1])
-                    new_id = str(last_id + 1)
-                    name = name_so_far + '-' + new_id
-                else:
+            # Main decision
+            print ("Please provide the main decision. 'Botnet', 'Malware', 'Normal', 'Attack', or 'Background': ")
+            text = raw_input().strip()
+            if 'Botnet' in text or 'Malware' in text or 'Normal' in text or 'Attack' in text or 'Background' in text:
+                decision = text
+            else:
+                print_error('Only those options are available. If you need more, please submit a request')
+                return False
+            # Main 3 layer proto
+            print ("Please provide the layer 3 proto. 'TCP', 'UDP', 'ICMP', 'IGMP', or 'ARP': ")
+            text = raw_input().strip()
+            if 'TCP' in text or 'UDP' in text or 'ICMP' in text or 'IGMP' in text or 'ARP' in text:
+                proto3 = text
+            else:
+                print_error('Only those options are available. If you need more, please submit a request')
+                return False
+            # Main 4 layer proto
+            print ("Please provide the main proto in layer 4. 'HTTP', 'HTTPS', 'FTP', 'SSH', 'DNS', 'SMTP', 'P2P', 'NTP', 'Multicast', 'NetBIOS', 'Unknown', 'Other', 'Custom', or 'None': ")
+            text = raw_input().strip()
+            if 'HTTP' in text or 'HTTPS' in text or 'FTP' in text or 'SSH' in text or 'DNS' in text or 'SMTP' in text or 'P2P' in text or 'NTP' in text or 'Multicast' in text or 'NetBIOS' in text or 'Unknown' in text or 'Other' in text or 'Custom' in text or 'None' in text:
+                proto4 = text
+            else:
+                print_error('Only those options are available. If you need more, please submit a request')
+                return False
+            # Details
+            print ("Please provide optional details for this connection. Up to 30 chars (No - or spaces allowed). Example: 'Encrypted', 'PlainText', 'CustomEncryption', 'soundcound.com', 'microsoft.com', 'netbios': ")
+            text = raw_input().strip()
+            if len(text) <= 30 and '-' not in text and ' ' not in text:
+                details = text
+            else:
+                print_error('Only those options are available. If you need more, please submit a request')
+                return False
+            # Becareful if you change the structure of the label. In get_proto is harcoded
+            name_so_far = direction+'-'+decision+'-'+proto3+'-'+proto4+'-'+details
+
+            # Separator id
+            # Search for labels with this 'name' so far
+            #matches = self.search_label_name(name_so_far, verbose=True, exact = 3)
+            matches = self.search_label_name(name_so_far, verbose=True, exact=2)
+            if matches:
+                print_info("There are other labels with a similar name. You can enter 'NEW' to create a new label with this name and a new id. Or you can input the label ID to add this connection to that label. Any other input will stop the creation of the label to let you inspect the content of the labels.")
+                text = raw_input().strip()
+                # Is it an int?
+                try:
+                    inttext = int(text)
+                    label = self.get_label_by_id(inttext)
+                    if label:
+                        return label.get_name()
+                    print_error('No previous label with that id.')
                     return False
-        else:
-            name = name_so_far + '-1'
-        return name
+                except ValueError:
+                    # Is text
+                    if text == 'NEW':
+                        last_id = int(matches[-1].split('-')[-1])
+                        new_id = str(last_id + 1)
+                        name = name_so_far + '-' + new_id
+                    else:
+                        return False
+            else:
+                name = name_so_far + '-1'
+            return name
+        elif type(selection) == str:
+            return selection
 
     def delete_connection(self, group_of_model_id, connection_id):
         """ Get a group_of_model_id, connection id, find its label and delete it"""
@@ -742,10 +773,5 @@ class Group_Of_Labels(persistent.Persistent):
                     group_of_model_id = str(dataset_id) + '-1' 
                     label.change_dataset_id_to_group_of_models_id(dataset_id, group_of_model_id)
                     print_info('\tMigrated')
-
-    def delete_all_labels_from_dataset(self, dataset_id):
-        """ Given a dataset id, delete all the connections from that dataset from the labels """
-        pass
-
 
 __group_of_labels__ = Group_Of_Labels()

@@ -10,7 +10,6 @@ import curses
 import multiprocessing
 from multiprocessing import Queue
 from multiprocessing import JoinableQueue
-from collections import deque
 import time
 from datetime import datetime
 import re
@@ -18,15 +17,10 @@ import re
 
 from stf.common.out import *
 from stf.common.abstracts import Module
-from stf.core.models import  __groupofgroupofmodels__ 
 from stf.core.dataset import __datasets__
-from stf.core.notes import __notes__
-from stf.core.connections import  __group_of_group_of_connections__
 from stf.core.models_constructors import __modelsconstructors__ 
-from stf.core.labels import __group_of_labels__
 from stf.core.database import __database__
 from stf.core.connections import Flow
-from modules.experiments_1 import Tuple
 from stf.core.models import Model
 
 

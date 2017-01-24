@@ -648,8 +648,18 @@ class Group_Of_Connections(object):
                         responses.append(True)
                     else:
                         responses.append(False)
+                elif operator == '<=':
+                    if amount_of_flows <= value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
                 elif operator == '>':
                     if amount_of_flows > value:
+                        responses.append(True)
+                    else:
+                        responses.append(False)
+                elif operator == '>=':
+                    if amount_of_flows >= value:
                         responses.append(True)
                     else:
                         responses.append(False)

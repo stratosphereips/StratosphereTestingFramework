@@ -4,7 +4,6 @@
 
 # This module implements markov chains of first order over the letters in the chain of states of the behavioral models.
 import persistent
-import pykov
 import BTrees.OOBTree
 from subprocess import Popen, PIPE
 import copy
@@ -19,6 +18,7 @@ from stf.common.abstracts import Module
 from stf.core.models import  __groupofgroupofmodels__ 
 from stf.core.labels import __group_of_labels__
 from stf.core.database import __database__
+import stf.common.markov_chains as mc
 
 
 
@@ -108,7 +108,11 @@ class Markov_Model(persistent.Persistent):
             print_error('There is no state yet')
             return False
         # Generate the MC
-        self.init_vector, self.matrix = pykov.maximum_likelihood_probabilities(separated_letters, lag_time=1, separator='#')
+        self.init_vector, self.matrix = mc.maximum_likelihood_probabilities(separated_letters, order=1)
+        #self.init_vector, self.matrix = pykov.maximum_likelihood_probabilities(separated_letters, order=1)
+        #print 'In create() in markov models. State received: {}'.format(state)
+        #print 'Init vector created: {}'.format(self.init_vector)
+        #print 'Matrix created: {}'.format(self.matrix)
 
     def get_matrix(self):
         """ Return the matrix """
@@ -137,20 +141,26 @@ class Markov_Model(persistent.Persistent):
         i = 0
         probability = 0
         ignored = 0
+        penalty = -4.6
         # Get the initial probability of this letter in the IV.
+        # First get the value of the init prob of the first letter
         try:
             init_letter_prob = math.log(self.init_vector[state[i]])
+        except KeyError:
+            # We don't have an init_vector nor matrix, because we are still building them for each state. This is the first state
+            init_letter_prob = 0
         except ValueError:
-            # There is not enough data to even create a matrix
             init_letter_prob = 0
         except IndexError:
-            # The first letter is not in the matrix, so penalty...
-            init_letter_prob = -4.6
+            # When the state is deleted after X letters, it can happen that the sate is empty. Apply the penalty.
+            init_letter_prob = penalty
+	# Assign the first letter prib
+	probability = init_letter_prob
         # We should have more than 2 states at least
         while i < len(state) and len(state) > 1:
             try:
                 vector = state[i] + state[i+1]
-                growing_v = state[0:i+2]
+                # growing_v = state[0:i+2]
                 # The transitions that include the # char will be automatically excluded
                 temp_prob = self.matrix.walk_probability(vector)
                 i += 1
@@ -161,8 +171,8 @@ class Markov_Model(persistent.Persistent):
                     # Here is our trick. If two letters are not in the matrix... assign a penalty probability
                     # The temp_prob is the penalty we assign if we can't find the transition
                     #temp_prob = -2.3
-                    temp_prob = -4.6 # Which is approx 0.01 probability
-                    probability = probability + temp_prob # logs should be +
+                    #temp_prob = penalty # Which is approx 0.01 probability
+                    probability = probability + penalty # logs should be +
                     if '#' not in vector:
                         ignored += 1
                     continue
@@ -172,6 +182,7 @@ class Markov_Model(persistent.Persistent):
         #if ignored:
             #print_warning('Ignored transitions: {}'.format(ignored))
             #ignored = 0
+        #print 'Returned prob (in log): {}'.format(probability)
         return probability       
 
     def export(self, path):
