@@ -135,6 +135,7 @@ class Commands(object):
         parser.add_argument('-o', '--listnotes', default=0,  metavar='group_model_id', help="List the notes related with this model id. You can use the -f with filters here.")
         parser.add_argument('-a', '--amountoflettersinstate', default=0, metavar='amount_of_letters', help="When used with -L, limit the maximum amount of letters in the state to show per line. Helps avoiding dangerously long lines.")
         parser.add_argument('-c', '--constructor', metavar="constructor_id", type=int, help="Use this constructor for generating the new models. Use optionally with -g.")
+        parser.add_argument('-e', '--exportasciimodels', metavar="group_model_id", help="Export an ascii list of the all the connections, labels and letters in this Model id. Useful for external analysis.")
 
 
         try:
@@ -171,6 +172,10 @@ class Commands(object):
         # Subcomand to list the models in a group
         elif args.listmodels:
             __groupofgroupofmodels__.list_models_in_group(args.listmodels, args.filter, int(args.amountoflettersinstate))
+
+        # Subcommand to export the ascii of the models
+        elif args.exportasciimodels:
+            __groupofgroupofmodels__.export_models_in_group(args.exportasciimodels, args.filter)
 
         # Subcomand to delete a model from a group by id or filter
         elif args.deletemodel:

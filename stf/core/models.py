@@ -357,6 +357,23 @@ class Group_of_Models(persistent.Persistent):
         sys.stdout = sys.__stdout__ 
         f.close()
 
+    def export_models(self, filter):
+        """ Export the models in this group that match the filter as ascii to a file"""
+        # construct the filter
+        self.construct_filter(filter)
+        f = tempfile.NamedTemporaryFile(mode='w+b', delete=False)
+        print 'Storing the models in filename {} using TAB as field separator.'.format(f.name)
+        text = 'ModelId\tState\tLabelName'
+        f.write(text)
+        amount = 1
+        for model in self.models.values():
+            if self.apply_filter(model):
+                text = '{}\t{}\t{}\n'.format(model.get_id(), model.get_state(),model.get_label_name())
+                f.write(text)
+                amount += 1
+        f.close()
+        print '{} models exported'.format(amount)
+
     def delete_model_by_id(self, model_id):
         """ Delete one model given a model id """
         try:
@@ -627,6 +644,13 @@ class Group_of_Group_of_Models(persistent.Persistent):
         try:
             group = self.group_of_models[id]
             group.list_models(filter, max_letters)
+        except KeyError:
+            print_error('Inexistant id of group of models.')
+
+    def export_models_in_group(self, id, filter):
+        try:
+            group = self.group_of_models[id]
+            group.export_models(filter)
         except KeyError:
             print_error('Inexistant id of group of models.')
 
