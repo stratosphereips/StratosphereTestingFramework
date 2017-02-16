@@ -363,7 +363,7 @@ class Group_of_Models(persistent.Persistent):
         self.construct_filter(filter)
         f = tempfile.NamedTemporaryFile(mode='w+b', delete=False)
         print 'Storing the models in filename {} using TAB as field separator.'.format(f.name)
-        text = 'ModelId\tState\tLabelName'
+        text = 'ModelId\tState\tLabelName\n'
         f.write(text)
         amount = 1
         for model in self.models.values():
